@@ -14,18 +14,18 @@ Content (problems, companies, tracks) lives in Postgres, accessed through [Drizz
 
 ## Getting started
 
-Requires a local Postgres (Homebrew, Postgres.app, or Docker).
+Requires [pnpm](https://pnpm.io) and a Postgres database (local Homebrew/Postgres.app/Docker, or hosted).
 
 ```bash
-npm install
-createdb callback
-cp .env.example .env   # adjust DATABASE_URL if your Postgres needs credentials
-npm run db:migrate
-npm run db:seed
-npm run dev
+pnpm install
+createdb callback     # if using local Postgres
+cp .env.example .env  # set DATABASE_URL for your database
+pnpm db:migrate
+pnpm db:seed
+pnpm dev
 ```
 
-Open http://localhost:3000. Other scripts: `npm run build` (production build + type check; needs the database running), `npm run lint`, `npm run db:generate` (new migration after schema changes), `npm run db:studio` (data browser).
+Open http://localhost:3000. Other scripts: `pnpm build` (production build + type check; needs the database reachable), `pnpm lint`, `pnpm db:generate` (new migration after schema changes), `pnpm db:studio` (data browser).
 
 ## Structure
 

@@ -5,20 +5,21 @@ Tech-interview prep platform (think LeetCode / PracHub / Interview Query): codin
 ## Stack
 
 - Next.js 16 (App Router, TypeScript, `src/` layout, `@/*` alias)
+- pnpm (pinned via `packageManager`; postinstall scripts for esbuild/unrs-resolver are blocked by pnpm 10 defaults and not needed — their prebuilt binaries are used)
 - Tailwind CSS v4 (CSS-first config in `src/app/globals.css`; dark-only theme, zinc neutrals + indigo accent)
-- ESLint 9 flat config (`npm run lint`)
+- ESLint 9 flat config (`pnpm lint`)
 - CodeMirror 6 (`@uiw/react-codemirror`, oneDark theme) for the in-browser editor
-- Postgres + Drizzle ORM (`node-postgres` driver). Content is served from the DB; `src/lib/seed-data.ts` is the canonical content source, synced via `npm run db:seed` (idempotent upserts). `DATABASE_URL` comes from `.env`.
+- Postgres + Drizzle ORM (`node-postgres` driver). Content is served from the DB; `src/lib/seed-data.ts` is the canonical content source, synced via `pnpm db:seed` (idempotent upserts). `DATABASE_URL` comes from `.env`.
 
 ## Commands
 
-- `npm run dev` — dev server
-- `npm run build` — production build; also the type check. Run before finishing any work. Needs Postgres running (prerender queries the DB).
-- `npm run lint`
-- `npm run db:generate` — emit a SQL migration after editing `src/db/schema.ts`
-- `npm run db:migrate` — apply migrations
-- `npm run db:seed` — sync `seed-data.ts` into the DB (run after any content edit)
-- `npm run db:studio` — Drizzle Studio data browser
+- `pnpm dev` — dev server
+- `pnpm build` — production build; also the type check. Run before finishing any work. Needs the database reachable (prerender queries the DB).
+- `pnpm lint`
+- `pnpm db:generate` — emit a SQL migration after editing `src/db/schema.ts`
+- `pnpm db:migrate` — apply migrations
+- `pnpm db:seed` — sync `seed-data.ts` into the DB (run after any content edit)
+- `pnpm db:studio` — Drizzle Studio data browser
 
 ## Structure
 
@@ -33,7 +34,7 @@ Tech-interview prep platform (think LeetCode / PracHub / Interview Query): codin
 ## Conventions
 
 - Server components by default; add `"use client"` only when interactivity requires it.
-- All content reads go through the accessors in `src/lib/data.ts` — keep that the single read path. Content edits go in `seed-data.ts`, then `npm run db:seed`; schema changes go in `src/db/schema.ts`, then `db:generate` + `db:migrate`.
+- All content reads go through the accessors in `src/lib/data.ts` — keep that the single read path. Content edits go in `seed-data.ts`, then `pnpm db:seed`; schema changes go in `src/db/schema.ts`, then `db:generate` + `db:migrate`.
 - Content pages use `revalidate = 300` (ISR), so DB content updates appear without a rebuild in production.
 - App Router style: `params` and `searchParams` are Promises — await them.
 - Company/problem/track cross-references are by slug; `trackProblems` filters out dangling slugs.
