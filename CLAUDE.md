@@ -1,48 +1,180 @@
-# Callback
+# Ruflo — Claude Code Configuration
 
-Tech-interview prep platform (think LeetCode / PracHub / Interview Query): coding, system design, behavioral, and company-specific prep. Brand voice: "get the callback" — the nav logo renders as `call(back)`.
+## Rules
 
-## Stack
+- Do what has been asked; nothing more, nothing less
+- NEVER create files unless absolutely necessary — prefer editing existing files
+- NEVER create documentation files unless explicitly requested
+- NEVER save working files or tests to root — use `/src`, `/tests`, `/docs`, `/config`, `/scripts`
+- ALWAYS read a file before editing it
+- NEVER commit secrets, credentials, or .env files
+- NEVER add a `Co-Authored-By` trailer to user commits unless this project's `.claude/settings.json` has `attribution.commit` set (#2078). The Claude Code Bash tool may suggest one in its default commit-message template — ignore it. `Co-Authored-By` is semantic authorship attribution under git/GitHub convention; the tool is the facilitator, not a co-author.
+- Keep files under 500 lines
+- Validate input at system boundaries
 
-- Next.js 16 (App Router, TypeScript, `src/` layout, `@/*` alias)
-- pnpm (pinned via `packageManager`; postinstall scripts for esbuild/unrs-resolver are blocked by pnpm 10 defaults and not needed — their prebuilt binaries are used)
-- Tailwind CSS v4 (CSS-first config in `src/app/globals.css`; dark-only theme, zinc neutrals + indigo accent)
-- ESLint 9 flat config (`pnpm lint`)
-- CodeMirror 6 (`@uiw/react-codemirror`, oneDark theme) for the in-browser editor
-- Postgres + Drizzle ORM (`node-postgres` driver). Content is served from the DB; `src/lib/seed-data.ts` is the canonical content source, synced via `pnpm db:seed` (idempotent upserts). `DATABASE_URL` comes from `.env`.
+## Agent Comms (SendMessage-First Coordination)
 
-## Commands
+Named agents coordinate via `SendMessage`, not polling or shared state.
 
-- `pnpm dev` — dev server
-- `pnpm build` — production build; also the type check. Run before finishing any work. Needs the database reachable (prerender queries the DB).
-- `pnpm lint`
-- `pnpm db:generate` — emit a SQL migration after editing `src/db/schema.ts`
-- `pnpm db:migrate` — apply migrations
-- `pnpm db:seed` — sync `seed-data.ts` into the DB (run after any content edit)
-- `pnpm db:studio` — Drizzle Studio data browser
+```
+Lead (you) ←→ architect ←→ developer ←→ tester ←→ reviewer
+              (named agents message each other directly)
+```
 
-## Structure
+### Spawning a Coordinated Team
 
-- `src/app` — routes: `/` landing, `/problems` (+ `[slug]`), `/companies` (+ `[slug]`), `/tracks` (+ `[slug]`). Detail pages are statically generated via `generateStaticParams`; `/problems` reads `searchParams` for category filtering.
-- `src/lib/types.ts` — domain model: `Problem`, `Company`, `Track`, `Category`, `Difficulty`, plus `CATEGORY_LABELS`.
-- `src/lib/data.ts` — async, `server-only` accessors (`getProblem`, `problemsForCompany`, `trackProblems`, …) mapping Drizzle rows to the domain types. The single content read path.
-- `src/lib/seed-data.ts` — canonical content arrays (problems/companies/tracks with judges).
-- `src/db/schema.ts` — Drizzle tables: `problems`, `companies`, `tracks`, join tables `problem_companies` and ordered `track_problems`; `hints`/`process`/`judge` are JSONB. `src/db/index.ts` is the pooled client; `src/db/seed.ts` the seeder; `drizzle/` holds SQL migrations.
-- `src/lib/run-judge.ts` — client-side judge: runs user JS in a Web Worker (4s limit), deep-equal compare, per-case verdicts.
-- `src/components` — shared UI: `Nav`, `ProblemRow`, `DifficultyBadge`, `Workspace` (client component: editor + run + results).
+```javascript
+// ALL agents in ONE message, each knows WHO to message next
+Agent({ prompt: "Research the codebase. SendMessage findings to 'architect'.",
+  subagent_type: "researcher", name: "researcher", run_in_background: true })
+Agent({ prompt: "Wait for 'researcher'. Design solution. SendMessage to 'coder'.",
+  subagent_type: "system-architect", name: "architect", run_in_background: true })
+Agent({ prompt: "Wait for 'architect'. Implement it. SendMessage to 'tester'.",
+  subagent_type: "coder", name: "coder", run_in_background: true })
+Agent({ prompt: "Wait for 'coder'. Write tests. SendMessage results to 'reviewer'.",
+  subagent_type: "tester", name: "tester", run_in_background: true })
+Agent({ prompt: "Wait for 'tester'. Review code quality and security.",
+  subagent_type: "reviewer", name: "reviewer", run_in_background: true })
 
-## Conventions
+// Kick off the pipeline
+SendMessage({ to: "researcher", summary: "Start", message: "[task context]" })
+```
 
-- Server components by default; add `"use client"` only when interactivity requires it.
-- All content reads go through the accessors in `src/lib/data.ts` — keep that the single read path. Content edits go in `seed-data.ts`, then `pnpm db:seed`; schema changes go in `src/db/schema.ts`, then `db:generate` + `db:migrate`.
-- Content pages use `revalidate = 300` (ISR), so DB content updates appear without a rebuild in production.
-- App Router style: `params` and `searchParams` are Promises — await them.
-- Company/problem/track cross-references are by slug; `trackProblems` filters out dangling slugs.
-- Problem prompts are mostly plain text split into paragraphs on blank lines, but ``` fenced blocks render preformatted (used for worked examples with meaningful whitespace). No other markdown is supported.
-- To make a problem runnable, add a `judge` block to it in `seed-data.ts`: `starterCode`, `entry` (function the runner calls), `tests` (JSON-serializable `input` args + `expected`), and optional `driverCode` for class-based problems (defines the entry function that drives the user's class — see lru-cache). Results are deep-equal compared, so craft test inputs with exactly one correct answer. User code is saved per-problem in localStorage (`callback:code:<slug>`).
+### Patterns
 
-## Open decisions (not made yet — ask before assuming)
+| Pattern | Flow | Use When |
+|---------|------|----------|
+| **Pipeline** | A → B → C → D | Sequential dependencies (feature dev) |
+| **Fan-out** | Lead → A, B, C → Lead | Independent parallel work (research) |
+| **Supervisor** | Lead ↔ workers | Ongoing coordination (complex refactor) |
 
-- Auth provider, payments/monetization.
-- Server-side code execution (more languages, hidden tests) — the current judge is client-side JavaScript only.
-- Production database hosting (local Postgres only so far).
+### Rules
+
+- ALWAYS name agents — `name: "role"` makes them addressable
+- ALWAYS include comms instructions in prompts — who to message, what to send
+- Spawn ALL agents in ONE message with `run_in_background: true`
+- After spawning: STOP, tell user what's running, wait for results
+- NEVER poll status — agents message back or complete automatically
+
+## Swarm & Routing
+
+### Config
+- **Topology**: hierarchical-mesh (anti-drift)
+- **Max Agents**: 15
+- **Memory**: hybrid
+- **HNSW**: Enabled
+- **Neural**: Enabled
+
+```bash
+npx @claude-flow/cli@latest swarm init --topology hierarchical --max-agents 8 --strategy specialized
+```
+
+### Agent Routing
+
+| Task | Agents | Topology |
+|------|--------|----------|
+| Bug Fix | researcher, coder, tester | hierarchical |
+| Feature | architect, coder, tester, reviewer | hierarchical |
+| Refactor | architect, coder, reviewer | hierarchical |
+| Performance | perf-engineer, coder | hierarchical |
+| Security | security-architect, auditor | hierarchical |
+
+### When to Swarm
+- **YES**: 3+ files, new features, cross-module refactoring, API changes, security, performance
+- **NO**: single file edits, 1-2 line fixes, docs updates, config changes, questions
+
+### 3-Tier Model Routing
+
+| Tier | Handler | Use Cases |
+|------|---------|-----------|
+| 1 | Agent Booster (WASM) | Simple transforms — skip LLM, use Edit directly |
+| 2 | Haiku | Simple tasks, low complexity |
+| 3 | Sonnet/Opus | Architecture, security, complex reasoning |
+
+## Memory & Learning
+
+### Before Any Task
+```bash
+npx @claude-flow/cli@latest memory search --query "[task keywords]" --namespace patterns
+npx @claude-flow/cli@latest hooks route --task "[task description]"
+```
+
+### After Success
+```bash
+npx @claude-flow/cli@latest memory store --namespace patterns --key "[name]" --value "[what worked]"
+npx @claude-flow/cli@latest hooks post-task --task-id "[id]" --success true --store-results true
+```
+
+### MCP Tools (use `ToolSearch("keyword")` to discover)
+
+| Category | Key Tools |
+|----------|-----------|
+| **Memory** | `memory_store`, `memory_search`, `memory_search_unified` |
+| **Bridge** | `memory_import_claude`, `memory_bridge_status` |
+| **Swarm** | `swarm_init`, `swarm_status`, `swarm_health` |
+| **Agents** | `agent_spawn`, `agent_list`, `agent_status` |
+| **Hooks** | `hooks_route`, `hooks_post-task`, `hooks_worker-dispatch` |
+| **Security** | `aidefence_scan`, `aidefence_is_safe`, `aidefence_has_pii` |
+| **Hive-Mind** | `hive-mind_init`, `hive-mind_consensus`, `hive-mind_spawn` |
+
+### Background Workers
+
+| Worker | When |
+|--------|------|
+| `audit` | After security changes |
+| `optimize` | After performance work |
+| `testgaps` | After adding features |
+| `map` | Every 5+ file changes |
+| `document` | After API changes |
+
+```bash
+npx @claude-flow/cli@latest hooks worker dispatch --trigger audit
+```
+
+## Agents
+
+**Core**: `coder`, `reviewer`, `tester`, `planner`, `researcher`
+**Architecture**: `system-architect`, `backend-dev`, `mobile-dev`
+**Security**: `security-architect`, `security-auditor`
+**Performance**: `performance-engineer`, `perf-analyzer`
+**Coordination**: `hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`
+**GitHub**: `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`
+
+Any string works as a custom agent type.
+
+## Build & Test
+
+- ALWAYS run tests after code changes
+- ALWAYS verify build succeeds before committing
+
+```bash
+npm run build && npm test
+```
+
+## CLI Quick Reference
+
+```bash
+npx @claude-flow/cli@latest init --wizard           # Setup
+npx @claude-flow/cli@latest swarm init --v3-mode     # Start swarm
+npx @claude-flow/cli@latest memory search --query "" # Vector search
+npx @claude-flow/cli@latest hooks route --task ""    # Route to agent
+npx @claude-flow/cli@latest doctor --fix             # Diagnostics
+npx @claude-flow/cli@latest security scan            # Security scan
+npx @claude-flow/cli@latest performance benchmark    # Benchmarks
+```
+
+26 commands, 140+ subcommands. Use `--help` on any command for details.
+
+## Setup
+
+```bash
+claude mcp add claude-flow -- npx -y ruflo@latest mcp start
+npx ruflo@latest doctor --fix
+```
+
+> The background `daemon` is optional. It runs interval workers that each spawn
+> a headless `claude` session, so it consumes tokens continuously. Start it only
+> if you want those sweeps: `npx ruflo@latest daemon start` (self-stops after 12h
+> by default; `--ttl 0` to disable, `daemon status --all` to audit running daemons).
+
+**Agent tool** handles execution (agents, files, code, git). **MCP tools** handle coordination (swarm, memory, hooks). **CLI** is the same via Bash.

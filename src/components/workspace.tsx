@@ -7,7 +7,12 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { useProgress } from "./progress";
-import { runJudge, type RunResult, type TestVerdict } from "@/lib/run-judge";
+import {
+  runJudge,
+  runOnServer,
+  type RunResult,
+  type TestVerdict,
+} from "@/lib/run-judge";
 import type { Judge } from "@/lib/types";
 
 const extensions = [javascript(), keymap.of([indentWithTab])];
@@ -44,7 +49,10 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   const run = async () => {
     setRunning(true);
     setResult(null);
-    const runResult = await runJudge(code, judge);
+    // Prefer the Judge0 sandbox; fall back to the in-browser worker when
+    // the server route reports it isn't configured (or is unreachable).
+    const runResult =
+      (await runOnServer(slug, code)) ?? (await runJudge(code, judge));
     setResult(runResult);
     setRunning(false);
     if (runResult.status === "pass" || runResult.status === "fail") {

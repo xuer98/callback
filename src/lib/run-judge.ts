@@ -18,6 +18,38 @@ export type RunResult =
   | { status: "error"; message: string }
   | { status: "timeout"; message: string };
 
+/**
+ * Runs the solution on the server (Judge0 sandbox) via /api/run.
+ * Returns null when server-side execution isn't available — Judge0 not
+ * configured (503) or the request never reached us — so the caller can
+ * fall back to the in-browser worker below.
+ */
+export async function runOnServer(
+  slug: string,
+  code: string,
+): Promise<RunResult | null> {
+  try {
+    const res = await fetch("/api/run", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug, code }),
+    });
+    if (res.status === 503) return null;
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      return {
+        status: "error",
+        message: body?.error ?? `Run failed (HTTP ${res.status}).`,
+      };
+    }
+    return (await res.json()) as RunResult;
+  } catch {
+    return null;
+  }
+}
+
 const TIME_LIMIT_MS = 4000;
 
 // Runs entirely inside a Web Worker: user code never touches the page's
