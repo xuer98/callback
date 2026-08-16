@@ -179,6 +179,87 @@ function canFinish(numCourses, prerequisites) {
     },
   },
   {
+    slug: "max-width",
+    title: "Max Width",
+    category: "algorithms",
+    difficulty: "hard",
+    companies: ["pinterest"],
+    summary: "Greedy line packing and fiddly space math — full text justification.",
+    prompt: `Given an array of words and a max_width parameter, write a function justify to format the text such that each line has exactly max_width characters. Pad extra spaces " " when necessary so that each line has exactly max_width characters.
+
+Extra spaces between words should be distributed as evenly as possible. If the number of spaces on a line does not divide evenly between words, place excess spaces on the right-hand side of each line.
+
+Note: you may assume that there is no word in words that is longer than max_width.
+
+Example:
+
+\`\`\`
+words = ["This", "is", "an", "example", "of", "text", "justification."]
+max_width = 16
+
+justify(words, max_width)
+=> [
+  "This    is    an",
+  "example  of text",
+  "justification.  "
+]
+\`\`\``,
+    hints: [
+      "Greedy: keep adding words to the current line while they still fit with single spaces between them, then justify the finished line.",
+      "For a line with g gaps and s spaces to place, every gap gets floor(s / g), and the leftmost s mod g gaps get one extra — that reproduces \"example  of text\" from the example.",
+    ],
+    judge: {
+      starterCode: `/**
+ * @param {string[]} words
+ * @param {number} maxWidth
+ * @returns {string[]} lines, each exactly maxWidth characters
+ */
+function justify(words, maxWidth) {
+  // Your code here
+  return [];
+}
+`,
+      entry: "justify",
+      tests: [
+        {
+          name: "Example from the prompt",
+          input: [
+            ["This", "is", "an", "example", "of", "text", "justification."],
+            16,
+          ],
+          expected: ["This    is    an", "example  of text", "justification.  "],
+        },
+        {
+          name: "Single short word",
+          input: [["hello"], 10],
+          expected: ["hello     "],
+        },
+        {
+          input: [["ab", "cd", "ef"], 5],
+          expected: ["ab cd", "ef   "],
+        },
+        {
+          name: "Excess spaces go to the leftmost gaps",
+          input: [["a", "b", "c", "d", "longword"], 9],
+          expected: ["a  b  c d", "longword "],
+        },
+        {
+          name: "Word exactly max_width wide",
+          input: [
+            ["This", "is", "an", "example", "of", "text", "justification."],
+            14,
+          ],
+          expected: [
+            "This   is   an",
+            "example     of",
+            "text          ",
+            "justification.",
+          ],
+        },
+      ],
+    },
+  },
+  {
     slug: "implement-debounce",
     title: "Implement debounce()",
     category: "frontend",
@@ -328,6 +409,19 @@ export const companies: Company[] = [
       "Onsite: coding plus architecture deep dives",
       "Culture conversation",
       "Team matching",
+    ],
+  },
+  {
+    slug: "pinterest",
+    name: "Pinterest",
+    blurb:
+      "Product-minded loops with practical coding rounds — string and array manipulation with fiddly edge cases shows up often, and design rounds stay grounded in surfaces like feeds and boards.",
+    process: [
+      "Recruiter screen",
+      "Technical phone screen: one coding problem",
+      "Onsite: two coding rounds",
+      "System design round",
+      "Behavioral / cross-functional round",
     ],
   },
 ];

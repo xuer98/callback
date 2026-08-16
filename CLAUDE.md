@@ -30,6 +30,7 @@ Tech-interview prep platform (think LeetCode / PracHub / Interview Query): codin
 - All content reads go through the accessors in `src/lib/data.ts` — keep that the single read path so swapping in a database stays cheap.
 - App Router style: `params` and `searchParams` are Promises — await them.
 - Company/problem/track cross-references are by slug; `trackProblems` filters out dangling slugs.
+- Problem prompts are mostly plain text split into paragraphs on blank lines, but ``` fenced blocks render preformatted (used for worked examples with meaningful whitespace). No other markdown is supported.
 - To make a problem runnable, add a `judge` block to it in `data.ts`: `starterCode`, `entry` (function the runner calls), `tests` (JSON-serializable `input` args + `expected`), and optional `driverCode` for class-based problems (defines the entry function that drives the user's class — see lru-cache). Results are deep-equal compared, so craft test inputs with exactly one correct answer. User code is saved per-problem in localStorage (`callback:code:<slug>`).
 
 ## Open decisions (not made yet — ask before assuming)

@@ -63,15 +63,30 @@ export default async function ProblemPage({
 }
 
 function Prompt({ problem }: { problem: Problem }) {
+  // Odd-indexed segments sit between ``` fences and render preformatted.
+  const segments = problem.prompt.split("```");
   return (
     <div
       className={`space-y-4 text-[15px] leading-7 text-zinc-300 ${
         problem.judge ? "" : "mt-8"
       }`}
     >
-      {problem.prompt.split("\n\n").map((paragraph, i) => (
-        <p key={i}>{paragraph}</p>
-      ))}
+      {segments.map((segment, i) =>
+        i % 2 === 1 ? (
+          <pre
+            key={i}
+            className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 font-mono text-xs leading-6"
+          >
+            {segment.trim()}
+          </pre>
+        ) : (
+          segment
+            .split("\n\n")
+            .map((paragraph) => paragraph.trim())
+            .filter(Boolean)
+            .map((paragraph, j) => <p key={`${i}-${j}`}>{paragraph}</p>)
+        ),
+      )}
     </div>
   );
 }
