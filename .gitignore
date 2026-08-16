@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local tool state
+/.claude-flow/
+.claude/proven-config.json
+.claude/.proven-config-version
+.claude/settings.local.json
