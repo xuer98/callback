@@ -6,6 +6,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
+import { useProgress } from "./progress";
 import { runJudge, type RunResult, type TestVerdict } from "@/lib/run-judge";
 import type { Judge } from "@/lib/types";
 
@@ -38,11 +39,17 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     [storageKey],
   );
 
+  const { reportRun } = useProgress();
+
   const run = async () => {
     setRunning(true);
     setResult(null);
-    setResult(await runJudge(code, judge));
+    const runResult = await runJudge(code, judge);
+    setResult(runResult);
     setRunning(false);
+    if (runResult.status === "pass" || runResult.status === "fail") {
+      void reportRun(slug, runResult.status === "pass");
+    }
   };
 
   const reset = () => {

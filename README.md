@@ -40,9 +40,10 @@ Open http://localhost:3000. Other scripts: `pnpm build` (production build + type
 
 - [x] In-browser code editor for algorithm problems (CodeMirror + Web Worker judge, JavaScript only)
 - [x] Database + ORM (Postgres + Drizzle; content served from the DB)
-- [ ] Auth and user accounts
+- [x] Auth and user accounts (Better Auth: email/password + optional Google OAuth via `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`)
+- [x] Progress tracking (judge runs auto-record attempted/solved; manual mark-done elsewhere)
 - [ ] Server-side code execution (more languages, hidden tests, resource limits)
-- [ ] Submissions, progress tracking, and spaced repetition
+- [ ] Submission history and spaced repetition
 - [ ] Richer problem content (solutions, complexity discussion, editor-quality markdown)
 - [ ] Company data pipeline (question frequency, recency)
 - [ ] Mock interview mode (timed sessions, rubric scoring)

@@ -6,8 +6,12 @@ import {
   pgTable,
   primaryKey,
   text,
+  timestamp,
 } from "drizzle-orm/pg-core";
 import { CATEGORIES, DIFFICULTIES, type Judge } from "../lib/types";
+import { user } from "./auth-schema";
+
+export * from "./auth-schema";
 
 export const categoryEnum = pgEnum("category", CATEGORIES);
 export const difficultyEnum = pgEnum("difficulty", DIFFICULTIES);
@@ -64,6 +68,26 @@ export const trackProblems = pgTable(
     position: integer("position").notNull(),
   },
   (table) => [primaryKey({ columns: [table.trackId, table.problemId] })],
+);
+
+export const progressStatusEnum = pgEnum("progress_status", [
+  "attempted",
+  "solved",
+]);
+
+export const problemProgress = pgTable(
+  "problem_progress",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    status: progressStatusEnum("status").notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.problemId] })],
 );
 
 export const problemsRelations = relations(problems, ({ many }) => ({

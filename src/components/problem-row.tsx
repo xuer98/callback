@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DifficultyBadge } from "./difficulty-badge";
+import { ProgressMarker } from "./progress";
 import { CATEGORY_LABELS, type Problem } from "@/lib/types";
 
 export function ProblemRow({ problem }: { problem: Problem }) {
@@ -11,6 +12,7 @@ export function ProblemRow({ problem }: { problem: Problem }) {
       <div className="min-w-0">
         <p className="flex items-center gap-2 truncate text-sm font-medium text-zinc-100">
           {problem.title}
+          <ProgressMarker slug={problem.slug} />
           {problem.judge && (
             <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium text-indigo-400 ring-1 ring-inset ring-indigo-500/20">
               runnable

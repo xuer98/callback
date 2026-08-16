@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthMenu } from "./auth-menu";
 
 const links = [
   { href: "/problems", label: "Problems" },
@@ -26,6 +27,7 @@ export function Nav() {
               {link.label}
             </Link>
           ))}
+          <AuthMenu />
         </nav>
       </div>
     </header>

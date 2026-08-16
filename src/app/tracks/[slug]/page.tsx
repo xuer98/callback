@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProblemRow } from "@/components/problem-row";
+import { SolvedCount } from "@/components/progress";
 import { getTrack, listTracks, trackProblems } from "@/lib/data";
 
 export const revalidate = 300;
@@ -31,7 +32,10 @@ export default async function TrackPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-      <h1 className="text-3xl font-semibold tracking-tight">{track.name}</h1>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-3xl font-semibold tracking-tight">{track.name}</h1>
+        <SolvedCount slugs={track.problemSlugs} />
+      </div>
       <p className="mt-3 text-sm leading-6 text-zinc-400">
         {track.description}
       </p>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SolvedCount } from "@/components/progress";
 import { listTracks } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Tracks" };
@@ -24,7 +25,8 @@ export default async function TracksPage() {
           >
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-medium text-zinc-100">{track.name}</h2>
-              <span className="text-xs text-zinc-500">
+              <span className="flex items-center gap-2 text-xs text-zinc-500">
+                <SolvedCount slugs={track.problemSlugs} />
                 {track.problemSlugs.length} problems
               </span>
             </div>

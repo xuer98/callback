@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
+import { MarkDoneButton } from "@/components/progress";
 import { Workspace } from "@/components/workspace";
 import { getCompany, getProblem, listProblems } from "@/lib/data";
 import { CATEGORY_LABELS, type Company, type Problem } from "@/lib/types";
@@ -46,6 +47,11 @@ export default async function ProblemPage({
           <span>{CATEGORY_LABELS[problem.category]}</span>
           <span aria-hidden>·</span>
           <DifficultyBadge difficulty={problem.difficulty} />
+          {!judge && (
+            <span className="ml-auto">
+              <MarkDoneButton slug={problem.slug} />
+            </span>
+          )}
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">
           {problem.title}
