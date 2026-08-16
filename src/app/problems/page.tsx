@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProblemRow } from "@/components/problem-row";
-import { problems } from "@/lib/data";
+import { listProblems } from "@/lib/data";
 import { CATEGORY_LABELS, type Category } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Problems" };
@@ -16,6 +16,7 @@ export default async function ProblemsPage({
   const params = await searchParams;
   const raw = typeof params.category === "string" ? params.category : undefined;
   const active = categories.find((c) => c === raw);
+  const problems = await listProblems();
   const visible = active
     ? problems.filter((p) => p.category === active)
     : problems;

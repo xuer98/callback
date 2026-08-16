@@ -3,11 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { Workspace } from "@/components/workspace";
-import { getCompany, getProblem, problems } from "@/lib/data";
+import { getCompany, getProblem, listProblems } from "@/lib/data";
 import { CATEGORY_LABELS, type Company, type Problem } from "@/lib/types";
 
-export function generateStaticParams() {
-  return problems.map((p) => ({ slug: p.slug }));
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  return (await listProblems()).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({
@@ -16,7 +18,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: getProblem(slug)?.title ?? "Problem" };
+  return { title: (await getProblem(slug))?.title ?? "Problem" };
 }
 
 export default async function ProblemPage({
@@ -25,7 +27,7 @@ export default async function ProblemPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const problem = getProblem(slug);
+  const problem = await getProblem(slug);
   if (!problem) notFound();
 
   const judge = problem.judge;
@@ -113,10 +115,10 @@ function Hints({ problem }: { problem: Problem }) {
   );
 }
 
-function AskedAt({ problem }: { problem: Problem }) {
-  const askedBy = problem.companies
-    .map(getCompany)
-    .filter((c): c is Company => c !== undefined);
+async function AskedAt({ problem }: { problem: Problem }) {
+  const askedBy = (
+    await Promise.all(problem.companies.map((slug) => getCompany(slug)))
+  ).filter((c): c is Company => c !== undefined);
   if (askedBy.length === 0) return null;
 
   return (

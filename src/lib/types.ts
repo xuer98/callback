@@ -1,11 +1,16 @@
-export type Category =
-  | "algorithms"
-  | "system-design"
-  | "behavioral"
-  | "frontend"
-  | "sql";
+export const CATEGORIES = [
+  "algorithms",
+  "system-design",
+  "behavioral",
+  "frontend",
+  "sql",
+] as const;
 
-export type Difficulty = "easy" | "medium" | "hard";
+export type Category = (typeof CATEGORIES)[number];
+
+export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
+
+export type Difficulty = (typeof DIFFICULTIES)[number];
 
 export interface Problem {
   slug: string;

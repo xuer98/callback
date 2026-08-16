@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { tracks } from "@/lib/data";
+import { listTracks } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Tracks" };
 
-export default function TracksPage() {
+export const revalidate = 300;
+
+export default async function TracksPage() {
+  const tracks = await listTracks();
+
   return (
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">Tracks</h1>

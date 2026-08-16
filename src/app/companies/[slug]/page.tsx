@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProblemRow } from "@/components/problem-row";
-import { companies, getCompany, problemsForCompany } from "@/lib/data";
+import { getCompany, listCompanies, problemsForCompany } from "@/lib/data";
 
-export function generateStaticParams() {
-  return companies.map((c) => ({ slug: c.slug }));
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  return (await listCompanies()).map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({
@@ -13,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: getCompany(slug)?.name ?? "Company" };
+  return { title: (await getCompany(slug))?.name ?? "Company" };
 }
 
 export default async function CompanyPage({
@@ -22,10 +24,10 @@ export default async function CompanyPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const company = getCompany(slug);
+  const company = await getCompany(slug);
   if (!company) notFound();
 
-  const asked = problemsForCompany(company.slug);
+  const asked = await problemsForCompany(company.slug);
 
   return (
     <div className="mx-auto w-full max-w-2xl">

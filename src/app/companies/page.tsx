@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { companies, problemsForCompany } from "@/lib/data";
+import { listCompaniesWithCounts } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Companies" };
 
-export default function CompaniesPage() {
+export const revalidate = 300;
+
+export default async function CompaniesPage() {
+  const companies = await listCompaniesWithCounts();
+
   return (
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
@@ -13,7 +17,7 @@ export default function CompaniesPage() {
       </p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {companies.map((company) => {
-          const count = problemsForCompany(company.slug).length;
+          const count = company.problemCount;
           return (
             <Link
               key={company.slug}

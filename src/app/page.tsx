@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { companies, problems, tracks } from "@/lib/data";
+import { listCompanies, listProblems, listTracks } from "@/lib/data";
+
+export const revalidate = 300;
 
 const pillars = [
   {
@@ -22,7 +24,13 @@ const pillars = [
   },
 ] as const;
 
-export default function Home() {
+export default async function Home() {
+  const [problems, companies, tracks] = await Promise.all([
+    listProblems(),
+    listCompanies(),
+    listTracks(),
+  ]);
+
   return (
     <div>
       <section className="py-16 text-center sm:py-24">

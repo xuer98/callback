@@ -1,7 +1,7 @@
-import type { Category, Company, Problem, Track } from "./types";
+import type { Company, Problem, Track } from "./types";
 
-// Seed content for v0. This file is the single read path for all pages;
-// swap these accessors for real queries when a database lands.
+// Canonical seed content. Postgres is the runtime read path (src/lib/data.ts);
+// edit content here, then sync the database with `npm run db:seed`.
 
 export const problems: Problem[] = [
   {
@@ -466,28 +466,3 @@ export const tracks: Track[] = [
   },
 ];
 
-export function getProblem(slug: string): Problem | undefined {
-  return problems.find((p) => p.slug === slug);
-}
-
-export function getCompany(slug: string): Company | undefined {
-  return companies.find((c) => c.slug === slug);
-}
-
-export function getTrack(slug: string): Track | undefined {
-  return tracks.find((t) => t.slug === slug);
-}
-
-export function problemsForCompany(companySlug: string): Problem[] {
-  return problems.filter((p) => p.companies.includes(companySlug));
-}
-
-export function problemsInCategory(category: Category): Problem[] {
-  return problems.filter((p) => p.category === category);
-}
-
-export function trackProblems(track: Track): Problem[] {
-  return track.problemSlugs
-    .map(getProblem)
-    .filter((p): p is Problem => p !== undefined);
-}

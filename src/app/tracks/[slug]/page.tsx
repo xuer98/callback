@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProblemRow } from "@/components/problem-row";
-import { getTrack, trackProblems, tracks } from "@/lib/data";
+import { getTrack, listTracks, trackProblems } from "@/lib/data";
 
-export function generateStaticParams() {
-  return tracks.map((t) => ({ slug: t.slug }));
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  return (await listTracks()).map((t) => ({ slug: t.slug }));
 }
 
 export async function generateMetadata({
@@ -13,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: getTrack(slug)?.name ?? "Track" };
+  return { title: (await getTrack(slug))?.name ?? "Track" };
 }
 
 export default async function TrackPage({
@@ -22,10 +24,10 @@ export default async function TrackPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const track = getTrack(slug);
+  const track = await getTrack(slug);
   if (!track) notFound();
 
-  const ordered = trackProblems(track);
+  const ordered = await trackProblems(track.slug);
 
   return (
     <div className="mx-auto w-full max-w-2xl">
