@@ -17,6 +17,25 @@ export const problems: Problem[] = [
       "Start one pointer at each end. What does the current sum tell you about which pointer can safely move?",
       "If the sum is too small, moving the right pointer left only makes it smaller — so only one move can ever help.",
     ],
+    judge: {
+      starterCode: `/**
+ * @param {number[]} numbers - sorted ascending
+ * @param {number} target
+ * @returns {number[]} indices [i, j] with i < j, or [-1, -1]
+ */
+function pairSum(numbers, target) {
+  // Your code here
+  return [-1, -1];
+}
+`,
+      entry: "pairSum",
+      tests: [
+        { input: [[1, 2, 4, 7, 11, 15], 15], expected: [2, 4] },
+        { input: [[-3, -1, 0, 2, 6], 3], expected: [0, 4] },
+        { input: [[2, 3], 5], expected: [0, 1] },
+        { input: [[1, 2, 3], 7], expected: [-1, -1] },
+      ],
+    },
   },
   {
     slug: "merge-intervals",
@@ -31,6 +50,27 @@ export const problems: Problem[] = [
       "Sort by start time first. What invariant does that buy you when you sweep left to right?",
       "An interval overlaps the last merged one exactly when its start is less than or equal to the last merged end.",
     ],
+    judge: {
+      starterCode: `/**
+ * @param {number[][]} intervals - [start, end] pairs, in any order
+ * @returns {number[][]} merged intervals, sorted by start
+ */
+function mergeIntervals(intervals) {
+  // Your code here
+  return intervals;
+}
+`,
+      entry: "mergeIntervals",
+      tests: [
+        {
+          input: [[[1, 3], [2, 6], [8, 10], [15, 18]]],
+          expected: [[1, 6], [8, 10], [15, 18]],
+        },
+        { input: [[[1, 4], [4, 5]]], expected: [[1, 5]] },
+        { input: [[[3, 4], [1, 2]]], expected: [[1, 2], [3, 4]] },
+        { input: [[[1, 10], [2, 3], [4, 5]]], expected: [[1, 10]] },
+      ],
+    },
   },
   {
     slug: "lru-cache",
@@ -45,6 +85,64 @@ export const problems: Problem[] = [
       "You need O(1) lookup and O(1) reordering. Which two structures combine to give you both?",
       "A doubly linked list makes move-to-front and evict-from-back constant time; the map points at its nodes.",
     ],
+    judge: {
+      starterCode: `class LRUCache {
+  /** @param {number} capacity */
+  constructor(capacity) {
+    this.capacity = capacity;
+  }
+
+  /** @returns {number} the value, or -1 if absent */
+  get(key) {
+    return -1;
+  }
+
+  put(key, value) {
+    // Your code here
+  }
+}
+`,
+      entry: "__runOperations",
+      driverCode: `function __runOperations(operations, args) {
+  let instance = null;
+  const out = [];
+  for (let i = 0; i < operations.length; i++) {
+    if (operations[i] === "LRUCache") {
+      instance = new LRUCache(...args[i]);
+      out.push(null);
+    } else {
+      out.push(instance[operations[i]](...args[i]) ?? null);
+    }
+  }
+  return out;
+}`,
+      tests: [
+        {
+          name: "Interleaved puts and gets (capacity 2)",
+          input: [
+            ["LRUCache", "put", "put", "get", "put", "get", "put", "get", "get", "get"],
+            [[2], [1, 1], [2, 2], [1], [3, 3], [2], [4, 4], [1], [3], [4]],
+          ],
+          expected: [null, null, null, 1, null, -1, null, -1, 3, 4],
+        },
+        {
+          name: "Capacity 1 evicts on every put",
+          input: [
+            ["LRUCache", "put", "put", "get", "put", "get", "get"],
+            [[1], [2, 1], [3, 2], [2], [2, 6], [3], [2]],
+          ],
+          expected: [null, null, null, -1, null, -1, 6],
+        },
+        {
+          name: "Updating a key must not evict",
+          input: [
+            ["LRUCache", "put", "put", "put", "get", "get"],
+            [[2], [1, 1], [2, 2], [1, 9], [1], [2]],
+          ],
+          expected: [null, null, null, null, 9, 2],
+        },
+      ],
+    },
   },
   {
     slug: "course-schedule",
@@ -59,6 +157,26 @@ export const problems: Problem[] = [
       "Model courses as a directed graph. Completion is impossible exactly when the graph has a cycle.",
       "Kahn's algorithm: repeatedly remove nodes with in-degree zero. If anything is left over, you found a cycle.",
     ],
+    judge: {
+      starterCode: `/**
+ * @param {number} numCourses
+ * @param {number[][]} prerequisites - [a, b] means b must come before a
+ * @returns {boolean} true if all courses can be finished
+ */
+function canFinish(numCourses, prerequisites) {
+  // Your code here
+  return true;
+}
+`,
+      entry: "canFinish",
+      tests: [
+        { input: [2, [[1, 0]]], expected: true },
+        { input: [2, [[1, 0], [0, 1]]], expected: false },
+        { input: [5, [[1, 0], [2, 1], [3, 2], [4, 3]]], expected: true },
+        { input: [3, []], expected: true },
+        { name: "Self-loop is a cycle", input: [1, [[0, 0]]], expected: false },
+      ],
+    },
   },
   {
     slug: "implement-debounce",

@@ -10,7 +10,7 @@ Callback covers the whole loop, in the spirit of LeetCode, PracHub, and Intervie
 
 ## Status
 
-v0 scaffold. All content is typed seed data in [`src/lib/data.ts`](src/lib/data.ts) — no database, auth, or submissions yet. The routes, domain model, and page shells are real; the product decisions that need infrastructure are listed in the roadmap.
+v0 scaffold. All content is typed seed data in [`src/lib/data.ts`](src/lib/data.ts) — no database, auth, or submissions yet. Algorithm problems have an in-browser editor: user JavaScript runs client-side in a Web Worker against sample test cases, so there is no server-side sandbox to operate yet. The product decisions that need infrastructure are listed in the roadmap.
 
 ## Getting started
 
@@ -30,9 +30,10 @@ Open http://localhost:3000. Other scripts: `npm run build` (production build + t
 
 ## Roadmap
 
+- [x] In-browser code editor for algorithm problems (CodeMirror + Web Worker judge, JavaScript only)
 - [ ] Database + ORM (move content out of `data.ts`)
 - [ ] Auth and user accounts
-- [ ] In-browser code editor and execution sandbox for coding problems
+- [ ] Server-side code execution (more languages, hidden tests, resource limits)
 - [ ] Submissions, progress tracking, and spaced repetition
 - [ ] Richer problem content (solutions, complexity discussion, editor-quality markdown)
 - [ ] Company data pipeline (question frequency, recency)
