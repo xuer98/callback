@@ -260,6 +260,94 @@ function justify(words, maxWidth) {
     },
   },
   {
+    slug: "round-numeric-strings",
+    title: "Round Numeric String Values",
+    category: "algorithms",
+    difficulty: "medium",
+    companies: ["pinterest"],
+    summary: "Arbitrary-precision rounding — floats need not apply.",
+    prompt: `You are given numeric values as strings, for example "3.45", "-2.5", or "123456789123456789123456789.5". The values may be far too large for built-in integer or float types in most languages, and converting to float would lose precision — so treat this as pure string manipulation.
+
+Round each value to the nearest integer, rounding half away from zero, and return the result as a string with no leading zeros and never "-0".
+
+Example:
+
+\`\`\`
+"3.45"  -> "3"      "2.5"   -> "3"      "-2.5"  -> "-3"
+"-0.4"  -> "0"      "9.99"  -> "10"     "999.5" -> "1000"
+"123456789123456789123456789.5" -> "123456789123456789123456790"
+\`\`\`
+
+Part 2: given a comma-separated string of such values, return the comma-separated rounded values.`,
+    hints: [
+      "Only the first fractional digit matters for direction: with half-away-from-zero, the magnitude rounds up exactly when that digit is 5 or more.",
+      "Split off the sign and round the magnitude, reattaching the sign only when the result is not 0. Rounding up is big-integer addition: walk the integer digits right to left carrying a 1, and prepend a digit if the carry survives (999 to 1000).",
+    ],
+    judge: {
+      starterCode: `/**
+ * Part 1: round one numeric string to the nearest integer, rounding
+ * half away from zero. No leading zeros in the result, and never "-0".
+ * Values can exceed any built-in numeric type — stay in string land.
+ * @param {string} s - e.g. "3.45", "-2.5", "999.5"
+ * @returns {string}
+ */
+function roundNumericString(s) {
+  // Your code here
+  return s;
+}
+
+/**
+ * Part 2: round every value in a comma-separated list.
+ * @param {string} csv - e.g. "2.5,-2.5,9.99"
+ * @returns {string}
+ */
+function roundAll(csv) {
+  // Your code here
+  return csv;
+}
+`,
+      entry: "__dispatch",
+      driverCode: `function __dispatch(kind, value) {
+  return kind === "csv" ? roundAll(value) : roundNumericString(value);
+}`,
+      tests: [
+        { name: "Example: 3.45", input: ["single", "3.45"], expected: "3" },
+        {
+          name: "Tie rounds away from zero",
+          input: ["single", "2.5"],
+          expected: "3",
+        },
+        {
+          name: "Negative tie",
+          input: ["single", "-2.5"],
+          expected: "-3",
+        },
+        { name: "Never -0", input: ["single", "-0.4"], expected: "0" },
+        {
+          name: "Carry ripples through 999",
+          input: ["single", "999.5"],
+          expected: "1000",
+        },
+        {
+          name: "Bigger than any float",
+          input: ["single", "123456789123456789123456789.5"],
+          expected: "123456789123456789123456790",
+        },
+        { name: "No decimal point", input: ["single", "42"], expected: "42" },
+        {
+          name: "Strips leading zeros",
+          input: ["single", "007.4"],
+          expected: "7",
+        },
+        {
+          name: "Part 2: comma-separated list",
+          input: ["csv", "2.5,-2.5,9.99,-0.4"],
+          expected: "3,-3,10,0",
+        },
+      ],
+    },
+  },
+  {
     slug: "implement-debounce",
     title: "Implement debounce()",
     category: "frontend",
