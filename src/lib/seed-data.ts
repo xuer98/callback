@@ -348,6 +348,214 @@ function roundAll(csv) {
     },
   },
   {
+    slug: "violation-log-analyzer",
+    title: "Violation Log Analyzer",
+    category: "algorithms",
+    difficulty: "medium",
+    companies: ["pinterest"],
+    summary: "Streaming design: recent counts, top-k, and sliding-window bans.",
+    prompt: `Trust & Safety receives a stream of violation events, each (timestamp, user_id, violation_type), with timestamps arriving in non-decreasing order. Design and implement a class supporting:
+
+\`\`\`
+log.record(timestamp, user_id, violation_type)      # ingest one event
+log.count_recent(user_id, window)   # violations by user within the last window
+                                    # seconds, measured from the latest timestamp seen
+log.top_k(k)                        # top-k users by all-time violation count,
+                                    # ties broken lexicographically -> [(user, count), ...]
+log.should_ban(user_id, max_violations, window)
+                                    # True if the user ever had >= max_violations
+                                    # within ANY window of window seconds
+\`\`\`
+
+Conventions for the judge: timestamps are integer seconds, and a window of W seconds ending at time T covers the half-open interval (T - W, T] — an event exactly W seconds old is outside it. count_recent measures from the latest timestamp seen so far; should_ban considers the user's entire history. So with window = 10, events at t = 0 and t = 9 fit in one window, while events at t = 0 and t = 10 do not.`,
+    hints: [
+      "Per-user append-only timestamp lists (time never decreases) plus a running all-time count per user are enough state for all three queries.",
+      "For shouldBan, run two pointers over that user's timestamps: advance the left pointer while t[right] - t[left] >= window, and check whether the window ever holds maxViolations events.",
+    ],
+    judge: {
+      starterCode: `class ViolationLog {
+  constructor() {
+    // Your state here
+  }
+
+  /**
+   * @param {number} timestamp - non-decreasing across calls
+   * @param {string} userId
+   * @param {string} violationType
+   */
+  record(timestamp, userId, violationType) {
+    // Your code here
+  }
+
+  /** @returns {number} violations by userId in (latest - window, latest] */
+  countRecent(userId, window) {
+    return 0;
+  }
+
+  /** @returns {[string, number][]} top-k by all-time count, ties lexicographic */
+  topK(k) {
+    return [];
+  }
+
+  /** @returns {boolean} true if userId ever had >= maxViolations in any window-second span */
+  shouldBan(userId, maxViolations, window) {
+    return false;
+  }
+}
+`,
+      entry: "__runOperations",
+      driverCode: `function __runOperations(operations, args) {
+  let log = null;
+  const out = [];
+  for (let i = 0; i < operations.length; i++) {
+    if (operations[i] === "ViolationLog") {
+      log = new ViolationLog(...args[i]);
+      out.push(null);
+    } else {
+      out.push(log[operations[i]](...args[i]) ?? null);
+    }
+  }
+  return out;
+}`,
+      tests: [
+        {
+          name: "record and countRecent window boundary",
+          input: [
+            [
+              "ViolationLog",
+              "record",
+              "record",
+              "record",
+              "countRecent",
+              "countRecent",
+              "countRecent",
+              "countRecent",
+            ],
+            [
+              [],
+              [100, "alice", "spam"],
+              [102, "bob", "scam"],
+              [105, "alice", "spam"],
+              ["alice", 5],
+              ["alice", 6],
+              ["bob", 2],
+              ["carol", 100],
+            ],
+          ],
+          expected: [null, null, null, null, 1, 2, 0, 0],
+        },
+        {
+          name: "topK with lexicographic ties",
+          input: [
+            [
+              "ViolationLog",
+              "record",
+              "record",
+              "record",
+              "record",
+              "record",
+              "record",
+              "topK",
+              "topK",
+              "topK",
+            ],
+            [
+              [],
+              [1, "bob", "a"],
+              [2, "alice", "b"],
+              [3, "carol", "c"],
+              [4, "bob", "d"],
+              [5, "alice", "e"],
+              [6, "dave", "f"],
+              [2],
+              [3],
+              [10],
+            ],
+          ],
+          expected: [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            [["alice", 2], ["bob", 2]],
+            [["alice", 2], ["bob", 2], ["carol", 1]],
+            [["alice", 2], ["bob", 2], ["carol", 1], ["dave", 1]],
+          ],
+        },
+        {
+          name: "shouldBan scans the full history",
+          input: [
+            [
+              "ViolationLog",
+              "record",
+              "record",
+              "record",
+              "record",
+              "shouldBan",
+              "shouldBan",
+              "shouldBan",
+              "shouldBan",
+              "shouldBan",
+            ],
+            [
+              [],
+              [0, "eve", "x"],
+              [9, "eve", "x"],
+              [50, "eve", "x"],
+              [100, "mallory", "x"],
+              ["eve", 2, 10],
+              ["eve", 3, 10],
+              ["eve", 2, 9],
+              ["mallory", 1, 5],
+              ["nobody", 1, 100],
+            ],
+          ],
+          expected: [
+            null,
+            null,
+            null,
+            null,
+            null,
+            true,
+            false,
+            false,
+            true,
+            false,
+          ],
+        },
+        {
+          name: "span exactly equal to window stays outside",
+          input: [
+            [
+              "ViolationLog",
+              "record",
+              "record",
+              "record",
+              "shouldBan",
+              "shouldBan",
+              "countRecent",
+              "countRecent",
+            ],
+            [
+              [],
+              [10, "u", "a"],
+              [19, "u", "a"],
+              [21, "u", "a"],
+              ["u", 3, 12],
+              ["u", 3, 11],
+              ["u", 2],
+              ["u", 3],
+            ],
+          ],
+          expected: [null, null, null, null, true, false, 1, 2],
+        },
+      ],
+    },
+  },
+  {
     slug: "implement-debounce",
     title: "Implement debounce()",
     category: "frontend",
