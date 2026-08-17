@@ -7,6 +7,8 @@ import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
+import { acceptCompletion } from "@codemirror/autocomplete";
+import { jsCompletions, pythonCompletions } from "@/lib/editor-completions";
 import { useProgress } from "./progress";
 import {
   runJudge,
@@ -17,9 +19,16 @@ import {
 import { isPythonReady, runPythonJudge } from "@/lib/run-python";
 import type { Judge, Language } from "@/lib/types";
 
+// Tab accepts an open completion first, then falls through to indenting.
+// The component's own indentWithTab binding is disabled so this order wins.
+const EDITOR_KEYMAP = keymap.of([
+  { key: "Tab", run: acceptCompletion },
+  indentWithTab,
+]);
+
 const EXTENSIONS = {
-  javascript: [javascript(), keymap.of([indentWithTab])],
-  python: [python(), keymap.of([indentWithTab])],
+  javascript: [javascript(), ...jsCompletions, EDITOR_KEYMAP],
+  python: [python(), ...pythonCompletions, EDITOR_KEYMAP],
 } satisfies Record<Language, unknown[]>;
 
 const LANGUAGE_LABELS: Record<Language, string> = {
@@ -83,6 +92,11 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   const [code, setCode] = useState(
     () => readStored(storageKeyFor(slug, language)) ?? starterFor(language),
   );
+  // Remount the editor whenever code is set from outside (language switch,
+  // reset). react-codemirror's external-value sync can wedge behind its
+  // typing debounce and silently drop those updates; a fresh mount with the
+  // new initial value sidesteps that entirely.
+  const [editorEpoch, setEditorEpoch] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
   const { reportRun } = useProgress();
@@ -100,6 +114,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     setLanguage(lang);
     setResult(null);
     setCode(readStored(storageKeyFor(slug, lang)) ?? starterFor(lang));
+    setEditorEpoch((epoch) => epoch + 1);
     writeStored("callback:lang", lang);
   };
 
@@ -123,6 +138,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
 
   const reset = () => {
     setCode(starterFor(language));
+    setEditorEpoch((epoch) => epoch + 1);
     setResult(null);
     try {
       localStorage.removeItem(storageKeyFor(slug, language));
@@ -178,10 +194,12 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
 
       <div className="h-[420px] overflow-hidden rounded-lg border border-zinc-800 text-[13px] lg:h-[calc(100vh-360px)] lg:min-h-[420px]">
         <CodeMirror
+          key={`${language}:${editorEpoch}`}
           value={code}
           onChange={onChange}
           theme={oneDark}
           extensions={EXTENSIONS[language]}
+          indentWithTab={false}
           height="100%"
           className="h-full"
         />
