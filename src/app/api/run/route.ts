@@ -1,5 +1,6 @@
 import { getProblem } from "@/lib/data";
 import { isJudge0Configured, runOnJudge0 } from "@/lib/judge0";
+import { LANGUAGES, type Language } from "@/lib/types";
 
 const MAX_CODE_BYTES = 64 * 1024;
 
@@ -20,12 +21,20 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
-  const { slug, code } = (body ?? {}) as { slug?: unknown; code?: unknown };
+  const { slug, code, language } = (body ?? {}) as {
+    slug?: unknown;
+    code?: unknown;
+    language?: unknown;
+  };
   if (typeof slug !== "string" || typeof code !== "string") {
     return Response.json(
       { error: "Expected { slug: string, code: string }." },
       { status: 400 },
     );
+  }
+  const lang: Language = language === undefined ? "javascript" : (language as Language);
+  if (!LANGUAGES.includes(lang)) {
+    return Response.json({ error: "Unsupported language." }, { status: 400 });
   }
   if (new TextEncoder().encode(code).length > MAX_CODE_BYTES) {
     return Response.json(
@@ -41,7 +50,13 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
+  if (lang === "python" && !problem.judge.python) {
+    return Response.json(
+      { error: "No Python judge for that problem." },
+      { status: 404 },
+    );
+  }
 
-  const result = await runOnJudge0(code, problem.judge);
+  const result = await runOnJudge0(code, problem.judge, lang);
   return Response.json(result, { headers: { "cache-control": "no-store" } });
 }

@@ -11,7 +11,7 @@ export default async function TracksPage() {
   const tracks = await listTracks();
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-5xl px-4 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Tracks</h1>
       <p className="mt-1 text-sm text-zinc-400">
         Curated sequences that take you from warm-up to loop-ready.

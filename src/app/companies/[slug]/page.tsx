@@ -30,7 +30,7 @@ export default async function CompanyPage({
   const asked = await problemsForCompany(company.slug);
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="text-3xl font-semibold tracking-tight">{company.name}</h1>
       <p className="mt-3 text-sm leading-6 text-zinc-400">{company.blurb}</p>
 

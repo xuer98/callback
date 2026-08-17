@@ -10,7 +10,7 @@ Callback covers the whole loop, in the spirit of LeetCode, PracHub, and Intervie
 
 ## Status
 
-Content (problems, companies, tracks) lives in Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team) — no auth or submissions yet. Canonical seed content is typed data in [`src/lib/seed-data.ts`](src/lib/seed-data.ts), synced with `npm run db:seed`. Algorithm problems have an in-browser editor: user JavaScript runs client-side in a Web Worker against sample test cases, so there is no server-side sandbox to operate yet.
+Content (problems, companies, tracks) lives in Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Canonical seed content is typed data in [`src/lib/seed-data.ts`](src/lib/seed-data.ts) (Python judge variants in [`src/lib/seed-python.ts`](src/lib/seed-python.ts)), synced with `pnpm db:seed`. Runnable problems have a LeetCode-style workspace in JavaScript and Python: JS runs client-side in a Web Worker, Python in a Pyodide (WASM) worker, and both prefer a Judge0 server sandbox when `JUDGE0_URL` is configured.
 
 ## Getting started
 
@@ -38,7 +38,7 @@ Open http://localhost:3000. Other scripts: `pnpm build` (production build + type
 
 ## Roadmap
 
-- [x] In-browser code editor for algorithm problems (CodeMirror + Web Worker judge, JavaScript only)
+- [x] In-browser code editor for algorithm problems (CodeMirror; JavaScript + Python judges, client-side or Judge0)
 - [x] Database + ORM (Postgres + Drizzle; content served from the DB)
 - [x] Auth and user accounts (Better Auth: email/password + optional Google OAuth via `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`)
 - [x] Progress tracking (judge runs auto-record attempted/solved; manual mark-done elsewhere)

@@ -1,5 +1,6 @@
 import "server-only";
-import type { Judge } from "./types";
+import { PYTHON_HARNESS_BODY } from "./python-harness";
+import type { Judge, Language } from "./types";
 import type { RunResult, TestVerdict } from "./run-judge";
 
 // Judge0 client: wraps the user's code in a Node harness with the same
@@ -9,9 +10,10 @@ import type { RunResult, TestVerdict } from "./run-judge";
 // Configure with JUDGE0_URL (e.g. http://localhost:2358 for self-hosted, or
 // https://judge0-ce.p.rapidapi.com with JUDGE0_API_KEY for RapidAPI).
 
-// JavaScript (Node.js) in Judge0 CE. Overridable because self-hosted
-// instances may carry newer Node runtimes under different ids.
+// JavaScript (Node.js) and Python 3 in Judge0 CE. Overridable because
+// self-hosted instances may carry newer runtimes under different ids.
 const DEFAULT_JS_LANGUAGE_ID = 63;
+const DEFAULT_PY_LANGUAGE_ID = 71;
 
 const CPU_TIME_LIMIT_S = 5;
 const WALL_TIME_LIMIT_S = 10;
@@ -27,15 +29,31 @@ export function isJudge0Configured(): boolean {
 export async function runOnJudge0(
   code: string,
   judge: Judge,
+  language: Language = "javascript",
 ): Promise<RunResult> {
   const baseUrl = process.env.JUDGE0_URL;
   if (!baseUrl) {
     return { status: "error", message: "Judge0 is not configured." };
   }
+  if (language === "python" && !judge.python) {
+    return {
+      status: "error",
+      message: "This problem has no Python judge yet.",
+    };
+  }
+
+  const source =
+    language === "python"
+      ? buildPythonHarness(code, judge)
+      : buildHarness(code, judge);
+  const languageId =
+    language === "python"
+      ? Number(process.env.JUDGE0_PY_LANGUAGE_ID ?? DEFAULT_PY_LANGUAGE_ID)
+      : Number(process.env.JUDGE0_JS_LANGUAGE_ID ?? DEFAULT_JS_LANGUAGE_ID);
 
   let submission;
   try {
-    submission = await submit(baseUrl, buildHarness(code, judge));
+    submission = await submit(baseUrl, source, languageId);
   } catch (err) {
     return {
       status: "error",
@@ -58,6 +76,7 @@ interface Judge0Submission {
 async function submit(
   baseUrl: string,
   sourceCode: string,
+  languageId: number,
 ): Promise<Judge0Submission> {
   const headers: Record<string, string> = {
     "content-type": "application/json",
@@ -75,9 +94,6 @@ async function submit(
   }
 
   const base = baseUrl.replace(/\/$/, "");
-  const languageId = Number(
-    process.env.JUDGE0_JS_LANGUAGE_ID ?? DEFAULT_JS_LANGUAGE_ID,
-  );
 
   const createRes = await fetch(`${base}/submissions?base64_encoded=true`, {
     method: "POST",
@@ -177,6 +193,25 @@ function toRunResult(submission: Judge0Submission): RunResult {
   } catch {
     return { status: "error", message: "Could not parse the runner's output." };
   }
+}
+
+// Python program for Judge0: the shared harness body (also used by the
+// Pyodide worker) fed a base64-embedded payload, emitting the verdicts as
+// one marker-prefixed line exactly like the Node harness below.
+export function buildPythonHarness(code: string, judge: Judge): string {
+  const payload = JSON.stringify({
+    code,
+    driverCode: judge.python?.driverCode ?? "",
+    entry: judge.python?.entry ?? "",
+    tests: judge.tests,
+  });
+  const payloadB64 = Buffer.from(payload, "utf8").toString("base64");
+  return [
+    "import base64",
+    `__payload_json = base64.b64decode(${JSON.stringify(payloadB64)}).decode("utf-8")`,
+    PYTHON_HARNESS_BODY,
+    `print("\\n" + ${JSON.stringify(RESULT_MARKER)} + json.dumps(__run()))`,
+  ].join("\n");
 }
 
 // Mirrors the in-browser worker in run-judge.ts — same sandboxed console,

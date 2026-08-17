@@ -32,9 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col font-sans">
         <ProgressProvider>
           <Nav />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
-            {children}
-          </main>
+          <main className="w-full flex-1">{children}</main>
         </ProgressProvider>
         <footer className="border-t border-zinc-800">
           <div className="mx-auto w-full max-w-5xl px-4 py-6 text-xs text-zinc-500">

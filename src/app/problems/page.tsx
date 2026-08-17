@@ -22,7 +22,7 @@ export default async function ProblemsPage({
     : problems;
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-5xl px-4 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Problems</h1>
       <p className="mt-1 text-sm text-zinc-400">
         {problems.length} questions across coding, design, behavioral, and

@@ -7,6 +7,7 @@ import {
   problems as seedProblems,
   tracks as seedTracks,
 } from "../lib/seed-data";
+import { pythonJudges } from "../lib/seed-python";
 
 // Idempotent: upserts rows by slug and rebuilds the join tables, so it is
 // safe to run after every content edit in src/lib/seed-data.ts.
@@ -40,7 +41,10 @@ async function main() {
         summary: problem.summary,
         prompt: problem.prompt,
         hints: problem.hints,
-        judge: problem.judge ?? null,
+        // Judges gain their per-language definitions at seed time.
+        judge: problem.judge
+          ? { ...problem.judge, python: pythonJudges[problem.slug] }
+          : null,
       };
       await tx
         .insert(schema.problems)

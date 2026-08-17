@@ -32,7 +32,7 @@ export default async function Home() {
   ]);
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-5xl px-4 py-10">
       <section className="py-16 text-center sm:py-24">
         <p className="font-mono text-sm text-indigo-400">
           interview prep for engineers

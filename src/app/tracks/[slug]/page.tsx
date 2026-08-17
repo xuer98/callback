@@ -31,7 +31,7 @@ export default async function TrackPage({
   const ordered = await trackProblems(track.slug);
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <div className="flex items-baseline justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">{track.name}</h1>
         <SolvedCount slugs={track.problemSlugs} />

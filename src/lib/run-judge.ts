@@ -27,12 +27,13 @@ export type RunResult =
 export async function runOnServer(
   slug: string,
   code: string,
+  language: "javascript" | "python" = "javascript",
 ): Promise<RunResult | null> {
   try {
     const res = await fetch("/api/run", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slug, code }),
+      body: JSON.stringify({ slug, code, language }),
     });
     if (res.status === 503) return null;
     if (!res.ok) {

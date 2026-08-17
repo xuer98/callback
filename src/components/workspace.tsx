@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
+import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
@@ -13,46 +14,106 @@ import {
   type RunResult,
   type TestVerdict,
 } from "@/lib/run-judge";
-import type { Judge } from "@/lib/types";
+import { isPythonReady, runPythonJudge } from "@/lib/run-python";
+import type { Judge, Language } from "@/lib/types";
 
-const extensions = [javascript(), keymap.of([indentWithTab])];
+const EXTENSIONS = {
+  javascript: [javascript(), keymap.of([indentWithTab])],
+  python: [python(), keymap.of([indentWithTab])],
+} satisfies Record<Language, unknown[]>;
+
+const LANGUAGE_LABELS: Record<Language, string> = {
+  javascript: "JavaScript",
+  python: "Python",
+};
+
+// The JavaScript key predates multi-language support — keep it stable so
+// existing saved solutions survive.
+function storageKeyFor(slug: string, language: Language) {
+  return language === "javascript"
+    ? `callback:code:${slug}`
+    : `callback:code:${slug}:${language}`;
+}
+
+function readStored(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Storage full or unavailable — the editor still works.
+  }
+}
+
+const subscribeNoop = () => () => {};
 
 export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
-  const storageKey = `callback:code:${slug}`;
-  // Restore saved code on the client; the editor itself only renders
-  // client-side, so the server/client difference never reaches the DOM.
-  const [code, setCode] = useState(() => {
-    if (typeof window === "undefined") return judge.starterCode;
-    try {
-      return localStorage.getItem(storageKey) ?? judge.starterCode;
-    } catch {
-      return judge.starterCode;
-    }
+  // Render nothing until mounted: initial state reads localStorage, so the
+  // server skeleton and the client's first (hydration) render must agree.
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
+
+  const available: Language[] = judge.python
+    ? ["javascript", "python"]
+    : ["javascript"];
+
+  const [language, setLanguage] = useState<Language>(() => {
+    const preferred = readStored("callback:lang") as Language | null;
+    return preferred && available.includes(preferred)
+      ? preferred
+      : "javascript";
   });
+
+  const starterFor = useCallback(
+    (lang: Language) =>
+      lang === "python" ? judge.python!.starterCode : judge.starterCode,
+    [judge],
+  );
+
+  const [code, setCode] = useState(
+    () => readStored(storageKeyFor(slug, language)) ?? starterFor(language),
+  );
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
+  const { reportRun } = useProgress();
 
   const onChange = useCallback(
     (value: string) => {
       setCode(value);
-      try {
-        localStorage.setItem(storageKey, value);
-      } catch {
-        // Storage full or unavailable — the editor still works.
-      }
+      writeStored(storageKeyFor(slug, language), value);
     },
-    [storageKey],
+    [slug, language],
   );
 
-  const { reportRun } = useProgress();
+  const switchLanguage = (lang: Language) => {
+    if (lang === language || running) return;
+    setLanguage(lang);
+    setResult(null);
+    setCode(readStored(storageKeyFor(slug, lang)) ?? starterFor(lang));
+    writeStored("callback:lang", lang);
+  };
 
   const run = async () => {
     setRunning(true);
     setResult(null);
-    // Prefer the Judge0 sandbox; fall back to the in-browser worker when
+    // Prefer the Judge0 sandbox; fall back to the in-browser runner when
     // the server route reports it isn't configured (or is unreachable).
     const runResult =
-      (await runOnServer(slug, code)) ?? (await runJudge(code, judge));
+      language === "python"
+        ? ((await runOnServer(slug, code, "python")) ??
+          (await runPythonJudge(code, judge)))
+        : ((await runOnServer(slug, code, "javascript")) ??
+          (await runJudge(code, judge)));
     setResult(runResult);
     setRunning(false);
     if (runResult.status === "pass" || runResult.status === "fail") {
@@ -61,19 +122,42 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   };
 
   const reset = () => {
-    setCode(judge.starterCode);
+    setCode(starterFor(language));
     setResult(null);
     try {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKeyFor(slug, language));
     } catch {
       // Ignore, same as above.
     }
   };
 
+  if (!mounted) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="h-7" />
+        <div className="h-[420px] rounded-lg border border-zinc-800 bg-zinc-900/40 lg:h-[calc(100vh-360px)] lg:min-h-[420px]" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-zinc-500">JavaScript</span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex rounded-md bg-zinc-900 p-0.5 ring-1 ring-inset ring-zinc-800">
+          {available.map((lang) => (
+            <button
+              key={lang}
+              onClick={() => switchLanguage(lang)}
+              className={`rounded px-3 py-1 font-mono text-xs transition-colors ${
+                lang === language
+                  ? "bg-zinc-700 text-zinc-100"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {LANGUAGE_LABELS[lang]}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={reset}
@@ -92,14 +176,14 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-800 text-[13px]">
+      <div className="h-[420px] overflow-hidden rounded-lg border border-zinc-800 text-[13px] lg:h-[calc(100vh-360px)] lg:min-h-[420px]">
         <CodeMirror
           value={code}
           onChange={onChange}
           theme={oneDark}
-          extensions={extensions}
-          minHeight="320px"
-          maxHeight="560px"
+          extensions={EXTENSIONS[language]}
+          height="100%"
+          className="h-full"
         />
       </div>
 
@@ -107,6 +191,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
         result={result}
         running={running}
         testCount={judge.tests.length}
+        coldPython={running && language === "python" && !isPythonReady()}
       />
     </div>
   );
@@ -116,13 +201,25 @@ function ResultsPanel({
   result,
   running,
   testCount,
+  coldPython,
 }: {
   result: RunResult | null;
   running: boolean;
   testCount: number;
+  coldPython: boolean;
 }) {
   if (running) {
-    return <Panel className="text-zinc-400">Running {testCount} cases…</Panel>;
+    return (
+      <Panel className="text-zinc-400">
+        Running {testCount} cases…
+        {coldPython && (
+          <span className="text-zinc-500">
+            {" "}
+            (first Python run downloads the runtime — give it a few seconds)
+          </span>
+        )}
+      </Panel>
+    );
   }
   if (!result) {
     return (
@@ -179,9 +276,7 @@ function VerdictRow({ verdict }: { verdict: TestVerdict }) {
       }`}
     >
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span
-          className={verdict.pass ? "text-emerald-400" : "text-rose-400"}
-        >
+        <span className={verdict.pass ? "text-emerald-400" : "text-rose-400"}>
           {verdict.pass ? "✓" : "✕"} {verdict.name}
         </span>
         <span className="shrink-0 text-zinc-600">

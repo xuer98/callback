@@ -28,6 +28,20 @@ export interface Problem {
   judge?: Judge;
 }
 
+export const LANGUAGES = ["javascript", "python"] as const;
+
+export type Language = (typeof LANGUAGES)[number];
+
+/** Per-language solution scaffolding and harness glue. */
+export interface JudgeLanguage {
+  /** Code shown in the editor on first load. */
+  starterCode: string;
+  /** Name of the function the runner calls with each test's input. */
+  entry: string;
+  /** Optional harness appended after the user's code. */
+  driverCode?: string;
+}
+
 /** One sample case; values must be JSON-serializable and have a unique correct answer. */
 export interface JudgeTest {
   name?: string;
@@ -49,6 +63,8 @@ export interface Judge {
    * problems where the entry function drives a sequence of operations.
    */
   driverCode?: string;
+  /** Python starter/entry/driver; tests are shared across languages. */
+  python?: JudgeLanguage;
   tests: JudgeTest[];
 }
 

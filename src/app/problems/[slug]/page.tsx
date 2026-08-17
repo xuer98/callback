@@ -41,7 +41,13 @@ export default async function ProblemPage({
   );
 
   return (
-    <div className={judge ? "w-full" : "mx-auto w-full max-w-2xl"}>
+    <div
+      className={
+        judge
+          ? "mx-auto w-full max-w-[1500px] px-4 py-6 lg:px-6"
+          : "mx-auto w-full max-w-2xl px-4 py-10"
+      }
+    >
       <header>
         <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
           <span>{CATEGORY_LABELS[problem.category]}</span>
@@ -59,8 +65,10 @@ export default async function ProblemPage({
       </header>
 
       {judge ? (
-        <div className="mt-8 grid items-start gap-8 lg:grid-cols-2">
-          <div>{details}</div>
+        <div className="mt-6 grid items-start gap-8 lg:grid-cols-[2fr_3fr]">
+          <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
+            {details}
+          </div>
           <Workspace slug={problem.slug} judge={judge} />
         </div>
       ) : (

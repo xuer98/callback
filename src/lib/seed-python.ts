@@ -1,0 +1,412 @@
+import type { JudgeLanguage } from "./types";
+
+// Python judge definitions, keyed by problem slug, merged into each
+// problem's judge as judge.python by the seed script. Tests are shared
+// across languages; where test payloads carry camelCase operation names,
+// the Python driver maps them onto snake_case implementations.
+
+export const pythonJudges: Record<string, JudgeLanguage> = {
+  "pair-sum-sorted": {
+    entry: "pair_sum",
+    starterCode: `def pair_sum(numbers, target):
+    """numbers is sorted ascending. Return [i, j] with i < j, or [-1, -1]."""
+    # Your code here
+    return [-1, -1]
+`,
+  },
+  "merge-intervals": {
+    entry: "merge_intervals",
+    starterCode: `def merge_intervals(intervals):
+    """intervals are [start, end] pairs in any order.
+    Return the merged intervals sorted by start."""
+    # Your code here
+    return intervals
+`,
+  },
+  "lru-cache": {
+    entry: "__run_operations",
+    starterCode: `class LRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+
+    def get(self, key):
+        """Return the value, or -1 if absent."""
+        return -1
+
+    def put(self, key, value):
+        # Your code here
+        pass
+`,
+    driverCode: `def __run_operations(operations, args):
+    instance = None
+    out = []
+    for op, a in zip(operations, args):
+        if op == "LRUCache":
+            instance = LRUCache(*a)
+            out.append(None)
+        else:
+            out.append(getattr(instance, op)(*a))
+    return out
+`,
+  },
+  "course-schedule": {
+    entry: "can_finish",
+    starterCode: `def can_finish(num_courses, prerequisites):
+    """prerequisites [a, b] means b must come before a.
+    Return True if all courses can be finished."""
+    # Your code here
+    return True
+`,
+  },
+  "max-width": {
+    entry: "justify",
+    starterCode: `def justify(words, max_width):
+    """Return the justified lines, each exactly max_width characters."""
+    # Your code here
+    return []
+`,
+  },
+  "round-numeric-strings": {
+    entry: "__dispatch",
+    starterCode: `def round_numeric_string(s):
+    """Part 1: round one numeric string to the nearest integer, rounding
+    half away from zero. No leading zeros in the result, and never "-0".
+    Values can exceed any built-in numeric type - stay in string land."""
+    # Your code here
+    return s
+
+
+def round_all(csv):
+    """Part 2: round every value in a comma-separated list."""
+    # Your code here
+    return csv
+`,
+    driverCode: `def __dispatch(kind, value):
+    return round_all(value) if kind == "csv" else round_numeric_string(value)
+`,
+  },
+  "violation-log-analyzer": {
+    entry: "__run_operations",
+    starterCode: `class ViolationLog:
+    def __init__(self):
+        # Your state here
+        pass
+
+    def record(self, timestamp, user_id, violation_type):
+        # timestamps are non-decreasing across calls
+        pass
+
+    def count_recent(self, user_id, window):
+        """Violations by user_id in (latest - window, latest]."""
+        return 0
+
+    def top_k(self, k):
+        """Top-k users by all-time count, ties lexicographic ->
+        [(user, count), ...]"""
+        return []
+
+    def should_ban(self, user_id, max_violations, window):
+        """True if user_id ever had >= max_violations in any
+        window-second span."""
+        return False
+`,
+    driverCode: `def __run_operations(operations, args):
+    methods = {
+        "record": "record",
+        "countRecent": "count_recent",
+        "topK": "top_k",
+        "shouldBan": "should_ban",
+    }
+    log = None
+    out = []
+    for op, a in zip(operations, args):
+        if op == "ViolationLog":
+            log = ViolationLog(*a)
+            out.append(None)
+        else:
+            out.append(getattr(log, methods[op])(*a))
+    return out
+`,
+  },
+  "nested-set-equality": {
+    entry: "nested_set_equal",
+    starterCode: `def nested_set_equal(a, b):
+    """Nested sets are given as (possibly nested) lists of integers.
+    Return True when a and b are equal as sets, at every depth."""
+    # Your code here
+    return False
+`,
+  },
+  "assign-pins-shortest-columns": {
+    entry: "assign_pins",
+    starterCode: `def assign_pins(heights, k):
+    """Return the column index assigned to each pin, in order."""
+    # Your code here
+    return []
+`,
+  },
+  "collect-reachable-pins": {
+    entry: "collect_reachable_pins",
+    starterCode: `def collect_reachable_pins(boards, start):
+    """boards: dict of board id -> list of pin ids.
+    Return every reachable pin id as a SORTED list; [] if start unknown."""
+    # Your code here
+    return []
+`,
+  },
+  "stream-line-reader": {
+    entry: "__dispatch",
+    starterCode: `class LineReader:
+    def __init__(self, read_chunk):
+        """read_chunk() returns the next chunk, or "" once the stream ends."""
+        # Your state here
+        pass
+
+    def read_line(self):
+        """Next complete line without the newline; None once exhausted.
+        Call read_chunk lazily."""
+        return None
+
+
+def settle_from_stream(read_chunk):
+    """Part 2: lines are "payer,payee,amount" (integer amounts).
+    Return the minimum number of transactions to settle all balances
+    (use your LineReader)."""
+    # Your code here
+    return 0
+`,
+    driverCode: `def __dispatch(kind, chunks, cap):
+    it = iter(chunks)
+
+    def read_chunk():
+        return next(it, "")
+
+    if kind == "settle":
+        return settle_from_stream(read_chunk)
+    reader = LineReader(read_chunk)
+    out = []
+    for _ in range(cap):
+        line = reader.read_line()
+        out.append(line)
+        if line is None:
+            break
+    return out
+`,
+  },
+  "escape-room-leaderboard": {
+    entry: "__run_operations",
+    starterCode: `class Leaderboard:
+    def __init__(self):
+        # Your state here
+        pass
+
+    def add_result(self, team, time):
+        """Record an attempt; only improvements change the standings."""
+        pass
+
+    def rank(self, team):
+        """1-indexed rank by best time (ties alphabetical), or -1."""
+        return -1
+
+    def top_k(self, k):
+        """The k best team names, in rank order."""
+        return []
+`,
+    driverCode: `def __run_operations(operations, args):
+    methods = {"addResult": "add_result", "rank": "rank", "topK": "top_k"}
+    lb = None
+    out = []
+    for op, a in zip(operations, args):
+        if op == "Leaderboard":
+            lb = Leaderboard(*a)
+            out.append(None)
+        else:
+            out.append(getattr(lb, methods[op])(*a))
+    return out
+`,
+  },
+  "rebalance-experiment-buckets": {
+    entry: "__judge_rebalance",
+    starterCode: `def rebalance_buckets(current, targets):
+    """current: per-bucket group name or None. targets: group -> count.
+    Return a new assignment meeting targets exactly while changing as
+    few buckets as possible."""
+    # Your code here
+    return current
+`,
+    driverCode: `def __judge_rebalance(current, targets):
+    result = rebalance_buckets(list(current), dict(targets))
+    if not isinstance(result, (list, tuple)) or len(result) != len(current):
+        return {"validShape": False}
+    counts = {}
+    for g in result:
+        if g is not None:
+            counts[g] = counts.get(g, 0) + 1
+    targets_met = all(
+        counts.get(g, 0) == targets[g] for g in targets
+    ) and all(g in targets for g in counts)
+    changes = sum(1 for a, b in zip(current, result) if a != b)
+    return {"targetsMet": targets_met, "changes": changes}
+`,
+  },
+  "list-unallocated-buckets": {
+    entry: "unallocated_ranges",
+    starterCode: `def unallocated_ranges(n, allocated):
+    """allocated: inclusive [start, end] ranges, any order, possibly
+    overlapping or partly out of bounds (clamp them).
+    Return the minimal sorted list of free inclusive ranges."""
+    # Your code here
+    return []
+`,
+  },
+  "adjustable-id-allocator": {
+    entry: "__run_operations",
+    starterCode: `class IDAllocator:
+    def __init__(self, capacity):
+        """IDs live in [0, capacity)."""
+        # Your state here
+        pass
+
+    def allocate(self):
+        """Smallest available ID, or -1 if none."""
+        return -1
+
+    def release(self, id_):
+        """True only if id_ was currently allocated."""
+        return False
+
+    def set_capacity(self, c):
+        """Adjust capacity up or down; already-issued IDs stay valid."""
+        pass
+`,
+    driverCode: `def __run_operations(operations, args):
+    methods = {
+        "allocate": "allocate",
+        "release": "release",
+        "setCapacity": "set_capacity",
+    }
+    a = None
+    out = []
+    for op, arg in zip(operations, args):
+        if op == "IDAllocator":
+            a = IDAllocator(*arg)
+            out.append(None)
+        else:
+            out.append(getattr(a, methods[op])(*arg))
+    return out
+`,
+  },
+  "flag-spam-numbers": {
+    entry: "flag_spam_numbers",
+    starterCode: `def flag_spam_numbers(call_log, reports, min_reports):
+    """call_log: [caller, callee] pairs. reports: [reporter, number] pairs.
+    Flag numbers with >= min_reports distinct valid reporters; return
+    them sorted."""
+    # Your code here
+    return []
+`,
+  },
+  "sparse-matrix-operations": {
+    entry: "__judge_sparse",
+    starterCode: `class SparseMatrix:
+    def __init__(self, n_rows, n_cols):
+        self.n_rows = n_rows
+        self.n_cols = n_cols
+        # Your storage here
+
+    @classmethod
+    def from_dense(cls, dense):
+        # Your code here
+        return cls(len(dense), len(dense[0]) if dense else 0)
+
+    def get(self, r, c):
+        return 0
+
+    def set(self, r, c, v):
+        """Storing 0 must remove the entry."""
+        pass
+
+    def add(self, other):
+        """Raise on dimension mismatch."""
+        return self
+
+    def multiply(self, other):
+        """Raise on dimension mismatch."""
+        return self
+
+    def to_dense(self):
+        return []
+
+    def nnz(self):
+        """Count of stored nonzero entries."""
+        return 0
+`,
+    driverCode: `def __judge_sparse(op, dense_a, dense_b, extra):
+    a = SparseMatrix.from_dense(dense_a)
+    if op == "get":
+        return a.get(*extra)
+    if op == "set":
+        a.set(*extra)
+        return {"dense": a.to_dense(), "nnz": a.nnz()}
+    b = SparseMatrix.from_dense(dense_b)
+    try:
+        out = a.add(b) if op == "add" else a.multiply(b)
+    except Exception:
+        return "error"
+    return {"dense": out.to_dense(), "nnz": out.nnz()}
+`,
+  },
+  "nearest-eligible-elevator": {
+    entry: "select_elevator",
+    starterCode: `def select_elevator(elevators, floor, direction):
+    """elevators: dicts with "id", "floor", "direction"
+    ("up" | "down" | "idle"), and "serviced" (list of floors).
+    Return the nearest eligible elevator's id (ties -> lowest id), or -1."""
+    # Your code here
+    return -1
+`,
+  },
+  "subsequence-expression-target": {
+    entry: "can_reach_target",
+    starterCode: `def can_reach_target(nums, target):
+    """Can some subsequence with + and * (standard precedence) evaluate
+    exactly to target?"""
+    # Your code here
+    return False
+`,
+  },
+  "cleaning-robot-coverage": {
+    entry: "robot_coverage",
+    starterCode: `def robot_coverage(grid, start):
+    """grid: list of strings of '.' and '#'. start: [row, col], open.
+    The robot slides until blocked. Return [cleanableCells, restCells]."""
+    # Your code here
+    return [0, 0]
+`,
+  },
+  "warehouse-boxes": {
+    entry: "max_boxes",
+    starterCode: `def max_boxes(heights, boxes):
+    """heights: room ceilings, entrance at index 0. boxes: box heights.
+    Return the maximum number of boxes that can be stored."""
+    # Your code here
+    return 0
+`,
+  },
+  "mark-and-compact-subtree": {
+    entry: "__judge_mark_compact",
+    starterCode: `def mark_and_compact(heap_array, k):
+    """heap_array: implicit binary tree (children of i at 2i+1, 2i+2);
+    None means no node. Collect the subtree at k, compact survivors,
+    and return [new_array, remap] where remap maps old index -> new."""
+    # Your code here
+    return [[], {}]
+`,
+    driverCode: `def __judge_mark_compact(heap_array, k):
+    result = mark_and_compact(list(heap_array), k)
+    if not isinstance(result, (list, tuple)) or len(result) != 2:
+        return {"validShape": False}
+    return {"newArray": result[0], "remap": result[1]}
+`,
+  },
+};
