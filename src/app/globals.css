@@ -21,3 +21,23 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Workspace pages (the judged-problem split view) own the viewport: the
+   window itself must not scroll, or dragging a divider shifts the page under
+   the cursor. Opting in by attribute keeps every other page scrolling
+   normally, and letting flexbox distribute the height avoids hardcoding the
+   nav's size here. Only above the split's breakpoint, where the panes tile. */
+@media (min-width: 1024px) {
+  body:has([data-workspace]) {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body:has([data-workspace]) main {
+    min-height: 0;
+  }
+
+  body:has([data-workspace]) > footer {
+    display: none;
+  }
+}

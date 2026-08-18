@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
+import { ProblemPanes } from "@/components/problem-panes";
 import { Workspace } from "@/components/workspace";
 import { getCompany, getProblem, listProblems } from "@/lib/data";
 import { CATEGORY_LABELS, type Company, type Problem } from "@/lib/types";
@@ -32,48 +33,58 @@ export default async function ProblemPage({
   if (!problem) notFound();
 
   const judge = problem.judge;
-  const details = (
-    <>
+
+  const header = (
+    <header>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <span>{CATEGORY_LABELS[problem.category]}</span>
+        <span aria-hidden>·</span>
+        <DifficultyBadge difficulty={problem.difficulty} />
+        {!judge && (
+          <span className="ml-auto">
+            <MarkDoneButton slug={problem.slug} />
+          </span>
+        )}
+      </div>
+      <h1
+        className={`mt-3 font-semibold tracking-tight ${
+          judge ? "text-xl" : "text-3xl"
+        }`}
+      >
+        {problem.title}
+      </h1>
+    </header>
+  );
+
+  // Judged problems get the split workspace; everything else stays a document.
+  if (judge) {
+    return (
+      <div
+        data-workspace
+        className="mx-auto flex w-full max-w-[1600px] flex-col px-4 py-4 lg:h-full lg:px-6"
+      >
+        <ProblemPanes
+          hasHints={problem.hints.length > 0}
+          description={
+            <>
+              {header}
+              <Prompt problem={problem} />
+              <AskedAt problem={problem} />
+            </>
+          }
+          hints={<Hints problem={problem} bare />}
+          workspace={<Workspace slug={problem.slug} judge={judge} />}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-2xl px-4 py-10">
+      {header}
       <Prompt problem={problem} />
       <Hints problem={problem} />
       <AskedAt problem={problem} />
-    </>
-  );
-
-  return (
-    <div
-      className={
-        judge
-          ? "mx-auto w-full max-w-[1500px] px-4 py-6 lg:px-6"
-          : "mx-auto w-full max-w-2xl px-4 py-10"
-      }
-    >
-      <header>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-          <span>{CATEGORY_LABELS[problem.category]}</span>
-          <span aria-hidden>·</span>
-          <DifficultyBadge difficulty={problem.difficulty} />
-          {!judge && (
-            <span className="ml-auto">
-              <MarkDoneButton slug={problem.slug} />
-            </span>
-          )}
-        </div>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-          {problem.title}
-        </h1>
-      </header>
-
-      {judge ? (
-        <div className="mt-6 grid items-start gap-8 lg:grid-cols-[2fr_3fr]">
-          <div className="lg:sticky lg:top-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
-            {details}
-          </div>
-          <Workspace slug={problem.slug} judge={judge} />
-        </div>
-      ) : (
-        details
-      )}
     </div>
   );
 }
@@ -83,7 +94,7 @@ function Prompt({ problem }: { problem: Problem }) {
   const segments = problem.prompt.split("```");
   return (
     <div
-      className={`space-y-4 text-[15px] leading-7 text-zinc-300 ${
+      className={`mt-6 space-y-4 text-[15px] leading-7 text-zinc-300 ${
         problem.judge ? "" : "mt-8"
       }`}
     >
@@ -107,12 +118,18 @@ function Prompt({ problem }: { problem: Problem }) {
   );
 }
 
-function Hints({ problem }: { problem: Problem }) {
+function Hints({
+  problem,
+  bare = false,
+}: {
+  problem: Problem;
+  bare?: boolean;
+}) {
   if (problem.hints.length === 0) return null;
   return (
-    <section className="mt-10">
-      <h2 className="text-sm font-semibold text-zinc-100">Hints</h2>
-      <div className="mt-3 space-y-2">
+    <section className={bare ? "" : "mt-10"}>
+      {!bare && <h2 className="text-sm font-semibold text-zinc-100">Hints</h2>}
+      <div className={bare ? "space-y-2" : "mt-3 space-y-2"}>
         {problem.hints.map((hint, i) => (
           <details
             key={i}

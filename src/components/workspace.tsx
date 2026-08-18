@@ -12,6 +12,7 @@ import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions, pythonCompletions } from "@/lib/editor-completions";
+import { PaneTab, SplitPane } from "./resizable";
 import { useProgress } from "./progress";
 import {
   runJudge,
@@ -110,6 +111,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   const [editorEpoch, setEditorEpoch] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
+  const [bottomTab, setBottomTab] = useState<"testcase" | "result">("testcase");
   const { reportRun } = useProgress();
 
   const onChange = useCallback(
@@ -124,6 +126,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     if (lang === language || running) return;
     setLanguage(lang);
     setResult(null);
+    setBottomTab("testcase");
     setCode(readStored(storageKeyFor(slug, lang)) ?? starterFor(lang));
     setEditorEpoch((epoch) => epoch + 1);
     writeStored("callback:lang", lang);
@@ -140,6 +143,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
       (await runOnServer(slug, code, language)) ?? (await runInBrowser());
     setResult(runResult);
     setRunning(false);
+    setBottomTab("result");
     if (runResult.status === "pass" || runResult.status === "fail") {
       void reportRun(slug, runResult.status === "pass");
     }
@@ -170,90 +174,214 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
 
   if (!mounted) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="h-7" />
-        <div className="h-[420px] rounded-lg border border-zinc-800 bg-zinc-900/40 lg:h-[calc(100vh-360px)] lg:min-h-[420px]" />
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="min-h-[420px] flex-1 rounded-lg border border-zinc-800 bg-zinc-900/40" />
+        <div className="h-[200px] shrink-0 rounded-lg border border-zinc-800 bg-zinc-900/40" />
       </div>
     );
   }
 
+  const passed =
+    result && (result.status === "pass" || result.status === "fail")
+      ? result.verdicts.filter((v) => v.pass).length
+      : null;
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="relative">
-          <span className="sr-only">Language</span>
-          <select
-            value={language}
-            onChange={(e) => switchLanguage(e.target.value as Language)}
-            disabled={running}
-            className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1.5 pl-3 pr-8 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white focus:outline-none focus:ring-indigo-500 disabled:opacity-60"
-          >
-            {available.map((lang) => (
-              <option key={lang} value={lang}>
-                {LANGUAGE_LABELS[lang]}
-              </option>
-            ))}
-          </select>
-          <svg
-            aria-hidden
-            viewBox="0 0 12 12"
-            className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-500"
-          >
-            <path
-              d="M3 4.5 6 8l3-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+    <SplitPane
+      direction="vertical"
+      storageKey="callback:split:console"
+      initial={0.62}
+      min={0.25}
+      max={0.85}
+      className="min-h-0 flex-1"
+      first={
+        <section className="flex min-h-[420px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
+          <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span aria-hidden className="font-mono text-xs text-zinc-600">
+                &lt;/&gt;
+              </span>
+              <span className="text-xs font-medium text-zinc-300">Code</span>
+              <label className="relative ml-1">
+                <span className="sr-only">Language</span>
+                <select
+                  value={language}
+                  onChange={(e) => switchLanguage(e.target.value as Language)}
+                  disabled={running}
+                  className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1 pl-2.5 pr-7 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white focus:outline-none focus:ring-indigo-500 disabled:opacity-60"
+                >
+                  {available.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {LANGUAGE_LABELS[lang]}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  aria-hidden
+                  viewBox="0 0 12 12"
+                  className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-500"
+                >
+                  <path
+                    d="M3 4.5 6 8l3-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={reset}
+                disabled={running}
+                className="rounded-md border border-zinc-800 px-3 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-200 disabled:opacity-60"
+              >
+                Reset
+              </button>
+              <button
+                onClick={run}
+                disabled={running}
+                className="rounded-md bg-indigo-500 px-4 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-default disabled:opacity-60"
+              >
+                {running ? "Running\u2026" : "Run"}
+              </button>
+            </div>
+          </header>
+          {/* Positioned rather than percentage-sized: when the pane's own
+              height comes from flex (as it does stacked on mobile), a
+              height:100% chain has nothing definite to resolve against and
+              the editor collapses to its content. */}
+          <div className="relative min-h-0 flex-1 overflow-hidden text-[13px]">
+            <CodeMirror
+              key={`${language}:${editorEpoch}`}
+              value={code}
+              onChange={onChange}
+              theme={oneDark}
+              extensions={EXTENSIONS[language]}
+              indentWithTab={false}
+              height="100%"
+              className="absolute inset-0"
             />
-          </svg>
-        </label>
-        <div className="flex gap-2">
-          <button
-            onClick={reset}
-            disabled={running}
-            className="rounded-md border border-zinc-800 px-3 py-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-200 disabled:opacity-60"
+          </div>
+        </section>
+      }
+      second={
+        <section className="flex min-h-[240px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
+          <div
+            role="tablist"
+            aria-label="Console"
+            className="flex shrink-0 items-center gap-1 border-b border-zinc-800 px-2"
           >
-            Reset
-          </button>
+            <PaneTab
+              active={bottomTab === "testcase"}
+              onClick={() => setBottomTab("testcase")}
+            >
+              Testcase
+            </PaneTab>
+            <PaneTab
+              active={bottomTab === "result"}
+              onClick={() => setBottomTab("result")}
+            >
+              Test Result
+            </PaneTab>
+            {passed !== null && (
+              <span
+                className={`ml-auto pr-1 text-xs ${
+                  result?.status === "pass"
+                    ? "text-emerald-400"
+                    : "text-rose-400"
+                }`}
+              >
+                {passed}/
+                {result?.status === "pass" || result?.status === "fail"
+                  ? result.verdicts.length
+                  : 0}
+              </span>
+            )}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {bottomTab === "testcase" ? (
+              <TestcasePanel tests={judge.tests} />
+            ) : (
+              <ResultsPanel
+                result={result}
+                running={running}
+                testCount={judge.tests.length}
+                note={
+                  !running
+                    ? null
+                    : language === "python" && !isPythonReady()
+                      ? "first Python run downloads the runtime \u2014 give it a few seconds"
+                      : isServerOnly(language)
+                        ? "compiling in the server sandbox"
+                        : null
+                }
+              />
+            )}
+          </div>
+        </section>
+      }
+    />
+  );
+}
+
+function display(value: unknown): string {
+  try {
+    const json = JSON.stringify(value);
+    return json === undefined ? String(value) : json;
+  } catch {
+    return String(value);
+  }
+}
+
+// The sample cases the judge will run, visible before pressing Run. They are
+// read-only: tests are loaded server-side by slug so a client can't submit
+// doctored ones.
+function TestcasePanel({ tests }: { tests: Judge["tests"] }) {
+  const [selected, setSelected] = useState(0);
+  const test = tests[Math.min(selected, tests.length - 1)];
+  if (!test) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-1.5">
+        {tests.map((t, i) => (
           <button
-            onClick={run}
-            disabled={running}
-            className="rounded-md bg-indigo-500 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-default disabled:opacity-60"
+            key={t.name ?? i}
+            onClick={() => setSelected(i)}
+            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+              i === selected
+                ? "bg-zinc-800 text-zinc-100"
+                : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
+            }`}
           >
-            {running ? "Running…" : "Run"}
+            {t.name ?? `Case ${i + 1}`}
           </button>
-        </div>
+        ))}
       </div>
+      <Field label="Input">
+        {test.input.map((arg) => display(arg)).join("\n")}
+      </Field>
+      <Field label="Expected">{display(test.expected)}</Field>
+    </div>
+  );
+}
 
-      <div className="h-[420px] overflow-hidden rounded-lg border border-zinc-800 text-[13px] lg:h-[calc(100vh-360px)] lg:min-h-[420px]">
-        <CodeMirror
-          key={`${language}:${editorEpoch}`}
-          value={code}
-          onChange={onChange}
-          theme={oneDark}
-          extensions={EXTENSIONS[language]}
-          indentWithTab={false}
-          height="100%"
-          className="h-full"
-        />
-      </div>
-
-      <ResultsPanel
-        result={result}
-        running={running}
-        testCount={judge.tests.length}
-        note={
-          !running
-            ? null
-            : language === "python" && !isPythonReady()
-              ? "first Python run downloads the runtime — give it a few seconds"
-              : isServerOnly(language)
-                ? "compiling in the server sandbox"
-                : null
-        }
-      />
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="text-xs text-zinc-500">{label}</p>
+      <pre className="mt-1 overflow-x-auto rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 font-mono text-xs leading-5 text-zinc-200">
+        {children}
+      </pre>
     </div>
   );
 }
