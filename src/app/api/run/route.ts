@@ -1,6 +1,6 @@
 import { getProblem } from "@/lib/data";
 import { isJudge0Configured, runOnJudge0 } from "@/lib/judge0";
-import { LANGUAGES, type Language } from "@/lib/types";
+import { judgeFor, LANGUAGES, type Language } from "@/lib/types";
 
 const MAX_CODE_BYTES = 64 * 1024;
 
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
       { status: 404 },
     );
   }
-  if (lang === "python" && !problem.judge.python) {
+  if (!judgeFor(problem.judge, lang)) {
     return Response.json(
-      { error: "No Python judge for that problem." },
+      { error: `No ${lang} judge for that problem.` },
       { status: 404 },
     );
   }

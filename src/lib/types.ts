@@ -28,9 +28,35 @@ export interface Problem {
   judge?: Judge;
 }
 
-export const LANGUAGES = ["javascript", "python"] as const;
+export const LANGUAGES = [
+  "javascript",
+  "typescript",
+  "python",
+  "java",
+  "cpp",
+  "go",
+] as const;
 
 export type Language = (typeof LANGUAGES)[number];
+
+export const LANGUAGE_LABELS: Record<Language, string> = {
+  javascript: "JavaScript",
+  typescript: "TypeScript",
+  python: "Python",
+  java: "Java",
+  cpp: "C++",
+  go: "Go",
+};
+
+/**
+ * Languages with no in-browser runtime: they only run through the Judge0
+ * server sandbox, so the workspace warns when it isn't configured.
+ */
+export const SERVER_ONLY_LANGUAGES = ["java", "cpp", "go"] as const;
+
+export function isServerOnly(language: Language): boolean {
+  return (SERVER_ONLY_LANGUAGES as readonly Language[]).includes(language);
+}
 
 /** Per-language solution scaffolding and harness glue. */
 export interface JudgeLanguage {
@@ -63,9 +89,37 @@ export interface Judge {
    * problems where the entry function drives a sequence of operations.
    */
   driverCode?: string;
-  /** Python starter/entry/driver; tests are shared across languages. */
+  /**
+   * Per-language starter/entry/driver. JavaScript lives in the fields above
+   * (it predates multi-language support); every other language lands here.
+   * Tests are shared across all languages.
+   */
   python?: JudgeLanguage;
+  typescript?: JudgeLanguage;
+  java?: JudgeLanguage;
+  cpp?: JudgeLanguage;
+  go?: JudgeLanguage;
   tests: JudgeTest[];
+}
+
+/** The per-language scaffolding for `language`, or undefined if unsupported. */
+export function judgeFor(
+  judge: Judge,
+  language: Language,
+): JudgeLanguage | undefined {
+  if (language === "javascript") {
+    return {
+      starterCode: judge.starterCode,
+      entry: judge.entry,
+      driverCode: judge.driverCode,
+    };
+  }
+  return judge[language];
+}
+
+/** Languages this problem can actually be solved in, in display order. */
+export function languagesFor(judge: Judge): Language[] {
+  return LANGUAGES.filter((l) => judgeFor(judge, l) !== undefined);
 }
 
 export interface Company {

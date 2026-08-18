@@ -8,6 +8,10 @@ import {
   tracks as seedTracks,
 } from "../lib/seed-data";
 import { pythonJudges } from "../lib/seed-python";
+import { typescriptJudges } from "../lib/seed-typescript";
+import { javaJudges } from "../lib/seed-java";
+import { cppJudges } from "../lib/seed-cpp";
+import { goJudges } from "../lib/seed-go";
 
 // Idempotent: upserts rows by slug and rebuilds the join tables, so it is
 // safe to run after every content edit in src/lib/seed-data.ts.
@@ -43,7 +47,14 @@ async function main() {
         hints: problem.hints,
         // Judges gain their per-language definitions at seed time.
         judge: problem.judge
-          ? { ...problem.judge, python: pythonJudges[problem.slug] }
+          ? {
+              ...problem.judge,
+              python: pythonJudges[problem.slug],
+              typescript: typescriptJudges[problem.slug],
+              java: javaJudges[problem.slug],
+              cpp: cppJudges[problem.slug],
+              go: goJudges[problem.slug],
+            }
           : null,
       };
       await tx

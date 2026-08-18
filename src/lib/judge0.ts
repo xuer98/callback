@@ -1,6 +1,10 @@
 import "server-only";
 import { PYTHON_HARNESS_BODY } from "./python-harness";
-import type { Judge, Language } from "./types";
+import { buildJavaSource } from "./java-harness";
+import { buildCppSource } from "./cpp-harness";
+import { buildGoSource } from "./go-harness";
+import { transpileTypeScript } from "./transpile-ts";
+import { judgeFor, type Judge, type Language } from "./types";
 import type { RunResult, TestVerdict } from "./run-judge";
 
 // Judge0 client: wraps the user's code in a Node harness with the same
@@ -10,15 +14,52 @@ import type { RunResult, TestVerdict } from "./run-judge";
 // Configure with JUDGE0_URL (e.g. http://localhost:2358 for self-hosted, or
 // https://judge0-ce.p.rapidapi.com with JUDGE0_API_KEY for RapidAPI).
 
-// JavaScript (Node.js) and Python 3 in Judge0 CE. Overridable because
-// self-hosted instances may carry newer runtimes under different ids.
-const DEFAULT_JS_LANGUAGE_ID = 63;
-const DEFAULT_PY_LANGUAGE_ID = 71;
+// Judge0 CE language ids. Overridable because self-hosted instances may
+// carry newer runtimes under different ids. TypeScript deliberately has no
+// id of its own: it is transpiled to JavaScript and run as JavaScript, so
+// its semantics match the browser worker exactly.
+const DEFAULT_LANGUAGE_IDS: Record<Language, number> = {
+  javascript: 63, // Node.js
+  typescript: 63, // transpiled, then run as JavaScript
+  python: 71, // Python 3
+  java: 62, // OpenJDK
+  cpp: 54, // g++
+  go: 60, // Go
+};
+
+const LANGUAGE_ID_ENV: Record<Language, string> = {
+  javascript: "JUDGE0_JS_LANGUAGE_ID",
+  typescript: "JUDGE0_JS_LANGUAGE_ID",
+  python: "JUDGE0_PY_LANGUAGE_ID",
+  java: "JUDGE0_JAVA_LANGUAGE_ID",
+  cpp: "JUDGE0_CPP_LANGUAGE_ID",
+  go: "JUDGE0_GO_LANGUAGE_ID",
+};
+
+function languageId(language: Language): number {
+  const override = process.env[LANGUAGE_ID_ENV[language]];
+  return Number(override ?? DEFAULT_LANGUAGE_IDS[language]);
+}
+
+const COMPILED_BUILDERS = {
+  java: buildJavaSource,
+  cpp: buildCppSource,
+  go: buildGoSource,
+} as const;
+
+type CompiledLanguage = keyof typeof COMPILED_BUILDERS;
+
+function isCompiled(language: Language): language is CompiledLanguage {
+  return language in COMPILED_BUILDERS;
+}
 
 const CPU_TIME_LIMIT_S = 5;
 const WALL_TIME_LIMIT_S = 10;
 const POLL_INTERVAL_MS = 500;
 const POLL_DEADLINE_MS = 20_000;
+// Compiled languages pay for a compile step before they run, and a cold
+// queue can add more, so give them a longer window before giving up.
+const COMPILED_POLL_DEADLINE_MS = 60_000;
 
 const RESULT_MARKER = "__CALLBACK_JUDGE0_RESULT__";
 
@@ -35,25 +76,56 @@ export async function runOnJudge0(
   if (!baseUrl) {
     return { status: "error", message: "Judge0 is not configured." };
   }
-  if (language === "python" && !judge.python) {
+  const variant = judgeFor(judge, language);
+  if (!variant) {
     return {
       status: "error",
-      message: "This problem has no Python judge yet.",
+      message: `This problem has no ${language} judge yet.`,
     };
   }
 
-  const source =
-    language === "python"
-      ? buildPythonHarness(code, judge)
-      : buildHarness(code, judge);
-  const languageId =
-    language === "python"
-      ? Number(process.env.JUDGE0_PY_LANGUAGE_ID ?? DEFAULT_PY_LANGUAGE_ID)
-      : Number(process.env.JUDGE0_JS_LANGUAGE_ID ?? DEFAULT_JS_LANGUAGE_ID);
+  let source: string;
+  // Compiled languages report errors against the assembled program (harness
+  // + solution), so a raw "line 246" is meaningless to someone looking at a
+  // ten-line editor. Track where the solution starts to explain the offset.
+  let solutionStartLine: number | null = null;
+  if (isCompiled(language)) {
+    const payloadB64 = Buffer.from(
+      JSON.stringify({ tests: judge.tests }),
+      "utf8",
+    ).toString("base64");
+    source = COMPILED_BUILDERS[language](
+      code,
+      variant.driverCode ?? "",
+      variant.entry,
+      payloadB64,
+      RESULT_MARKER,
+    );
+    const before = source.indexOf(code);
+    if (before > 0) {
+      solutionStartLine = source.slice(0, before).split("\n").length;
+    }
+  } else if (language === "python") {
+    source = buildPythonHarness(code, judge);
+  } else if (language === "typescript") {
+    // Strip types, then judge as JavaScript against the JS driver.
+    const transpiled = await transpileTypeScript(code);
+    if (!transpiled.ok) {
+      return { status: "error", message: transpiled.message };
+    }
+    source = buildHarness(transpiled.code, judge);
+  } else {
+    source = buildHarness(code, judge);
+  }
 
   let submission;
   try {
-    submission = await submit(baseUrl, source, languageId);
+    submission = await submit(
+      baseUrl,
+      source,
+      languageId(language),
+      isCompiled(language) ? COMPILED_POLL_DEADLINE_MS : POLL_DEADLINE_MS,
+    );
   } catch (err) {
     return {
       status: "error",
@@ -62,7 +134,7 @@ export async function runOnJudge0(
       }`,
     };
   }
-  return toRunResult(submission);
+  return toRunResult(submission, solutionStartLine);
 }
 
 interface Judge0Submission {
@@ -77,6 +149,7 @@ async function submit(
   baseUrl: string,
   sourceCode: string,
   languageId: number,
+  pollDeadlineMs: number,
 ): Promise<Judge0Submission> {
   const headers: Record<string, string> = {
     "content-type": "application/json",
@@ -114,7 +187,7 @@ async function submit(
   }
 
   const fields = "status_id,stdout,stderr,compile_output,message";
-  const deadline = Date.now() + POLL_DEADLINE_MS;
+  const deadline = Date.now() + pollDeadlineMs;
   for (;;) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     const res = await fetch(
@@ -151,7 +224,10 @@ function decode(value: string | null): string | null {
   return value === null ? null : Buffer.from(value, "base64").toString("utf8");
 }
 
-function toRunResult(submission: Judge0Submission): RunResult {
+function toRunResult(
+  submission: Judge0Submission,
+  solutionStartLine: number | null = null,
+): RunResult {
   const { status_id } = submission;
 
   if (status_id === 5) {
@@ -167,7 +243,11 @@ function toRunResult(submission: Judge0Submission): RunResult {
       submission.stderr?.trim() ||
       submission.message?.trim() ||
       `Execution failed (Judge0 status ${status_id}).`;
-    return { status: "error", message: detail };
+    const note =
+      status_id === 6 && solutionStartLine !== null
+        ? `Line numbers below count from the start of the compiled program, where your solution begins at line ${solutionStartLine} — subtract ${solutionStartLine - 1} to find the line in your editor.\n\n`
+        : "";
+    return { status: "error", message: note + detail };
   }
 
   // The harness prints the verdicts as one marker-prefixed line, so user

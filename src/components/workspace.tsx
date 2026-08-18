@@ -4,6 +4,9 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
+import { java } from "@codemirror/lang-java";
+import { cpp } from "@codemirror/lang-cpp";
+import { go } from "@codemirror/lang-go";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
@@ -13,11 +16,19 @@ import { useProgress } from "./progress";
 import {
   runJudge,
   runOnServer,
+  runTypeScriptJudge,
   type RunResult,
   type TestVerdict,
 } from "@/lib/run-judge";
 import { isPythonReady, runPythonJudge } from "@/lib/run-python";
-import type { Judge, Language } from "@/lib/types";
+import {
+  isServerOnly,
+  judgeFor,
+  languagesFor,
+  LANGUAGE_LABELS,
+  type Judge,
+  type Language,
+} from "@/lib/types";
 
 // Tab accepts an open completion first, then falls through to indenting.
 // The component's own indentWithTab binding is disabled so this order wins.
@@ -28,13 +39,16 @@ const EDITOR_KEYMAP = keymap.of([
 
 const EXTENSIONS = {
   javascript: [javascript(), ...jsCompletions, EDITOR_KEYMAP],
+  typescript: [
+    javascript({ typescript: true }),
+    ...jsCompletions,
+    EDITOR_KEYMAP,
+  ],
   python: [python(), ...pythonCompletions, EDITOR_KEYMAP],
+  java: [java(), EDITOR_KEYMAP],
+  cpp: [cpp(), EDITOR_KEYMAP],
+  go: [go(), EDITOR_KEYMAP],
 } satisfies Record<Language, unknown[]>;
-
-const LANGUAGE_LABELS: Record<Language, string> = {
-  javascript: "JavaScript",
-  python: "Python",
-};
 
 // The JavaScript key predates multi-language support — keep it stable so
 // existing saved solutions survive.
@@ -72,9 +86,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     () => false,
   );
 
-  const available: Language[] = judge.python
-    ? ["javascript", "python"]
-    : ["javascript"];
+  const available = languagesFor(judge);
 
   const [language, setLanguage] = useState<Language>(() => {
     const preferred = readStored("callback:lang") as Language | null;
@@ -84,8 +96,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   });
 
   const starterFor = useCallback(
-    (lang: Language) =>
-      lang === "python" ? judge.python!.starterCode : judge.starterCode,
+    (lang: Language) => judgeFor(judge, lang)?.starterCode ?? judge.starterCode,
     [judge],
   );
 
@@ -123,17 +134,27 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     setResult(null);
     // Prefer the Judge0 sandbox; fall back to the in-browser runner when
     // the server route reports it isn't configured (or is unreachable).
+    // Java, C++, and Go have no browser runtime, so there is nothing to
+    // fall back to — say so rather than failing silently.
     const runResult =
-      language === "python"
-        ? ((await runOnServer(slug, code, "python")) ??
-          (await runPythonJudge(code, judge)))
-        : ((await runOnServer(slug, code, "javascript")) ??
-          (await runJudge(code, judge)));
+      (await runOnServer(slug, code, language)) ?? (await runInBrowser());
     setResult(runResult);
     setRunning(false);
     if (runResult.status === "pass" || runResult.status === "fail") {
       void reportRun(slug, runResult.status === "pass");
     }
+  };
+
+  const runInBrowser = (): Promise<RunResult> => {
+    if (isServerOnly(language)) {
+      return Promise.resolve({
+        status: "error",
+        message: `${LANGUAGE_LABELS[language]} runs in the server sandbox, which isn't configured. Set JUDGE0_URL to run it, or switch to JavaScript, TypeScript, or Python — those run right here in the browser.`,
+      });
+    }
+    if (language === "python") return runPythonJudge(code, judge);
+    if (language === "typescript") return runTypeScriptJudge(code, judge);
+    return runJudge(code, judge);
   };
 
   const reset = () => {
@@ -159,21 +180,35 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex rounded-md bg-zinc-900 p-0.5 ring-1 ring-inset ring-zinc-800">
-          {available.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => switchLanguage(lang)}
-              className={`rounded px-3 py-1 font-mono text-xs transition-colors ${
-                lang === language
-                  ? "bg-zinc-700 text-zinc-100"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              {LANGUAGE_LABELS[lang]}
-            </button>
-          ))}
-        </div>
+        <label className="relative">
+          <span className="sr-only">Language</span>
+          <select
+            value={language}
+            onChange={(e) => switchLanguage(e.target.value as Language)}
+            disabled={running}
+            className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1.5 pl-3 pr-8 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white focus:outline-none focus:ring-indigo-500 disabled:opacity-60"
+          >
+            {available.map((lang) => (
+              <option key={lang} value={lang}>
+                {LANGUAGE_LABELS[lang]}
+              </option>
+            ))}
+          </select>
+          <svg
+            aria-hidden
+            viewBox="0 0 12 12"
+            className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-500"
+          >
+            <path
+              d="M3 4.5 6 8l3-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </label>
         <div className="flex gap-2">
           <button
             onClick={reset}
@@ -209,7 +244,15 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
         result={result}
         running={running}
         testCount={judge.tests.length}
-        coldPython={running && language === "python" && !isPythonReady()}
+        note={
+          !running
+            ? null
+            : language === "python" && !isPythonReady()
+              ? "first Python run downloads the runtime — give it a few seconds"
+              : isServerOnly(language)
+                ? "compiling in the server sandbox"
+                : null
+        }
       />
     </div>
   );
@@ -219,23 +262,18 @@ function ResultsPanel({
   result,
   running,
   testCount,
-  coldPython,
+  note,
 }: {
   result: RunResult | null;
   running: boolean;
   testCount: number;
-  coldPython: boolean;
+  note: string | null;
 }) {
   if (running) {
     return (
       <Panel className="text-zinc-400">
         Running {testCount} cases…
-        {coldPython && (
-          <span className="text-zinc-500">
-            {" "}
-            (first Python run downloads the runtime — give it a few seconds)
-          </span>
-        )}
+        {note && <span className="text-zinc-500"> ({note})</span>}
       </Panel>
     );
   }

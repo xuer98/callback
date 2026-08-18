@@ -1,4 +1,5 @@
-import type { Judge } from "./types";
+import { transpileTypeScript } from "./transpile-ts";
+import type { Judge, Language } from "./types";
 
 export interface TestVerdict {
   name: string;
@@ -27,7 +28,7 @@ export type RunResult =
 export async function runOnServer(
   slug: string,
   code: string,
-  language: "javascript" | "python" = "javascript",
+  language: Language = "javascript",
 ): Promise<RunResult | null> {
   try {
     const res = await fetch("/api/run", {
@@ -156,6 +157,21 @@ self.onmessage = (event) => {
   });
 };
 `;
+
+/**
+ * Runs TypeScript in the browser by stripping types and judging the result
+ * as JavaScript — same worker, same driver, same semantics.
+ */
+export async function runTypeScriptJudge(
+  code: string,
+  judge: Judge,
+): Promise<RunResult> {
+  const transpiled = await transpileTypeScript(code);
+  if (!transpiled.ok) {
+    return { status: "error", message: transpiled.message };
+  }
+  return runJudge(transpiled.code, judge);
+}
 
 export function runJudge(code: string, judge: Judge): Promise<RunResult> {
   return new Promise((resolve) => {
