@@ -54,6 +54,7 @@ Open http://localhost:3000. Other scripts: `pnpm build` (production build + type
 - [x] Database + ORM (Postgres + Drizzle; content served from the DB)
 - [x] Auth and user accounts (Better Auth: email/password + optional Google OAuth via `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`)
 - [x] Progress tracking (judge runs auto-record attempted/solved; manual mark-done elsewhere)
+- [x] Whiteboard on system-design problems (Excalidraw; sketches persist locally per problem)
 - [ ] Hidden test cases and a real Run/Submit split
 - [ ] Submission history and spaced repetition
 - [ ] Richer problem content (solutions, complexity discussion, editor-quality markdown)

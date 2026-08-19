@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
 import { ProblemPanes } from "@/components/problem-panes";
+import { Whiteboard } from "@/components/whiteboard";
 import { Workspace } from "@/components/workspace";
 import { getCompany, getProblem, listProblems } from "@/lib/data";
 import { CATEGORY_LABELS, type Company, type Problem } from "@/lib/types";
@@ -56,14 +57,24 @@ export default async function ProblemPage({
     </header>
   );
 
-  // Judged problems get the split workspace; everything else stays a document.
-  if (judge) {
+  // Judged problems get the editor workspace; system-design problems get a
+  // whiteboard to sketch the architecture on. Everything else is a document.
+  const workspace = judge ? (
+    <Workspace slug={problem.slug} judge={judge} />
+  ) : problem.category === "system-design" ? (
+    <Whiteboard slug={problem.slug} />
+  ) : null;
+
+  if (workspace) {
     return (
       <div
         data-workspace
         className="mx-auto flex w-full max-w-[1600px] flex-col px-4 py-4 lg:h-full lg:px-6"
       >
+        {/* Keyed by slug so pane and editor state can't leak between
+            problems on client-side navigation. */}
         <ProblemPanes
+          key={problem.slug}
           hasHints={problem.hints.length > 0}
           description={
             <>
@@ -73,7 +84,7 @@ export default async function ProblemPage({
             </>
           }
           hints={<Hints problem={problem} bare />}
-          workspace={<Workspace slug={problem.slug} judge={judge} />}
+          workspace={workspace}
         />
       </div>
     );
