@@ -90,6 +90,45 @@ export const problemProgress = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.problemId] })],
 );
 
+// Account-backed copies of what the workspace also keeps in localStorage:
+// saved code per problem/language, and the whiteboard scene per problem.
+// The client reconciles the two on load (newest wins). Language is text,
+// not an enum, so adding a language never needs a migration — the server
+// action validates against LANGUAGES instead.
+export const solutions = pgTable(
+  "solutions",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    language: text("language").notNull(),
+    code: text("code").notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.problemId, table.language] }),
+  ],
+);
+
+export const boards = pgTable(
+  "boards",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    /** Excalidraw scene: { elements, appState, files }. */
+    scene: jsonb("scene").$type<unknown>().notNull(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.problemId] })],
+);
+
 export const problemsRelations = relations(problems, ({ many }) => ({
   problemCompanies: many(problemCompanies),
   trackProblems: many(trackProblems),

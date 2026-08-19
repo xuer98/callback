@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
@@ -13,13 +19,21 @@ import { indentWithTab } from "@codemirror/commands";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions, pythonCompletions } from "@/lib/editor-completions";
 import { PaneTab, SplitPane } from "./resizable";
+import { ResultsPanel, TestcasePanel } from "./workspace-console";
 import { useProgress } from "./progress";
+import {
+  readStored,
+  removeStored,
+  storageKeyFor,
+  useSolutionSync,
+  writeSavedAt,
+  writeStored,
+} from "@/lib/workspace-sync";
 import {
   runJudge,
   runOnServer,
   runTypeScriptJudge,
   type RunResult,
-  type TestVerdict,
 } from "@/lib/run-judge";
 import { isPythonReady, runPythonJudge } from "@/lib/run-python";
 import {
@@ -50,31 +64,6 @@ const EXTENSIONS = {
   cpp: [cpp(), EDITOR_KEYMAP],
   go: [go(), EDITOR_KEYMAP],
 } satisfies Record<Language, unknown[]>;
-
-// The JavaScript key predates multi-language support — keep it stable so
-// existing saved solutions survive.
-function storageKeyFor(slug: string, language: Language) {
-  return language === "javascript"
-    ? `callback:code:${slug}`
-    : `callback:code:${slug}:${language}`;
-}
-
-function readStored(key: string): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function writeStored(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Storage full or unavailable — the editor still works.
-  }
-}
 
 const subscribeNoop = () => () => {};
 
@@ -112,14 +101,41 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
   const [bottomTab, setBottomTab] = useState<"testcase" | "result">("testcase");
-  const { reportRun } = useProgress();
+  const { signedIn, reportRun } = useProgress();
+
+  // Account sync: on load, newer server copies land in localStorage and the
+  // open language is adopted below; edits are pushed up on a debounce.
+  // Signed out, everything stays purely local.
+  const { queueSave, dropSolution } = useSolutionSync({
+    slug,
+    languages: available,
+    enabled: signedIn,
+    onPulled: (langs) => {
+      if (langs.includes(languageRef.current)) {
+        setCode(
+          readStored(storageKeyFor(slug, languageRef.current)) ??
+            starterFor(languageRef.current),
+        );
+        setEditorEpoch((epoch) => epoch + 1);
+      }
+    },
+  });
+  // The adopt callback runs from an async continuation; a ref keeps it
+  // reading the language the editor is actually showing.
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
 
   const onChange = useCallback(
     (value: string) => {
       setCode(value);
-      writeStored(storageKeyFor(slug, language), value);
+      const key = storageKeyFor(slug, language);
+      writeStored(key, value);
+      writeSavedAt(key, Date.now());
+      if (signedIn) queueSave(language, value);
     },
-    [slug, language],
+    [slug, language, signedIn, queueSave],
   );
 
   const switchLanguage = (lang: Language) => {
@@ -165,11 +181,10 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     setCode(starterFor(language));
     setEditorEpoch((epoch) => epoch + 1);
     setResult(null);
-    try {
-      localStorage.removeItem(storageKeyFor(slug, language));
-    } catch {
-      // Ignore, same as above.
-    }
+    const key = storageKeyFor(slug, language);
+    removeStored(key);
+    removeStored(`${key}:savedAt`);
+    if (signedIn) dropSolution(language);
   };
 
   if (!mounted) {
@@ -324,184 +339,5 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
         </section>
       }
     />
-  );
-}
-
-function display(value: unknown): string {
-  try {
-    const json = JSON.stringify(value);
-    return json === undefined ? String(value) : json;
-  } catch {
-    return String(value);
-  }
-}
-
-// The sample cases the judge will run, visible before pressing Run. They are
-// read-only: tests are loaded server-side by slug so a client can't submit
-// doctored ones.
-function TestcasePanel({ tests }: { tests: Judge["tests"] }) {
-  const [selected, setSelected] = useState(0);
-  const test = tests[Math.min(selected, tests.length - 1)];
-  if (!test) return null;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-1.5">
-        {tests.map((t, i) => (
-          <button
-            key={t.name ?? i}
-            onClick={() => setSelected(i)}
-            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-              i === selected
-                ? "bg-zinc-800 text-zinc-100"
-                : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
-            }`}
-          >
-            {t.name ?? `Case ${i + 1}`}
-          </button>
-        ))}
-      </div>
-      <Field label="Input">
-        {test.input.map((arg) => display(arg)).join("\n")}
-      </Field>
-      <Field label="Expected">{display(test.expected)}</Field>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <p className="text-xs text-zinc-500">{label}</p>
-      <pre className="mt-1 overflow-x-auto rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-2 font-mono text-xs leading-5 text-zinc-200">
-        {children}
-      </pre>
-    </div>
-  );
-}
-
-function ResultsPanel({
-  result,
-  running,
-  testCount,
-  note,
-}: {
-  result: RunResult | null;
-  running: boolean;
-  testCount: number;
-  note: string | null;
-}) {
-  if (running) {
-    return (
-      <Panel className="text-zinc-400">
-        Running {testCount} cases…
-        {note && <span className="text-zinc-500"> ({note})</span>}
-      </Panel>
-    );
-  }
-  if (!result) {
-    return (
-      <Panel className="text-zinc-500">
-        Run your solution against {testCount} sample cases.
-      </Panel>
-    );
-  }
-  if (result.status === "error") {
-    return (
-      <Panel className="border-rose-500/30">
-        <p className="text-xs font-semibold text-rose-400">Error</p>
-        <pre className="mt-2 whitespace-pre-wrap break-all font-mono text-xs text-rose-300">
-          {result.message}
-        </pre>
-      </Panel>
-    );
-  }
-  if (result.status === "timeout") {
-    return (
-      <Panel className="border-amber-500/30">
-        <p className="text-xs font-semibold text-amber-400">Timed out</p>
-        <p className="mt-2 text-xs text-amber-300">{result.message}</p>
-      </Panel>
-    );
-  }
-
-  const passed = result.verdicts.filter((v) => v.pass).length;
-  return (
-    <div className="flex flex-col gap-2">
-      <p
-        className={`text-sm font-medium ${
-          result.status === "pass" ? "text-emerald-400" : "text-rose-400"
-        }`}
-      >
-        {result.status === "pass"
-          ? `All ${result.verdicts.length} cases passed`
-          : `${passed}/${result.verdicts.length} cases passed`}
-      </p>
-      {result.verdicts.map((verdict) => (
-        <VerdictRow key={verdict.name} verdict={verdict} />
-      ))}
-    </div>
-  );
-}
-
-function VerdictRow({ verdict }: { verdict: TestVerdict }) {
-  return (
-    <div
-      className={`rounded-lg border px-3 py-2 ${
-        verdict.pass
-          ? "border-zinc-800 bg-zinc-900/40"
-          : "border-rose-500/30 bg-rose-500/5"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2 text-xs">
-        <span className={verdict.pass ? "text-emerald-400" : "text-rose-400"}>
-          {verdict.pass ? "✓" : "✕"} {verdict.name}
-        </span>
-        <span className="shrink-0 text-zinc-600">
-          {verdict.timeMs.toFixed(1)} ms
-        </span>
-      </div>
-      {!verdict.pass && (
-        <div className="mt-2 space-y-1 whitespace-pre-wrap break-all font-mono text-xs text-zinc-400">
-          <p>Input: {verdict.input}</p>
-          <p>
-            Expected: <span className="text-zinc-200">{verdict.expected}</span>
-          </p>
-          <p>
-            {verdict.error ? "Threw" : "Got"}:{" "}
-            <span className="text-rose-300">
-              {verdict.error ?? verdict.got}
-            </span>
-          </p>
-        </div>
-      )}
-      {verdict.logs.length > 0 && (
-        <pre className="mt-2 whitespace-pre-wrap break-all font-mono text-xs text-zinc-600">
-          {verdict.logs.join("\n")}
-        </pre>
-      )}
-    </div>
-  );
-}
-
-function Panel({
-  className = "",
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={`rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-sm ${className}`}
-    >
-      {children}
-    </div>
   );
 }

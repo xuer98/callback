@@ -1,14 +1,23 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "@excalidraw/excalidraw/index.css";
+import { useProgress } from "./progress";
+import { saveBoard } from "@/lib/workspace-actions";
+import {
+  fetchWorkspace,
+  readSavedAt,
+  readStored,
+  writeSavedAt,
+  writeStored,
+} from "@/lib/workspace-sync";
 
-// The whiteboard pane for system-design problems: an Excalidraw canvas with
-// the sketch persisted per problem in localStorage, mirroring how solutions
-// persist per problem/language. Excalidraw touches window at module scope,
-// so it is loaded client-side only — and code-split, so problem pages
-// without a whiteboard never download it.
+// The whiteboard pane for system-design problems: an Excalidraw canvas
+// persisted per problem — localStorage always, and the account when signed
+// in (reconciled on load, newest wins, mirroring solution code). Excalidraw
+// touches window at module scope, so it is loaded client-side only — and
+// code-split, so problem pages without a whiteboard never download it.
 const Excalidraw = dynamic(
   () => import("@excalidraw/excalidraw").then((mod) => mod.Excalidraw),
   {
@@ -19,18 +28,26 @@ const Excalidraw = dynamic(
   },
 );
 
-const SAVE_DEBOUNCE_MS = 400;
+const LOCAL_DEBOUNCE_MS = 400;
+const REMOTE_DEBOUNCE_MS = 1500;
 
 function storageKeyFor(slug: string) {
   return `callback:board:${slug}`;
 }
 
-function writeStored(key: string, value: string) {
+function readLocalScene(key: string): unknown {
+  const raw = readStored(key);
+  if (!raw) return null;
   try {
-    localStorage.setItem(key, value);
+    return JSON.parse(raw);
   } catch {
-    // Storage full or unavailable — the board still works, unsaved.
+    return null;
   }
+}
+
+function elementsJson(scene: unknown): string {
+  const elements = (scene as { elements?: unknown[] } | null)?.elements ?? [];
+  return JSON.stringify(elements);
 }
 
 // Structural minimums of what the onChange handler reads; the real
@@ -45,23 +62,71 @@ interface SceneView {
   zoom: unknown;
 }
 
+/** Excalidraw's own initialData prop type, via the dynamic wrapper. */
+type InitialData = React.ComponentProps<typeof Excalidraw>["initialData"];
+
 export function Whiteboard({ slug }: { slug: string }) {
   const storageKey = storageKeyFor(slug);
+  const { signedIn } = useProgress();
 
-  // Read once per mount; the page keys this component by slug. Server-side
-  // this resolves to null, which only ever feeds the ssr:false child.
-  const initialData = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  }, [storageKey]);
+  // The scene Excalidraw mounts with; adopting a newer server copy swaps it
+  // and bumps the epoch to remount (Excalidraw is uncontrolled).
+  const [initialData, setInitialData] = useState<InitialData>(() =>
+    typeof window === "undefined"
+      ? null
+      : (readLocalScene(storageKey) as InitialData),
+  );
+  const [boardEpoch, setBoardEpoch] = useState(0);
 
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const localTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const remoteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const pending = useRef<string | null>(null);
+  // Sketched since load? Baseline is the mounted scene's elements; scroll
+  // and zoom changes don't count. A dirty board is never overwritten.
+  const baseline = useRef<string>(elementsJson(initialData));
+  const dirty = useRef(false);
+
+  const pushRemote = useCallback(
+    (payload: string) => {
+      void saveBoard(slug, payload).then((ms) => {
+        if (ms !== null) writeSavedAt(storageKeyFor(slug), ms);
+      });
+    },
+    [slug],
+  );
+
+  // Reconcile with the account copy once signed in: newer remote scene is
+  // adopted (unless sketched on meanwhile); newer local scene is pushed up.
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    void fetchWorkspace(slug).then((remote) => {
+      if (cancelled || !remote?.signedIn) return;
+      const key = storageKeyFor(slug);
+      const local = readStored(key);
+      const localAt = readSavedAt(key);
+      const theirs = remote.board;
+      if (theirs && theirs.updatedAt > localAt && !dirty.current) {
+        const payload = JSON.stringify(theirs.scene);
+        if (payload !== local) {
+          writeStored(key, payload);
+          baseline.current = elementsJson(theirs.scene);
+          setInitialData(theirs.scene as InitialData);
+          setBoardEpoch((epoch) => epoch + 1);
+        }
+        writeSavedAt(key, theirs.updatedAt);
+      } else if (local && (!theirs || localAt > theirs.updatedAt)) {
+        pushRemote(local);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn, slug, pushRemote]);
 
   const handleChange = (
     elements: readonly SceneElement[],
@@ -69,8 +134,10 @@ export function Whiteboard({ slug }: { slug: string }) {
     files: unknown,
   ) => {
     // Excalidraw keeps deleted elements as tombstones; don't persist them.
+    const live = elements.filter((el) => !el.isDeleted);
+    if (JSON.stringify(live) !== baseline.current) dirty.current = true;
     pending.current = JSON.stringify({
-      elements: elements.filter((el) => !el.isDeleted),
+      elements: live,
       appState: {
         scrollX: appState.scrollX,
         scrollY: appState.scrollY,
@@ -78,19 +145,33 @@ export function Whiteboard({ slug }: { slug: string }) {
       },
       files,
     });
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      if (pending.current !== null) writeStored(storageKey, pending.current);
-    }, SAVE_DEBOUNCE_MS);
+    clearTimeout(localTimer.current);
+    localTimer.current = setTimeout(() => {
+      if (pending.current !== null) {
+        writeStored(storageKey, pending.current);
+        writeSavedAt(storageKey, Date.now());
+      }
+    }, LOCAL_DEBOUNCE_MS);
+    if (signedIn && dirty.current) {
+      clearTimeout(remoteTimer.current);
+      remoteTimer.current = setTimeout(() => {
+        if (pending.current !== null) pushRemote(pending.current);
+      }, REMOTE_DEBOUNCE_MS);
+    }
   };
 
   // Flush the last unsaved change when navigating away mid-debounce.
   useEffect(() => {
     return () => {
-      clearTimeout(timer.current);
-      if (pending.current !== null) writeStored(storageKey, pending.current);
+      clearTimeout(localTimer.current);
+      clearTimeout(remoteTimer.current);
+      if (pending.current !== null) {
+        writeStored(storageKey, pending.current);
+        writeSavedAt(storageKey, Date.now());
+        if (dirty.current) pushRemote(pending.current);
+      }
     };
-  }, [storageKey]);
+  }, [storageKey, pushRemote]);
 
   return (
     <section className="flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
@@ -102,7 +183,9 @@ export function Whiteboard({ slug }: { slug: string }) {
           <span className="text-xs font-medium text-zinc-300">Whiteboard</span>
         </div>
         <span className="text-xs text-zinc-600">
-          sketches save in this browser
+          {signedIn
+            ? "sketches save to your account"
+            : "sketches save in this browser"}
         </span>
       </header>
       {/* Positioned, not percentage-sized, for the same reason as the code
@@ -110,6 +193,7 @@ export function Whiteboard({ slug }: { slug: string }) {
       <div className="relative min-h-0 flex-1">
         <div className="absolute inset-0">
           <Excalidraw
+            key={boardEpoch}
             theme="dark"
             initialData={initialData}
             onChange={handleChange}
