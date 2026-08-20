@@ -535,4 +535,57 @@ function markAndCompact(
   return { newArray: result[0], remap: result[1] };
 }`,
   },
+  "single-tab-browser-history": {
+    entry: "solution",
+    starterCode: `type OpArgs = [string] | [number];
+
+function solution(operations: string[], args: OpArgs[]): unknown[] {
+  class BrowserSession {
+    constructor(homepage: string) {
+      // TODO: initialize history at homepage
+    }
+
+    visit(url: string): void {
+      // TODO: navigate to url, clearing forward history
+    }
+
+    back(steps: number): string {
+      // TODO: move up to steps pages back, return current url
+      return "";
+    }
+
+    forward(steps: number): string {
+      // TODO: move up to steps pages forward, return current url
+      return "";
+    }
+
+    haveVisited(url: string): boolean {
+      // TODO: has url ever been visited?
+      return false;
+    }
+  }
+
+  let obj: BrowserSession | null = null;
+  const res: unknown[] = [];
+  for (let i = 0; i < operations.length; i++) {
+    const op = operations[i];
+    const arg = args[i];
+    if (op === "BrowserSession") {
+      obj = new BrowserSession(arg[0] as string);
+      res.push(null);
+    } else if (op === "visit") {
+      obj!.visit(arg[0] as string);
+      res.push(null);
+    } else if (op === "back") {
+      res.push(obj!.back(arg[0] as number));
+    } else if (op === "forward") {
+      res.push(obj!.forward(arg[0] as number));
+    } else if (op === "haveVisited") {
+      res.push(obj!.haveVisited(arg[0] as string));
+    }
+  }
+  return res;
+}
+`,
+  },
 };

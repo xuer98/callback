@@ -596,4 +596,58 @@ CompactResult markAndCompact(vector<string> heapArray, int k) {
     return Json::ofMap(out);
 }`,
   },
+  "single-tab-browser-history": {
+    entry: "__call",
+    starterCode: `class BrowserSession {
+public:
+    BrowserSession(const string& homepage) {
+        // Your state here
+    }
+
+    void visit(const string& url) {
+        // Navigate to url, clearing forward history.
+    }
+
+    string back(int steps) {
+        // Move up to steps pages back; return the current url.
+        return "";
+    }
+
+    string forward(int steps) {
+        // Move up to steps pages forward; return the current url.
+        return "";
+    }
+
+    bool haveVisited(const string& url) {
+        // Has url ever been visited?
+        return false;
+    }
+};
+`,
+    driverCode: `Json __call(const vector<Json>& a) {
+    const vector<Json>& ops = a[0].list();
+    const vector<Json>& args = a[1].list();
+    BrowserSession* s = 0;
+    vector<Json> out;
+    for (size_t i = 0; i < ops.size(); i++) {
+        const string& op = ops[i].str();
+        const vector<Json>& x = args[i].list();
+        if (op == "BrowserSession") {
+            s = new BrowserSession(x[0].str());
+            out.push_back(Json::ofNull());
+        } else if (op == "visit") {
+            s->visit(x[0].str());
+            out.push_back(Json::ofNull());
+        } else if (op == "back") {
+            out.push_back(Json::of(s->back(x[0].asInt())));
+        } else if (op == "forward") {
+            out.push_back(Json::of(s->forward(x[0].asInt())));
+        } else {
+            out.push_back(Json::of(s->haveVisited(x[0].str())));
+        }
+    }
+    delete s;
+    return Json::ofList(out);
+}`,
+  },
 };

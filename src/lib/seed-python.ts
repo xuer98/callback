@@ -409,4 +409,46 @@ def settle_from_stream(read_chunk):
     return {"newArray": result[0], "remap": result[1]}
 `,
   },
+  "single-tab-browser-history": {
+    entry: "solution",
+    starterCode: `def solution(operations, args):
+    class BrowserSession:
+        def __init__(self, homepage):
+            # TODO: initialize history at homepage
+            pass
+
+        def visit(self, url):
+            # TODO: navigate to url, clearing forward history
+            pass
+
+        def back(self, steps):
+            # TODO: move up to \`steps\` back, return current url
+            pass
+
+        def forward(self, steps):
+            # TODO: move up to \`steps\` forward, return current url
+            pass
+
+        def haveVisited(self, url):
+            # TODO: has url ever been visited?
+            pass
+
+    obj = None
+    res = []
+    for op, arg in zip(operations, args):
+        if op == 'BrowserSession':
+            obj = BrowserSession(*arg)
+            res.append(None)
+        elif op == 'visit':
+            obj.visit(*arg)
+            res.append(None)
+        elif op == 'back':
+            res.append(obj.back(*arg))
+        elif op == 'forward':
+            res.append(obj.forward(*arg))
+        elif op == 'haveVisited':
+            res.append(obj.haveVisited(*arg))
+    return res
+`,
+  },
 };

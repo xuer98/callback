@@ -21,7 +21,11 @@ export interface Problem {
   companies: string[];
   /** One-line teaser shown on list cards. */
   summary: string;
-  /** Full prompt shown on the problem page; paragraphs separated by blank lines. */
+  /**
+   * Full prompt shown on the problem page. Light markdown: blank-line-separated
+   * paragraphs, ``` fenced blocks, "## "/"### " headings, "- " bullets, and
+   * `inline code`.
+   */
   prompt: string;
   hints: string[];
   /** Present when the problem is runnable in the in-browser editor. */

@@ -645,4 +645,59 @@ func markAndCompact(heapArray []string, k int) CompactResult {
 	}
 }`,
   },
+  "single-tab-browser-history": {
+    entry: "__call",
+    starterCode: `type BrowserSession struct {
+	// Your state here
+}
+
+func Constructor(homepage string) *BrowserSession {
+	return &BrowserSession{}
+}
+
+func (s *BrowserSession) Visit(url string) {
+	// Navigate to url, clearing forward history.
+}
+
+func (s *BrowserSession) Back(steps int) string {
+	// Move up to steps pages back; return the current url.
+	return ""
+}
+
+func (s *BrowserSession) Forward(steps int) string {
+	// Move up to steps pages forward; return the current url.
+	return ""
+}
+
+func (s *BrowserSession) HaveVisited(url string) bool {
+	// Has url ever been visited?
+	return false
+}
+`,
+    driverCode: `func __call(a []interface{}) interface{} {
+	ops := JList(a[0])
+	args := JList(a[1])
+	var s *BrowserSession
+	out := []interface{}{}
+	for i, opRaw := range ops {
+		op := JStr(opRaw)
+		x := JList(args[i])
+		switch op {
+		case "BrowserSession":
+			s = Constructor(JStr(x[0]))
+			out = append(out, nil)
+		case "visit":
+			s.Visit(JStr(x[0]))
+			out = append(out, nil)
+		case "back":
+			out = append(out, s.Back(JInt(x[0])))
+		case "forward":
+			out = append(out, s.Forward(JInt(x[0])))
+		default:
+			out = append(out, s.HaveVisited(JStr(x[0])))
+		}
+	}
+	return out
+}`,
+  },
 };

@@ -118,14 +118,92 @@ function Prompt({ problem }: { problem: Problem }) {
             {segment.trim()}
           </pre>
         ) : (
-          segment
-            .split("\n\n")
-            .map((paragraph) => paragraph.trim())
-            .filter(Boolean)
-            .map((paragraph, j) => <p key={`${i}-${j}`}>{paragraph}</p>)
+          <Blocks key={i} text={segment} />
         ),
       )}
     </div>
+  );
+}
+
+/**
+ * Prompt bodies outside ``` fences are light markdown: "## "/"### " headings,
+ * "- " bullet lists, and `inline code`. Anything else is a paragraph, with
+ * blank lines separating them. Returns a fragment so each block stays a direct
+ * child of the prose container's vertical rhythm.
+ */
+function Blocks({ text }: { text: string }) {
+  const blocks: React.ReactNode[] = [];
+  let paragraph: string[] = [];
+  let bullets: string[] = [];
+
+  const flush = () => {
+    if (paragraph.length > 0) {
+      blocks.push(<p key={blocks.length}>{inline(paragraph.join(" "))}</p>);
+      paragraph = [];
+    }
+    if (bullets.length > 0) {
+      blocks.push(
+        <ul
+          key={blocks.length}
+          className="list-disc space-y-1.5 pl-5 marker:text-zinc-600"
+        >
+          {bullets.map((item, i) => (
+            <li key={i}>{inline(item)}</li>
+          ))}
+        </ul>,
+      );
+      bullets = [];
+    }
+  };
+
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+    if (line === "") {
+      flush();
+      continue;
+    }
+    const heading = /^(#{2,3})\s+(.+)$/.exec(line);
+    if (heading) {
+      flush();
+      const Tag = heading[1].length === 2 ? "h2" : "h3";
+      blocks.push(
+        <Tag
+          key={blocks.length}
+          className="pt-2 text-[15px] font-semibold text-zinc-100"
+        >
+          {inline(heading[2])}
+        </Tag>,
+      );
+      continue;
+    }
+    if (line.startsWith("- ")) {
+      if (paragraph.length > 0) flush();
+      bullets.push(line.slice(2));
+      continue;
+    }
+    if (bullets.length > 0) flush();
+    paragraph.push(line);
+  }
+  flush();
+
+  return <>{blocks}</>;
+}
+
+/** Backtick-delimited spans within a line render as code chips. */
+function inline(text: string): React.ReactNode {
+  const parts = text.split("`");
+  if (parts.length === 1) return text;
+  return parts.map((part, i) =>
+    i % 2 === 1 ? (
+      <code
+        key={i}
+        className="rounded bg-zinc-900 px-1.5 py-0.5 font-mono text-[0.85em] text-emerald-300 ring-1 ring-inset ring-zinc-800"
+      >
+        {part}
+      </code>
+    ) : (
+      part
+    ),
   );
 }
 

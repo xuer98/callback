@@ -642,4 +642,56 @@ class Solution {
         return Json.ofMap(out);
     }`,
   },
+  "single-tab-browser-history": {
+    entry: "__call",
+    starterCode: `class BrowserSession {
+    BrowserSession(String homepage) {
+        // Your state here
+    }
+
+    void visit(String url) {
+        // Navigate to url, clearing forward history.
+    }
+
+    String back(int steps) {
+        // Move up to steps pages back; return the current url.
+        return "";
+    }
+
+    String forward(int steps) {
+        // Move up to steps pages forward; return the current url.
+        return "";
+    }
+
+    boolean haveVisited(String url) {
+        // Has url ever been visited?
+        return false;
+    }
+}
+`,
+    driverCode: `    static Json __call(List<Json> a) {
+        List<Json> ops = a.get(0).list();
+        List<Json> args = a.get(1).list();
+        BrowserSession s = null;
+        List<Json> out = new ArrayList<Json>();
+        for (int i = 0; i < ops.size(); i++) {
+            String op = ops.get(i).str();
+            List<Json> x = args.get(i).list();
+            if (op.equals("BrowserSession")) {
+                s = new BrowserSession(x.get(0).str());
+                out.add(Json.NULL);
+            } else if (op.equals("visit")) {
+                s.visit(x.get(0).str());
+                out.add(Json.NULL);
+            } else if (op.equals("back")) {
+                out.add(Json.of(s.back(x.get(0).asInt())));
+            } else if (op.equals("forward")) {
+                out.add(Json.of(s.forward(x.get(0).asInt())));
+            } else {
+                out.add(Json.of(s.haveVisited(x.get(0).str())));
+            }
+        }
+        return Json.ofList(out);
+    }`,
+  },
 };

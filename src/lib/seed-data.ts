@@ -1757,6 +1757,172 @@ function markAndCompact(heapArray, k) {
     },
   },
   {
+    slug: "single-tab-browser-history",
+    title: "Implement Single-Tab Browser History Navigation",
+    category: "algorithms",
+    difficulty: "medium",
+    companies: ["chime"],
+    summary:
+      "A cursor over one visit stack: truncate forward history, clamp at both ends.",
+    prompt: `Implement a \`BrowserSession\` for a single-tab browser.
+
+## APIs
+
+- \`BrowserSession(homepage)\` — initialize the session; the current page starts at \`homepage\`.
+- \`visit(url)\` — navigate to \`url\` from the current page and clear any forward history.
+- \`back(steps)\` — move up to \`steps\` pages back; if fewer pages exist, move as far as possible. Return the current url after the move.
+- \`forward(steps)\` — move up to \`steps\` pages forward; if fewer pages exist, move as far as possible. Return the current url after the move.
+- \`haveVisited(url)\` — return whether the session has ever visited \`url\` at least once since construction, regardless of whether it currently sits in back/forward history.
+
+## Driver contract for this console
+
+In JavaScript, TypeScript, and Python you implement a single function \`solution(operations, args)\`:
+
+- \`operations\` is a list of method-name strings; the first is always \`"BrowserSession"\`.
+- \`args\` is a parallel list of argument lists, one per operation.
+- Replay the operations against one \`BrowserSession\` instance and return a list of results, one per operation: null for the constructor and for \`visit\` (which return nothing), the resulting url for \`back\` and \`forward\`, and the boolean for \`haveVisited\`.
+
+The starter code already contains that replay loop, so only the class body is yours to fill in. In Java, C++, and Go you implement the \`BrowserSession\` class alone and the harness replays the operations for you.
+
+## Edge cases to handle
+
+- \`steps <= 0\` (including negative) must not move the cursor.
+- \`visit\` must truncate any forward history before appending the new page.
+- \`back\` and \`forward\` past the ends clamp to the oldest and newest page.
+- \`haveVisited\` is true for every url ever visited (and for the homepage), even after a later \`visit\` drops that url from the live forward history.
+
+## Examples
+
+\`\`\`
+operations = ["BrowserSession", "visit", "visit", "visit",
+              "back", "back", "forward", "visit",
+              "forward", "back", "back"]
+args       = [["leetcode.com"], ["google.com"],
+              ["facebook.com"], ["youtube.com"], [1], [1], [1],
+              ["linkedin.com"], [2], [2], [7]]
+
+-> [null, null, null, null, "facebook.com", "google.com",
+    "facebook.com", null, "linkedin.com", "google.com",
+    "leetcode.com"]
+\`\`\`
+
+After visiting google, facebook, and youtube the cursor sits at youtube. back(1) lands on facebook and back(1) again on google, then forward(1) returns to facebook. Visiting linkedin.com there clears the forward history — youtube is gone — so forward(2) clamps to linkedin, back(2) reaches google, and back(7) clamps to the homepage.
+
+\`\`\`
+operations = ["BrowserSession", "visit", "visit",
+              "haveVisited", "haveVisited", "back", "haveVisited"]
+args       = [["home.com"], ["a.com"], ["b.com"],
+              ["a.com"], ["z.com"], [1], ["b.com"]]
+
+-> [null, null, null, true, false, "a.com", true]
+\`\`\`
+
+a.com was visited so it reports true, while z.com never was. After back(1) lands on a.com, b.com still reports true: the visited set never shrinks.
+
+## Constraints
+
+- The first operation is always \`BrowserSession(homepage)\`, and the current page always exists.
+- Urls are non-empty strings.
+- \`steps\` may be zero or negative; non-positive steps must not move the cursor.
+- \`back\` and \`forward\` clamp at the oldest and newest page rather than erroring.
+- Target O(1) amortized time per operation and O(n) space for n total visits.
+- Be ready to justify the structure you pick — dynamic array plus cursor, two stacks, or doubly linked list plus cursor — and its trade-offs.`,
+    hints: [
+      "An array of urls plus a cursor index covers every operation: back and forward are clamped index arithmetic, and visit drops everything after the cursor before appending.",
+      "haveVisited cannot read the live history, because visit truncates urls that were still visited. Keep a separate set that only ever grows — written once at construction, then on every visit.",
+    ],
+    judge: {
+      starterCode: `function solution(operations, args) {
+  class BrowserSession {
+    constructor(homepage) {
+      // TODO: initialize history at homepage
+    }
+
+    visit(url) {
+      // TODO: navigate to url, clearing forward history
+    }
+
+    back(steps) {
+      // TODO: move up to steps pages back, return current url
+    }
+
+    forward(steps) {
+      // TODO: move up to steps pages forward, return current url
+    }
+
+    haveVisited(url) {
+      // TODO: has url ever been visited?
+    }
+  }
+
+  let obj = null;
+  const res = [];
+  for (let i = 0; i < operations.length; i++) {
+    const op = operations[i];
+    const arg = args[i];
+    if (op === "BrowserSession") {
+      obj = new BrowserSession(...arg);
+      res.push(null);
+    } else if (op === "visit") {
+      obj.visit(...arg);
+      res.push(null);
+    } else if (op === "back") {
+      res.push(obj.back(...arg));
+    } else if (op === "forward") {
+      res.push(obj.forward(...arg));
+    } else if (op === "haveVisited") {
+      res.push(obj.haveVisited(...arg));
+    }
+  }
+  return res;
+}
+`,
+      entry: "solution",
+      tests: [
+        {
+          name: "Canonical walk with a truncating visit",
+          input: [
+            ["BrowserSession", "visit", "visit", "visit", "back", "back", "forward", "visit", "forward", "back", "back"],
+            [["leetcode.com"], ["google.com"], ["facebook.com"], ["youtube.com"], [1], [1], [1], ["linkedin.com"], [2], [2], [7]],
+          ],
+          expected: [null, null, null, null, "facebook.com", "google.com", "facebook.com", null, "linkedin.com", "google.com", "leetcode.com"],
+        },
+        {
+          name: "The visited set never shrinks",
+          input: [
+            ["BrowserSession", "visit", "visit", "haveVisited", "haveVisited", "back", "haveVisited"],
+            [["home.com"], ["a.com"], ["b.com"], ["a.com"], ["z.com"], [1], ["b.com"]],
+          ],
+          expected: [null, null, null, true, false, "a.com", true],
+        },
+        {
+          name: "Non-positive steps hold the cursor",
+          input: [
+            ["BrowserSession", "visit", "visit", "back", "back", "forward", "forward", "back"],
+            [["a.com"], ["b.com"], ["c.com"], [0], [-3], [0], [-1], [1]],
+          ],
+          expected: [null, null, null, "c.com", "c.com", "c.com", "c.com", "b.com"],
+        },
+        {
+          name: "visit truncates the forward history",
+          input: [
+            ["BrowserSession", "visit", "visit", "visit", "back", "visit", "forward", "haveVisited", "haveVisited"],
+            [["home.com"], ["a.com"], ["b.com"], ["c.com"], [2], ["d.com"], [5], ["c.com"], ["e.com"]],
+          ],
+          expected: [null, null, null, null, "a.com", null, "d.com", true, false],
+        },
+        {
+          name: "One-page session clamps both ways",
+          input: [
+            ["BrowserSession", "back", "forward", "haveVisited", "haveVisited"],
+            [["chime.com"], [3], [3], ["chime.com"], ["nope.com"]],
+          ],
+          expected: [null, "chime.com", "chime.com", true, false],
+        },
+      ],
+    },
+  },
+  {
     slug: "implement-debounce",
     title: "Implement debounce()",
     category: "frontend",
@@ -1919,6 +2085,19 @@ export const companies: Company[] = [
       "Onsite: two coding rounds",
       "System design round",
       "Behavioral / cross-functional round",
+    ],
+  },
+  {
+    slug: "chime",
+    name: "Chime",
+    blurb:
+      "Consumer fintech loops that stay close to the product: practical data-structure rounds over state that changes as users move through an app, a design round grounded in money movement, and a values round built on the member-first framing used throughout the company.",
+    process: [
+      "Recruiter screen",
+      "Technical phone screen: one coding problem",
+      "Onsite: two coding rounds",
+      "System design round",
+      "Values and behavioral round with the hiring manager",
     ],
   },
 ];
