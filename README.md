@@ -23,6 +23,8 @@ Runnable problems have a LeetCode-style workspace in **six languages**, all judg
 
 Everything prefers the Judge0 sandbox when `JUDGE0_URL` is set and falls back to the in-browser runner otherwise. Java, C++, and Go have no browser runtime, so they need `JUDGE0_URL`; the workspace says so rather than failing quietly. Their harnesses live in `src/lib/{java,cpp,go}-harness.ts` and compile the user's code together with a per-problem driver that unpacks the shared JSON test payload.
 
+Separately from Callback's own authored problems, the app carries **company question listings** — which LeetCode questions each company has been asking, and how recently. These are metadata only (title, difficulty, topics, frequency) linking out to LeetCode; `/questions` filters them by company, category, time range, and difficulty, and each company page shows its most-asked questions. Imported from the [leetcode-company-wise-problems](https://github.com/liquidslr/leetcode-company-wise-problems) snapshot dated 1 June 2025: 3,110 questions across 118 companies and five time ranges.
+
 ## Getting started
 
 Requires [pnpm](https://pnpm.io) and a Postgres database (local Homebrew/Postgres.app/Docker, or hosted).
@@ -40,13 +42,14 @@ Open http://localhost:3000. Other scripts: `pnpm build` (production build + type
 
 ## Structure
 
-- `src/app` — App Router pages: landing, `/problems`, `/problems/[slug]`, `/companies`, `/companies/[slug]`, `/tracks`, `/tracks/[slug]`.
+- `src/app` — App Router pages: landing, `/problems`, `/problems/[slug]`, `/questions`, `/companies`, `/companies/[slug]`, `/tracks`, `/tracks/[slug]`.
 - `src/lib/types.ts` — domain model: `Problem`, `Company`, `Track`, categories, difficulty.
 - `src/lib/data.ts` — async accessor functions every page reads through (Drizzle queries).
 - `src/lib/seed-data.ts` — canonical typed content, loaded into Postgres by `pnpm db:seed`.
 - `src/lib/seed-companies.ts` — company guides (blurb and typical loop); the seven with tagged problems come first, the rest is an alphabetical directory.
 - `src/lib/seed-<language>.ts` — per-language starters and judge drivers, merged into each problem's judge at seed time.
 - `src/db` — Drizzle schema, client, and seed script; SQL migrations live in `drizzle/`.
+- `src/db/leetcode-questions.json` — the imported company question snapshot, read by the seed script only (never bundled into the app).
 - `src/components` — shared UI (nav, problem rows, badges, editor workspace).
 
 ## Roadmap
@@ -60,5 +63,5 @@ Open http://localhost:3000. Other scripts: `pnpm build` (production build + type
 - [ ] Hidden test cases and a real Run/Submit split
 - [ ] Submission history and spaced repetition
 - [ ] Richer problem content (solutions, complexity discussion, editor-quality markdown)
-- [ ] Company data pipeline (question frequency, recency)
+- [x] Company question data (frequency and recency per company, filterable at `/questions`; a one-time snapshot import, not yet a refreshing pipeline)
 - [ ] Mock interview mode (timed sessions, rubric scoring)

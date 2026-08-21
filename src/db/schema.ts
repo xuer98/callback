@@ -1,14 +1,21 @@
 import { relations } from "drizzle-orm";
 import {
+  index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import { CATEGORIES, DIFFICULTIES, type Judge } from "../lib/types";
+import {
+  CATEGORIES,
+  DIFFICULTIES,
+  TIMEFRAMES,
+  type Judge,
+} from "../lib/types";
 import { user } from "./auth-schema";
 
 export * from "./auth-schema";
@@ -127,6 +134,45 @@ export const boards = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.problemId] })],
+);
+
+// LeetCode questions companies are known to ask, imported from the
+// liquidslr/leetcode-company-wise-problems snapshot. These are listings, not
+// prompts: title, difficulty, topics, and a link out. Callback's own authored
+// problems live in `problems` above and are unrelated to these rows.
+export const questionTimeframeEnum = pgEnum("question_timeframe", TIMEFRAMES);
+
+export const leetcodeQuestions = pgTable("leetcode_questions", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  /** LeetCode's own slug, e.g. "two-sum" — the URL is derived from it. */
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  difficulty: difficultyEnum("difficulty").notNull(),
+  topics: jsonb("topics").$type<string[]>().notNull(),
+});
+
+export const companyQuestions = pgTable(
+  "company_questions",
+  {
+    companyId: integer("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => leetcodeQuestions.id, { onDelete: "cascade" }),
+    timeframe: questionTimeframeEnum("timeframe").notNull(),
+    /** Relative how-often score within this company and timeframe, 0-100. */
+    frequency: real("frequency").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.companyId, table.questionId, table.timeframe],
+    }),
+    index("company_questions_timeframe_idx").on(
+      table.timeframe,
+      table.frequency,
+    ),
+  ],
 );
 
 export const problemsRelations = relations(problems, ({ many }) => ({

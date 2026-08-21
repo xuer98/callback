@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { ProblemRow } from "@/components/problem-row";
-import { getCompany, listCompanies, problemsForCompany } from "@/lib/data";
+import { QuestionList } from "@/components/question-list";
+import {
+  getCompany,
+  listCompanies,
+  problemsForCompany,
+  queryQuestions,
+} from "@/lib/data";
 
 export const revalidate = 300;
 
@@ -28,6 +35,12 @@ export default async function CompanyPage({
   if (!company) notFound();
 
   const asked = await problemsForCompany(company.slug);
+  // Imported listings, all-time and most frequent first. The time-range views
+  // live on /questions so this page can stay statically rendered.
+  const { rows: questions, total: questionCount } = await queryQuestions({
+    timeframe: "all",
+    company: company.slug,
+  });
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
@@ -58,6 +71,23 @@ export default async function CompanyPage({
               <ProblemRow key={p.slug} problem={p} />
             ))}
           </div>
+        </section>
+      )}
+
+      {questions.length > 0 && (
+        <section className="mt-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-zinc-100">
+              Asked on LeetCode
+            </h2>
+            <Link
+              href={`/questions?company=${company.slug}`}
+              className="text-xs text-indigo-400 transition-colors hover:text-indigo-300"
+            >
+              All {questionCount.toLocaleString()} by time range &rarr;
+            </Link>
+          </div>
+          <QuestionList rows={questions.slice(0, 8)} />
         </section>
       )}
     </div>

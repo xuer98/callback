@@ -3,6 +3,7 @@ import { AuthMenu } from "./auth-menu";
 
 const links = [
   { href: "/problems", label: "Problems" },
+  { href: "/questions", label: "Questions" },
   { href: "/companies", label: "Companies" },
   { href: "/tracks", label: "Tracks" },
 ] as const;

@@ -126,6 +126,44 @@ export function languagesFor(judge: Judge): Language[] {
   return LANGUAGES.filter((l) => judgeFor(judge, l) !== undefined);
 }
 
+/**
+ * How recently a company was asking a question, from the upstream snapshot.
+ * "all" is the union across every window, with its own frequency score.
+ */
+export const TIMEFRAMES = [
+  "thirty-days",
+  "three-months",
+  "six-months",
+  "more-than-six-months",
+  "all",
+] as const;
+
+export type Timeframe = (typeof TIMEFRAMES)[number];
+
+export const TIMEFRAME_LABELS: Record<Timeframe, string> = {
+  "thirty-days": "Last 30 days",
+  "three-months": "Last 3 months",
+  "six-months": "Last 6 months",
+  "more-than-six-months": "Over 6 months ago",
+  all: "All time",
+};
+
+/** A LeetCode question a company is known to ask. */
+export interface CompanyQuestion {
+  slug: string;
+  title: string;
+  difficulty: Difficulty;
+  topics: string[];
+  /** Relative how-often score within a company and timeframe, 0-100. */
+  frequency: number;
+  /** Set when the rows are not filtered to a single company. */
+  companyCount?: number;
+}
+
+export function leetcodeUrl(slug: string): string {
+  return `https://leetcode.com/problems/${slug}/`;
+}
+
 export interface Company {
   slug: string;
   name: string;
