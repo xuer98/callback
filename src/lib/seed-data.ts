@@ -1,4 +1,4 @@
-import type { Company, Problem, Track } from "./types";
+import type { Problem, Track } from "./types";
 
 // Canonical seed content. Postgres is the runtime read path (src/lib/data.ts);
 // edit content here, then sync the database with `npm run db:seed`.
@@ -2004,100 +2004,6 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
     hints: [
       "Pick a story where someone changed their mind — you or them. Stalemates make weak answers.",
       "End with the measurable result and what you would do differently, not with who turned out to be right.",
-    ],
-  },
-];
-
-export const companies: Company[] = [
-  {
-    slug: "google",
-    name: "Google",
-    blurb:
-      "Algorithm-heavy loops with a high bar for code quality and complexity analysis. Googleyness rounds probe collaboration and comfort with ambiguity.",
-    process: [
-      "Recruiter screen",
-      "Phone screen: one 45-minute coding interview",
-      "Onsite: 3-4 coding rounds plus system design (level-dependent)",
-      "Googleyness & leadership round",
-      "Hiring committee review",
-    ],
-  },
-  {
-    slug: "amazon",
-    name: "Amazon",
-    blurb:
-      "Every interview weaves in the Leadership Principles — expect a behavioral question in each round, with follow-ups that dig for data and ownership.",
-    process: [
-      "Recruiter screen",
-      "Online assessment: two coding problems plus a work simulation",
-      "Phone screen",
-      "Onsite loop: 4-5 rounds pairing coding or design with Leadership Principles",
-      "Bar raiser round",
-    ],
-  },
-  {
-    slug: "meta",
-    name: "Meta",
-    blurb:
-      "Fast-paced coding rounds — two problems in 45 minutes is common — plus a product-minded design round and a dedicated behavioral round.",
-    process: [
-      "Recruiter screen",
-      "Phone screen: 1-2 coding problems",
-      "Onsite: two coding rounds",
-      "System or product design round",
-      "Behavioral round",
-    ],
-  },
-  {
-    slug: "stripe",
-    name: "Stripe",
-    blurb:
-      "Practical over puzzle: expect to write working code in a real editor, debug an unfamiliar codebase, and design APIs with careful edge-case handling.",
-    process: [
-      "Recruiter screen",
-      "Phone screen: practical coding",
-      "Onsite: coding round plus a bug squash in a real codebase",
-      "Integration / API design round",
-      "Hiring manager conversation",
-    ],
-  },
-  {
-    slug: "netflix",
-    name: "Netflix",
-    blurb:
-      "Senior-leaning loops that weigh judgment and culture heavily — expect deep dives on past architecture decisions alongside coding.",
-    process: [
-      "Recruiter screen",
-      "Technical phone screen",
-      "Onsite: coding plus architecture deep dives",
-      "Culture conversation",
-      "Team matching",
-    ],
-  },
-  {
-    slug: "pinterest",
-    name: "Pinterest",
-    blurb:
-      "Product-minded loops with practical coding rounds — string and array manipulation with fiddly edge cases shows up often, and design rounds stay grounded in surfaces like feeds and boards.",
-    process: [
-      "Recruiter screen",
-      "Technical phone screen: one coding problem",
-      "Onsite: two coding rounds",
-      "System design round",
-      "Behavioral / cross-functional round",
-    ],
-  },
-  {
-    slug: "chime",
-    name: "Chime",
-    blurb:
-      "Consumer fintech loops that stay close to the product: practical data-structure rounds over state that changes as users move through an app, a design round grounded in money movement, and a values round built on the member-first framing used throughout the company.",
-    process: [
-      "Recruiter screen",
-      "Technical phone screen: one coding problem",
-      "Onsite: two coding rounds",
-      "System design round",
-      "Values and behavioral round with the hiring manager",
     ],
   },
 ];

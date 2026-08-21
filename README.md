@@ -10,7 +10,7 @@ Callback covers the whole loop, in the spirit of LeetCode, PracHub, and Intervie
 
 ## Status
 
-Content (problems, companies, tracks) lives in Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Canonical seed content is typed data in [`src/lib/seed-data.ts`](src/lib/seed-data.ts), with per-language judge variants in `src/lib/seed-{typescript,python,java,cpp,go}.ts`, synced with `pnpm db:seed`.
+Content (problems, companies, tracks) lives in Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Canonical seed content is typed data in [`src/lib/seed-data.ts`](src/lib/seed-data.ts), with company guides in [`src/lib/seed-companies.ts`](src/lib/seed-companies.ts) and per-language judge variants in `src/lib/seed-{typescript,python,java,cpp,go}.ts`, synced with `pnpm db:seed`.
 
 Runnable problems have a LeetCode-style workspace in **six languages**, all judged against one shared set of test cases:
 
@@ -44,6 +44,7 @@ Open http://localhost:3000. Other scripts: `pnpm build` (production build + type
 - `src/lib/types.ts` — domain model: `Problem`, `Company`, `Track`, categories, difficulty.
 - `src/lib/data.ts` — async accessor functions every page reads through (Drizzle queries).
 - `src/lib/seed-data.ts` — canonical typed content, loaded into Postgres by `pnpm db:seed`.
+- `src/lib/seed-companies.ts` — company guides (blurb and typical loop); the seven with tagged problems come first, the rest is an alphabetical directory.
 - `src/lib/seed-<language>.ts` — per-language starters and judge drivers, merged into each problem's judge at seed time.
 - `src/db` — Drizzle schema, client, and seed script; SQL migrations live in `drizzle/`.
 - `src/components` — shared UI (nav, problem rows, badges, editor workspace).

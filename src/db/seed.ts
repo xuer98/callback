@@ -3,10 +3,10 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
 import {
-  companies as seedCompanies,
   problems as seedProblems,
   tracks as seedTracks,
 } from "../lib/seed-data";
+import { companies as seedCompanies } from "../lib/seed-companies";
 import { pythonJudges } from "../lib/seed-python";
 import { typescriptJudges } from "../lib/seed-typescript";
 import { javaJudges } from "../lib/seed-java";
