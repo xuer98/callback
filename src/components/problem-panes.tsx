@@ -17,7 +17,9 @@ export function ProblemPanes({
   workspace: React.ReactNode;
   hasHints: boolean;
 }) {
-  const [tab, setTab] = useState<"description" | "hints">("description");
+  const [tab, setTab] = useState<"description" | "hints" | "solution">(
+    "description",
+  );
 
   return (
     <SplitPane
@@ -45,6 +47,12 @@ export function ProblemPanes({
                 Hints
               </PaneTab>
             )}
+            <PaneTab
+              active={tab === "solution"}
+              onClick={() => setTab("solution")}
+            >
+              Solution
+            </PaneTab>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
             {tab === "description" ? description : hints}

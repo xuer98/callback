@@ -13,11 +13,6 @@ export function ProblemRow({ problem }: { problem: Problem }) {
         <p className="flex items-center gap-2 truncate text-sm font-medium text-zinc-100">
           {problem.title}
           <ProgressMarker slug={problem.slug} />
-          {problem.judge && (
-            <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium text-indigo-400 ring-1 ring-inset ring-indigo-500/20">
-              runnable
-            </span>
-          )}
         </p>
         <p className="mt-0.5 truncate text-xs text-zinc-500">
           {CATEGORY_LABELS[problem.category]} · {problem.summary}
