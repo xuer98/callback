@@ -86,7 +86,8 @@ const SAVE_DEBOUNCE_MS = 1200;
  * signed in) it reconciles every language: newer remote copies land in
  * localStorage and are reported via onPulled so the editor can adopt the
  * open one; newer local copies are pushed up. After that, queueSave pushes
- * edits on a debounce and dropSolution mirrors Reset.
+ * edits on a debounce, flushSave pushes one immediately, and dropSolution
+ * mirrors Reset.
  */
 export function useSolutionSync({
   slug,
@@ -175,6 +176,17 @@ export function useSolutionSync({
     pending.current.set(language, { timer, code });
   };
 
+  /** Push a language's code now, cancelling any save still on the debounce. */
+  const flushSave = (language: Language, code: string) => {
+    dirty.current.add(language);
+    const existing = pending.current.get(language);
+    if (existing) {
+      clearTimeout(existing.timer);
+      pending.current.delete(language);
+    }
+    push(language, code);
+  };
+
   const dropSolution = (language: Language) => {
     dirty.current.add(language);
     const existing = pending.current.get(language);
@@ -185,5 +197,5 @@ export function useSolutionSync({
     void deleteSolution(slug, language);
   };
 
-  return { queueSave, dropSolution };
+  return { queueSave, flushSave, dropSolution };
 }

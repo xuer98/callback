@@ -7,7 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import CodeMirror from "@uiw/react-codemirror";
+import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
 import { java } from "@codemirror/lang-java";
@@ -16,8 +16,11 @@ import { go } from "@codemirror/lang-go";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { keymap } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
+import { indentUnit } from "@codemirror/language";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions, pythonCompletions } from "@/lib/editor-completions";
+import { formatDocument } from "@/lib/editor-format";
+import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
 import { ResultsPanel, TestcasePanel } from "./workspace-console";
 import { useProgress } from "./progress";
@@ -52,17 +55,40 @@ const EDITOR_KEYMAP = keymap.of([
   indentWithTab,
 ]);
 
+// What Tab inserts and what Format re-indents to. CodeMirror defaults to two
+// spaces for every language; these match each starter's own house style, so
+// formatting a solution doesn't rewrite indentation the problem shipped with.
+const INDENT = {
+  javascript: "  ",
+  typescript: "  ",
+  python: "    ",
+  java: "    ",
+  cpp: "    ",
+  go: "\t",
+} satisfies Record<Language, string>;
+
 const EXTENSIONS = {
-  javascript: [javascript(), ...jsCompletions, EDITOR_KEYMAP],
+  javascript: [
+    javascript(),
+    ...jsCompletions,
+    EDITOR_KEYMAP,
+    indentUnit.of(INDENT.javascript),
+  ],
   typescript: [
     javascript({ typescript: true }),
     ...jsCompletions,
     EDITOR_KEYMAP,
+    indentUnit.of(INDENT.typescript),
   ],
-  python: [python(), ...pythonCompletions, EDITOR_KEYMAP],
-  java: [java(), EDITOR_KEYMAP],
-  cpp: [cpp(), EDITOR_KEYMAP],
-  go: [go(), EDITOR_KEYMAP],
+  python: [
+    python(),
+    ...pythonCompletions,
+    EDITOR_KEYMAP,
+    indentUnit.of(INDENT.python),
+  ],
+  java: [java(), EDITOR_KEYMAP, indentUnit.of(INDENT.java)],
+  cpp: [cpp(), EDITOR_KEYMAP, indentUnit.of(INDENT.cpp)],
+  go: [go(), EDITOR_KEYMAP, indentUnit.of(INDENT.go)],
 } satisfies Record<Language, unknown[]>;
 
 const subscribeNoop = () => () => {};
@@ -99,6 +125,9 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   // new initial value sidesteps that entirely.
   const [editorEpoch, setEditorEpoch] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
+  // Keyboard actions that have no button of their own say so here instead.
+  const [note, setNote] = useState<string | null>(null);
+  const editorRef = useRef<ReactCodeMirrorRef>(null);
   const [running, setRunning] = useState(false);
   const [bottomTab, setBottomTab] = useState<"testcase" | "result">("testcase");
   const { signedIn, reportRun } = useProgress();
@@ -106,7 +135,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   // Account sync: on load, newer server copies land in localStorage and the
   // open language is adopted below; edits are pushed up on a debounce.
   // Signed out, everything stays purely local.
-  const { queueSave, dropSolution } = useSolutionSync({
+  const { queueSave, flushSave, dropSolution } = useSolutionSync({
     slug,
     languages: available,
     enabled: signedIn,
@@ -187,6 +216,46 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     if (signedIn) dropSolution(language);
   };
 
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = (text: string) => {
+    setNote(text);
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setNote(null), 1600);
+  };
+  useEffect(() => () => {
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+  }, []);
+
+  // Every edit already writes localStorage and queues an account save, so
+  // Cmd+S is really "stop waiting for the debounce" plus an acknowledgement.
+  const save = () => {
+    const key = storageKeyFor(slug, language);
+    writeStored(key, code);
+    writeSavedAt(key, Date.now());
+    if (signedIn) flushSave(language, code);
+    flash("Saved");
+  };
+
+  const format = () => {
+    const view = editorRef.current?.view;
+    if (!view) return;
+    formatDocument(view);
+    flash("Formatted");
+  };
+
+  // Run grades every test and records the outcome, so it is also what
+  // Submit does — there is no separate sample-tests-only pass to run first.
+  const runFromKeyboard = () => {
+    if (!running) void run();
+  };
+
+  useEditorShortcuts({
+    save,
+    format,
+    run: runFromKeyboard,
+    submit: runFromKeyboard,
+  });
+
   if (!mounted) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -246,6 +315,14 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
                   />
                 </svg>
               </label>
+              <span
+                aria-live="polite"
+                className={`text-xs text-emerald-400 transition-opacity ${
+                  note ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {note ?? ""}
+              </span>
             </div>
             <div className="flex gap-2">
               <button
@@ -258,6 +335,9 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
               <button
                 onClick={run}
                 disabled={running}
+                title={`Run all tests (${shortcutHint("run")} or ${shortcutHint(
+                  "submit",
+                )})`}
                 className="rounded-md bg-indigo-500 px-4 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-default disabled:opacity-60"
               >
                 {running ? "Running\u2026" : "Run"}
@@ -270,6 +350,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
               the editor collapses to its content. */}
           <div className="relative min-h-0 flex-1 overflow-hidden text-[13px]">
             <CodeMirror
+              ref={editorRef}
               key={`${language}:${editorEpoch}`}
               value={code}
               onChange={onChange}
