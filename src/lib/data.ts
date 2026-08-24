@@ -42,6 +42,7 @@ function toProblem(row: ProblemRow): Problem {
     summary: row.summary,
     prompt: row.prompt,
     hints: row.hints,
+    solution: row.solution ?? undefined,
     judge: row.judge ?? undefined,
   };
 }

@@ -28,6 +28,13 @@ export interface Problem {
    */
   prompt: string;
   hints: string[];
+  /**
+   * Worked solution shown on the Solution tab. Same light markdown as
+   * `prompt`, and judged problems carry a JavaScript reference implementation
+   * because JavaScript is the judge's base language. Optional: a problem
+   * without one simply has no Solution tab.
+   */
+  solution?: string;
   /** Present when the problem is runnable in the in-browser editor. */
   judge?: Judge;
 }

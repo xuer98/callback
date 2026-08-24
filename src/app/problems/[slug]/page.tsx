@@ -76,6 +76,7 @@ export default async function ProblemPage({
         <ProblemPanes
           key={problem.slug}
           hasHints={problem.hints.length > 0}
+          hasSolution={problem.solution !== undefined}
           description={
             <>
               {header}
@@ -84,6 +85,7 @@ export default async function ProblemPage({
             </>
           }
           hints={<Hints problem={problem} bare />}
+          solution={<Solution problem={problem} bare />}
           workspace={workspace}
         />
       </div>
@@ -95,19 +97,28 @@ export default async function ProblemPage({
       {header}
       <Prompt problem={problem} />
       <Hints problem={problem} />
+      <Solution problem={problem} />
       <AskedAt problem={problem} />
     </div>
   );
 }
 
 function Prompt({ problem }: { problem: Problem }) {
+  return (
+    <Markdown
+      text={problem.prompt}
+      className={problem.judge ? "mt-6" : "mt-8"}
+    />
+  );
+}
+
+/** The light markdown prompts and solutions share. */
+function Markdown({ text, className }: { text: string; className?: string }) {
   // Odd-indexed segments sit between ``` fences and render preformatted.
-  const segments = problem.prompt.split("```");
+  const segments = text.split("```");
   return (
     <div
-      className={`mt-6 space-y-4 text-[15px] leading-7 text-zinc-300 ${
-        problem.judge ? "" : "mt-8"
-      }`}
+      className={`space-y-4 text-[15px] leading-7 text-zinc-300 ${className ?? ""}`}
     >
       {segments.map((segment, i) =>
         i % 2 === 1 ? (
@@ -232,6 +243,30 @@ function Hints({
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Bare inside the Solution tab, where opening the tab is already the
+ * deliberate act. In the untabbed document layout it hides behind a
+ * disclosure, like the hints above it, so it cannot spoil on arrival.
+ */
+function Solution({
+  problem,
+  bare = false,
+}: {
+  problem: Problem;
+  bare?: boolean;
+}) {
+  if (problem.solution === undefined) return null;
+  if (bare) return <Markdown text={problem.solution} />;
+  return (
+    <details className="group mt-10 rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+      <summary className="cursor-pointer select-none text-sm font-semibold text-zinc-400 group-open:text-zinc-200">
+        Solution
+      </summary>
+      <Markdown text={problem.solution} className="mt-2" />
+    </details>
   );
 }
 

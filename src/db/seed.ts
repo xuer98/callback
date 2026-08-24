@@ -42,6 +42,7 @@ import { typescriptJudges } from "../lib/seed-typescript";
 import { javaJudges } from "../lib/seed-java";
 import { cppJudges } from "../lib/seed-cpp";
 import { goJudges } from "../lib/seed-go";
+import { problemSolutions } from "../lib/seed-solutions";
 
 // Idempotent: upserts rows by slug and rebuilds the join tables, so it is
 // safe to run after every content edit in src/lib/seed-data.ts.
@@ -76,6 +77,9 @@ async function main() {
         summary: problem.summary,
         prompt: problem.prompt,
         hints: problem.hints,
+        // Solutions live in their own module, keyed by slug, like the
+        // per-language judges below.
+        solution: problemSolutions[problem.slug] ?? null,
         // Judges gain their per-language definitions at seed time.
         judge: problem.judge
           ? {
