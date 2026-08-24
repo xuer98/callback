@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
@@ -33,9 +34,20 @@ export function useProgress() {
   return useContext(ProgressContext);
 }
 
+const subscribeNoop = () => () => {};
+
 export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = authClient.useSession();
   const userId = session?.user.id;
+  // Same hydration trap as the nav menu: the session can settle while React is
+  // still retrying the hydration render, and consumers below branch their
+  // markup on `signedIn`. Report signed-out until mounted so that first render
+  // matches the server, which never has a session to report.
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
   // Keyed by owner so a signed-out (or switched) user never sees stale
   // markers — no synchronous state reset needed.
   const [progress, setProgress] = useState<{
@@ -96,7 +108,12 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ProgressContext.Provider
-      value={{ signedIn: Boolean(userId), statuses, reportRun, toggleDone }}
+      value={{
+        signedIn: mounted && Boolean(userId),
+        statuses,
+        reportRun,
+        toggleDone,
+      }}
     >
       {children}
     </ProgressContext.Provider>
