@@ -19,14 +19,19 @@ export interface Problem {
   difficulty: Difficulty;
   /** Slugs of companies known to ask this (or a close variant). */
   companies: string[];
-  /** One-line teaser shown on list cards. */
+  /**
+   * One-line teaser shown on list cards. Inline markup only — `code`, **bold**,
+   * *italics*, ~~strikethrough~~ — since the card is itself a link and truncates
+   * to a single line. See src/components/markdown.tsx.
+   */
   summary: string;
   /**
-   * Full prompt shown on the problem page. Light markdown: blank-line-separated
-   * paragraphs, ``` fenced blocks, "## "/"### " headings, "- " bullets, and
-   * `inline code`.
+   * Full prompt shown on the problem page, as markdown: paragraphs, "#"-"######"
+   * headings, "-"/"1." lists (nestable), ``` fenced code, > quotes, --- rules,
+   * GFM tables, and the inline marks above plus [links](url) and ![images](url).
    */
   prompt: string;
+  /** One markdown block each; same syntax as `prompt`. */
   hints: string[];
   /** Present when the problem is runnable in the in-browser editor. */
   judge?: Judge;

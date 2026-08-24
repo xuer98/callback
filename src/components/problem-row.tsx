@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DifficultyBadge } from "./difficulty-badge";
+import { RichLine } from "./markdown";
 import { ProgressMarker } from "./progress";
 import { CATEGORY_LABELS, type Problem } from "@/lib/types";
 
@@ -15,7 +16,8 @@ export function ProblemRow({ problem }: { problem: Problem }) {
           <ProgressMarker slug={problem.slug} />
         </p>
         <p className="mt-0.5 truncate text-xs text-zinc-500">
-          {CATEGORY_LABELS[problem.category]} · {problem.summary}
+          {CATEGORY_LABELS[problem.category]} ·{" "}
+          <RichLine text={problem.summary} />
         </p>
       </div>
       <DifficultyBadge difficulty={problem.difficulty} />
