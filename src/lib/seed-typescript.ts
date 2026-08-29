@@ -10,6 +10,17 @@ import type { JudgeLanguage } from "./types";
 // Only the starter differs: the JSDoc types move into the signatures.
 
 export const typescriptJudges: Record<string, JudgeLanguage> = {
+  "implement-debounce": {
+    entry: "__runDebounceScenario",
+    starterCode: `type AnyFn = (...args: any[]) => void;
+
+/** Delays fn until wait ms of quiet; .cancel() drops a pending call. */
+function debounce(fn: AnyFn, wait: number): AnyFn & { cancel(): void } {
+  // Your code here
+  return Object.assign((...args: any[]) => fn(...args), { cancel() {} });
+}
+`,
+  },
   "pair-sum-sorted": {
     entry: "pairSum",
     starterCode: `/**

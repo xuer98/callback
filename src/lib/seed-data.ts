@@ -1,4 +1,4 @@
-import { debouncePlayground, frontendProblems } from "./seed-frontend";
+import { frontendProblems } from "./seed-frontend";
 import type { Problem, Track } from "./types";
 
 // Canonical seed content. Postgres is the runtime read path (src/lib/data.ts);
@@ -1931,12 +1931,110 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
     companies: ["meta", "stripe"],
     summary: "Closures and timers, the frontend screen classic.",
     prompt:
-      "Implement debounce(fn, wait): return a wrapped function that delays invoking fn until wait milliseconds have passed since the last call. Support a cancel() method, and be ready to explain how debounce differs from throttle and when a leading-edge option matters.\n\nWrite it in TypeScript with correct this-binding and argument forwarding.",
+      "Implement debounce(fn, wait): return a wrapped function that delays invoking fn until wait milliseconds have passed since the last call. Support a cancel() method that drops any pending invocation, and be ready to explain how debounce differs from throttle and when a leading-edge option matters.\n\nThe grader replays timed call scripts against your implementation on a virtual clock. Each case's input is the wait plus a script of [ms, action, ...args] steps; the expected output lists every fire as {at, args}. Forward arguments faithfully.",
     hints: [
       "Each call should reset the pending timer — a closure over the timer id is all the state you need.",
       "For leading-edge behavior, fire immediately when no timer is pending, then suppress calls until things go quiet.",
     ],
-    ui: debouncePlayground,
+    judge: {
+      starterCode: `/**
+ * @param {Function} fn
+ * @param {number} wait - milliseconds of quiet before fn runs
+ * @returns {Function} debounced wrapper with a .cancel() method
+ */
+function debounce(fn, wait) {
+  // Your code here
+  return Object.assign((...args) => fn(...args), { cancel() {} });
+}
+`,
+      entry: "__runDebounceScenario",
+      // Grades on a virtual clock: setTimeout/clearTimeout are replaced with
+      // a scheduler the driver advances, so scenarios are deterministic and
+      // instant — no real waiting, no event-loop jitter.
+      driverCode: `function __runDebounceScenario(wait, script) {
+  var timers = new Map();
+  var now = 0;
+  var nextId = 1;
+  globalThis.setTimeout = function (fn, delay) {
+    var rest = Array.prototype.slice.call(arguments, 2);
+    var id = nextId++;
+    timers.set(id, { due: now + Math.max(0, Number(delay) || 0), fn: fn, rest: rest });
+    return id;
+  };
+  globalThis.clearTimeout = function (id) {
+    timers.delete(id);
+  };
+
+  var fires = [];
+  var debounced = debounce(function () {
+    fires.push({ at: now, args: Array.prototype.slice.call(arguments) });
+  }, wait);
+
+  function advanceTo(t) {
+    for (;;) {
+      var bestId = null;
+      var bestDue = Infinity;
+      timers.forEach(function (timer, id) {
+        if (timer.due <= t && timer.due < bestDue) {
+          bestDue = timer.due;
+          bestId = id;
+        }
+      });
+      if (bestId === null) break;
+      var next = timers.get(bestId);
+      timers.delete(bestId);
+      now = next.due;
+      next.fn.apply(null, next.rest);
+    }
+    now = t;
+  }
+
+  for (var i = 0; i < script.length; i++) {
+    var step = script[i];
+    advanceTo(step[0]);
+    if (step[1] === "call") debounced.apply(null, step.slice(2));
+    else if (step[1] === "cancel") debounced.cancel();
+  }
+  advanceTo(1000000);
+  return fires;
+}
+`,
+      tests: [
+        {
+          name: "Burst collapses to one trailing fire",
+          input: [100, [[0, "call", 1], [30, "call", 2], [60, "call", 3]]],
+          expected: [{ at: 160, args: [3] }],
+        },
+        {
+          name: "Each call resets the timer",
+          input: [100, [[0, "call", 1], [90, "call", 2], [180, "call", 3]]],
+          expected: [{ at: 280, args: [3] }],
+        },
+        {
+          name: "Quiet gaps fire separately",
+          input: [100, [[0, "call", 1], [300, "call", 2]]],
+          expected: [
+            { at: 100, args: [1] },
+            { at: 400, args: [2] },
+          ],
+        },
+        {
+          name: "cancel() drops the pending call",
+          input: [100, [[0, "call", 1], [50, "cancel"]]],
+          expected: [],
+        },
+        {
+          name: "Usable again after cancel",
+          input: [100, [[0, "call", 1], [50, "cancel"], [120, "call", 2]]],
+          expected: [{ at: 220, args: [2] }],
+        },
+        {
+          name: "Arguments forward to fn",
+          input: [80, [[0, "call", "a", 42]]],
+          expected: [{ at: 80, args: ["a", 42] }],
+        },
+      ],
+    },
   },
   {
     slug: "top-earners-per-department",
