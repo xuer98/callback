@@ -1,3 +1,4 @@
+import { debouncePlayground, frontendProblems } from "./seed-frontend";
 import type { Problem, Track } from "./types";
 
 // Canonical seed content. Postgres is the runtime read path (src/lib/data.ts);
@@ -1935,6 +1936,7 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
       "Each call should reset the pending timer — a closure over the timer id is all the state you need.",
       "For leading-edge behavior, fire immediately when no timer is pending, then suppress calls until things go quiet.",
     ],
+    ui: debouncePlayground,
   },
   {
     slug: "top-earners-per-department",
@@ -2006,6 +2008,7 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
       "End with the measurable result and what you would do differently, not with who turned out to be right.",
     ],
   },
+  ...frontendProblems,
 ];
 
 export const tracks: Track[] = [

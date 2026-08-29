@@ -15,6 +15,7 @@ import {
   DIFFICULTIES,
   TIMEFRAMES,
   type Judge,
+  type UiWorkspace,
 } from "../lib/types";
 import { user } from "./auth-schema";
 
@@ -33,6 +34,7 @@ export const problems = pgTable("problems", {
   prompt: text("prompt").notNull(),
   hints: jsonb("hints").$type<string[]>().notNull(),
   judge: jsonb("judge").$type<Judge>(),
+  ui: jsonb("ui").$type<UiWorkspace>(),
 });
 
 export const companies = pgTable("companies", {

@@ -137,7 +137,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   // Signed out, everything stays purely local.
   const { queueSave, flushSave, dropSolution } = useSolutionSync({
     slug,
-    languages: available,
+    slots: available,
     enabled: signedIn,
     onPulled: (langs) => {
       if (langs.includes(languageRef.current)) {

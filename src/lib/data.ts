@@ -43,6 +43,7 @@ function toProblem(row: ProblemRow): Problem {
     prompt: row.prompt,
     hints: row.hints,
     judge: row.judge ?? undefined,
+    ui: row.ui ?? undefined,
   };
 }
 

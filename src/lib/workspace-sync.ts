@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { deleteSolution, saveSolution } from "./workspace-actions";
-import type { Language } from "./types";
 
 // Client half of account-backed persistence. localStorage stays the source
 // of immediate truth (it works signed out and offline); when signed in,
@@ -11,12 +10,17 @@ import type { Language } from "./types";
 // sidecar so local and remote timestamps are comparable; a value with no
 // sidecar (saved before this feature) counts as oldest.
 
-export function storageKeyFor(slug: string, language: Language) {
+/**
+ * A slot names one saved document for a problem: a language ("python") for
+ * the judged editor, or a UI-workspace file ("ui:App.jsx"). The server keeps
+ * them in the same solutions table, keyed by this string.
+ */
+export function storageKeyFor(slug: string, slot: string) {
   // The JavaScript key predates multi-language support — keep it stable so
   // existing saved solutions survive.
-  return language === "javascript"
+  return slot === "javascript"
     ? `callback:code:${slug}`
-    : `callback:code:${slug}:${language}`;
+    : `callback:code:${slug}:${slot}`;
 }
 
 export function readStored(key: string): string | null {
@@ -83,7 +87,7 @@ const SAVE_DEBOUNCE_MS = 1200;
 
 /**
  * Keeps a problem's saved solutions in sync with the account. On load (once
- * signed in) it reconciles every language: newer remote copies land in
+ * signed in) it reconciles every slot: newer remote copies land in
  * localStorage and are reported via onPulled so the editor can adopt the
  * open one; newer local copies are pushed up. After that, queueSave pushes
  * edits on a debounce, flushSave pushes one immediately, and dropSolution
@@ -91,34 +95,34 @@ const SAVE_DEBOUNCE_MS = 1200;
  */
 export function useSolutionSync({
   slug,
-  languages,
+  slots,
   enabled,
   onPulled,
 }: {
   slug: string;
-  languages: Language[];
+  slots: string[];
   enabled: boolean;
-  onPulled: (languages: Language[]) => void;
+  onPulled: (slots: string[]) => void;
 }) {
   // Latest-value refs so the reconcile effect depends only on
   // [enabled, slug] while its async continuation still sees current props.
-  const languagesRef = useRef(languages);
+  const slotsRef = useRef(slots);
   const onPulledRef = useRef(onPulled);
   useEffect(() => {
-    languagesRef.current = languages;
+    slotsRef.current = slots;
     onPulledRef.current = onPulled;
   });
 
-  /** Languages edited locally this session — never overwrite those. */
-  const dirty = useRef<Set<Language>>(new Set());
+  /** Slots edited locally this session — never overwrite those. */
+  const dirty = useRef<Set<string>>(new Set());
   const pending = useRef<
-    Map<Language, { timer: ReturnType<typeof setTimeout>; code: string }>
+    Map<string, { timer: ReturnType<typeof setTimeout>; code: string }>
   >(new Map());
 
   const push = useCallback(
-    (language: Language, code: string) => {
-      void saveSolution(slug, language, code).then((ms) => {
-        if (ms !== null) writeSavedAt(storageKeyFor(slug, language), ms);
+    (slot: string, code: string) => {
+      void saveSolution(slug, slot, code).then((ms) => {
+        if (ms !== null) writeSavedAt(storageKeyFor(slug, slot), ms);
       });
     },
     [slug],
@@ -129,21 +133,21 @@ export function useSolutionSync({
     let cancelled = false;
     void fetchWorkspace(slug).then((remote) => {
       if (cancelled || !remote?.signedIn) return;
-      const pulled: Language[] = [];
-      for (const language of languagesRef.current) {
-        const key = storageKeyFor(slug, language);
+      const pulled: string[] = [];
+      for (const slot of slotsRef.current) {
+        const key = storageKeyFor(slug, slot);
         const local = readStored(key);
         const localAt = readSavedAt(key);
-        const theirs = remote.solutions[language];
-        if (dirty.current.has(language)) continue;
+        const theirs = remote.solutions[slot];
+        if (dirty.current.has(slot)) continue;
         if (theirs && (local === null || theirs.updatedAt > localAt)) {
           if (local !== theirs.code) {
             writeStored(key, theirs.code);
-            pulled.push(language);
+            pulled.push(slot);
           }
           writeSavedAt(key, theirs.updatedAt);
         } else if (local !== null && (!theirs || localAt > theirs.updatedAt)) {
-          if (local !== theirs?.code) push(language, local);
+          if (local !== theirs?.code) push(slot, local);
         }
       }
       if (pulled.length > 0) onPulledRef.current(pulled);
@@ -157,44 +161,44 @@ export function useSolutionSync({
   useEffect(() => {
     const queue = pending.current;
     return () => {
-      for (const [language, entry] of queue) {
+      for (const [slot, entry] of queue) {
         clearTimeout(entry.timer);
-        push(language, entry.code);
+        push(slot, entry.code);
       }
       queue.clear();
     };
   }, [slug, push]);
 
-  const queueSave = (language: Language, code: string) => {
-    dirty.current.add(language);
-    const existing = pending.current.get(language);
+  const queueSave = (slot: string, code: string) => {
+    dirty.current.add(slot);
+    const existing = pending.current.get(slot);
     if (existing) clearTimeout(existing.timer);
     const timer = setTimeout(() => {
-      pending.current.delete(language);
-      push(language, code);
+      pending.current.delete(slot);
+      push(slot, code);
     }, SAVE_DEBOUNCE_MS);
-    pending.current.set(language, { timer, code });
+    pending.current.set(slot, { timer, code });
   };
 
-  /** Push a language's code now, cancelling any save still on the debounce. */
-  const flushSave = (language: Language, code: string) => {
-    dirty.current.add(language);
-    const existing = pending.current.get(language);
+  /** Push a slot's code now, cancelling any save still on the debounce. */
+  const flushSave = (slot: string, code: string) => {
+    dirty.current.add(slot);
+    const existing = pending.current.get(slot);
     if (existing) {
       clearTimeout(existing.timer);
-      pending.current.delete(language);
+      pending.current.delete(slot);
     }
-    push(language, code);
+    push(slot, code);
   };
 
-  const dropSolution = (language: Language) => {
-    dirty.current.add(language);
-    const existing = pending.current.get(language);
+  const dropSolution = (slot: string) => {
+    dirty.current.add(slot);
+    const existing = pending.current.get(slot);
     if (existing) {
       clearTimeout(existing.timer);
-      pending.current.delete(language);
+      pending.current.delete(slot);
     }
-    void deleteSolution(slug, language);
+    void deleteSolution(slug, slot);
   };
 
   return { queueSave, flushSave, dropSolution };

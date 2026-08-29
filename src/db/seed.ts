@@ -87,6 +87,7 @@ async function main() {
               go: goJudges[problem.slug],
             }
           : null,
+        ui: problem.ui ?? null,
       };
       await tx
         .insert(schema.problems)

@@ -29,6 +29,22 @@ async function problemIdBySlug(slug: string): Promise<number | null> {
 }
 
 /**
+ * A saved document's key: a language for the judged editor, or "ui:<file>"
+ * for a UI-workspace file. UI keys are checked against the problem's own
+ * file list, so the table can't accumulate rows for files that don't exist.
+ */
+async function validSlot(slug: string, slot: string): Promise<boolean> {
+  if ((LANGUAGES as readonly string[]).includes(slot)) return true;
+  if (!slot.startsWith("ui:")) return false;
+  const row = await db.query.problems.findFirst({
+    where: eq(schema.problems.slug, slug),
+    columns: { ui: true },
+  });
+  const name = slot.slice("ui:".length);
+  return row?.ui?.files.some((file) => file.name === name) ?? false;
+}
+
+/**
  * Upsert the user's solution for one problem/language. Returns the server
  * timestamp (ms) so the client can align its local copy, or null when the
  * save didn't happen.
@@ -39,10 +55,7 @@ export async function saveSolution(
   code: unknown,
 ): Promise<number | null> {
   if (typeof problemSlug !== "string" || typeof code !== "string") return null;
-  if (
-    typeof language !== "string" ||
-    !(LANGUAGES as readonly string[]).includes(language)
-  ) {
+  if (typeof language !== "string" || !(await validSlot(problemSlug, language))) {
     return null;
   }
   if (new TextEncoder().encode(code).length > MAX_CODE_BYTES) return null;

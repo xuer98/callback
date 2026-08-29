@@ -35,6 +35,35 @@ export interface Problem {
   hints: string[];
   /** Present when the problem is runnable in the in-browser editor. */
   judge?: Judge;
+  /** Present when the problem is built in the UI workspace (live preview). */
+  ui?: UiWorkspace;
+}
+
+/** One starter file in a UI (frontend) workspace. */
+export interface UiFile {
+  /** Shown on the editor tab and used as the module id, e.g. "App.jsx". */
+  name: string;
+  contents: string;
+}
+
+/**
+ * A frontend question solved by building an actual interface: the editor
+ * shows one tab per file and renders the result live in a sandboxed iframe.
+ * "react" mounts the default export of the entry component; "vanilla" mounts
+ * index.html and runs each script file.
+ */
+export interface UiWorkspace {
+  framework: "react" | "vanilla";
+  files: UiFile[];
+}
+
+export type UiFileKind = "script" | "css" | "html";
+
+/** What a UI file holds, by extension — drives editing and preview alike. */
+export function uiFileKind(name: string): UiFileKind {
+  if (name.endsWith(".css")) return "css";
+  if (name.endsWith(".html")) return "html";
+  return "script";
 }
 
 export const LANGUAGES = [

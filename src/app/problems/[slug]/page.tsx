@@ -5,6 +5,7 @@ import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
 import { RichText } from "@/components/markdown";
 import { ProblemPanes } from "@/components/problem-panes";
+import { UiWorkspace } from "@/components/ui-workspace";
 import { Whiteboard } from "@/components/whiteboard";
 import { Workspace } from "@/components/workspace";
 import { getCompany, getProblem, listProblems } from "@/lib/data";
@@ -35,6 +36,7 @@ export default async function ProblemPage({
   if (!problem) notFound();
 
   const judge = problem.judge;
+  const compact = Boolean(judge || problem.ui);
 
   const header = (
     <header>
@@ -50,7 +52,7 @@ export default async function ProblemPage({
       </div>
       <h1
         className={`mt-3 font-semibold tracking-tight ${
-          judge ? "text-xl" : "text-3xl"
+          compact ? "text-xl" : "text-3xl"
         }`}
       >
         {problem.title}
@@ -58,10 +60,13 @@ export default async function ProblemPage({
     </header>
   );
 
-  // Judged problems get the editor workspace; system-design problems get a
+  // Judged problems get the editor workspace; frontend problems with starter
+  // files get the live-preview UI workspace; system-design problems get a
   // whiteboard to sketch the architecture on. Everything else is a document.
   const workspace = judge ? (
     <Workspace slug={problem.slug} judge={judge} />
+  ) : problem.ui ? (
+    <UiWorkspace slug={problem.slug} ui={problem.ui} />
   ) : problem.category === "system-design" ? (
     <Whiteboard slug={problem.slug} />
   ) : null;
@@ -106,7 +111,7 @@ function Prompt({ problem }: { problem: Problem }) {
     <RichText
       text={problem.prompt}
       className={`text-[15px] leading-7 text-zinc-300 ${
-        problem.judge ? "mt-6" : "mt-8"
+        problem.judge || problem.ui ? "mt-6" : "mt-8"
       }`}
     />
   );
