@@ -81,7 +81,7 @@ export default async function CompanyPage({
               Asked on LeetCode
             </h2>
             <Link
-              href={`/questions?company=${company.slug}`}
+              href={`/problems?company=${company.slug}`}
               className="text-xs text-indigo-400 transition-colors hover:text-indigo-300"
             >
               All {questionCount.toLocaleString()} by time range &rarr;

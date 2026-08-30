@@ -15,17 +15,20 @@ interface Option {
 }
 
 /**
- * The query controls for /questions. Each change rewrites the URL, so a
+ * The query controls for /problems. Each change rewrites the URL, so a
  * filtered view is linkable and the server does the actual filtering.
  */
 export function QuestionFilters({
   companies,
   topics,
+  categories,
   selected,
 }: {
   companies: { slug: string; name: string }[];
   topics: string[];
+  categories: Option[];
   selected: {
+    category: string;
     company: string;
     topic: string;
     difficulty: string;
@@ -43,11 +46,13 @@ export function QuestionFilters({
     // Any filter change invalidates the current page number.
     next.delete("page");
     const query = next.toString();
-    startTransition(() => router.push(query ? `/questions?${query}` : "/questions"));
+    startTransition(() => router.push(query ? `/problems?${query}` : "/problems"));
   };
 
   const filtered =
-    selected.company || selected.topic || selected.difficulty ? true : false;
+    selected.category || selected.company || selected.topic || selected.difficulty
+      ? true
+      : false;
 
   return (
     <div
@@ -56,6 +61,13 @@ export function QuestionFilters({
       }`}
     >
       <Select
+        label="Category"
+        value={selected.category}
+        placeholder="All categories"
+        options={categories}
+        onChange={(value) => apply("category", value)}
+      />
+      <Select
         label="Company"
         value={selected.company}
         placeholder="All companies"
@@ -63,9 +75,9 @@ export function QuestionFilters({
         onChange={(value) => apply("company", value)}
       />
       <Select
-        label="Category"
+        label="Topic"
         value={selected.topic}
-        placeholder="All categories"
+        placeholder="All topics"
         options={topics.map((t) => ({ value: t, label: t }))}
         onChange={(value) => apply("topic", value)}
       />
@@ -90,7 +102,7 @@ export function QuestionFilters({
       />
       {filtered && (
         <button
-          onClick={() => startTransition(() => router.push("/questions"))}
+          onClick={() => startTransition(() => router.push("/problems"))}
           className="h-[34px] rounded-md border border-zinc-800 px-3 text-xs text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-200"
         >
           Clear
