@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ProblemRow } from "@/components/problem-row";
 import { QuestionFilters } from "@/components/question-filters";
 import { QuestionList } from "@/components/question-list";
 import {
   listCompaniesWithQuestions,
   listQuestionTopics,
+  problemsForCompany,
   queryQuestions,
   QUESTIONS_PER_PAGE,
 } from "@/lib/data";
@@ -61,14 +63,26 @@ export default async function QuestionsPage({
     ? one(params, "topic")
     : "";
 
-  // queryQuestions clamps the page to the last one that has rows.
-  const { rows, total, page } = await queryQuestions({
-    timeframe,
-    company: company || undefined,
-    topic: topic || undefined,
-    difficulty,
-    page: requestedPage,
-  });
+  // queryQuestions clamps the page to the last one that has rows. Alongside
+  // it, pull Callback's own problems for the selected company — they render
+  // above the imported listings, on the first page only. Difficulty applies
+  // to them too; topic and timeframe are listing-only concepts, so a topic
+  // filter hides the section rather than pretending to match.
+  const [{ rows, total, page }, asked] = await Promise.all([
+    queryQuestions({
+      timeframe,
+      company: company || undefined,
+      topic: topic || undefined,
+      difficulty,
+      page: requestedPage,
+    }),
+    company && !topic && requestedPage === 1
+      ? problemsForCompany(company)
+      : Promise.resolve([]),
+  ]);
+  const callbackProblems = difficulty
+    ? asked.filter((p) => p.difficulty === difficulty)
+    : asked;
 
   const companyName = companies.find((c) => c.slug === company)?.name;
   const lastPage = Math.max(1, Math.ceil(total / QUESTIONS_PER_PAGE));
@@ -88,7 +102,8 @@ export default async function QuestionsPage({
       <h1 className="text-2xl font-semibold tracking-tight">Questions</h1>
       <p className="mt-1 text-sm text-zinc-400">
         LeetCode questions companies have been asking, filterable by company,
-        category, and how recently they showed up.
+        category, and how recently they showed up. Pick a company to also see
+        Callback&apos;s own problems for it.
       </p>
 
       <QuestionFilters
@@ -97,8 +112,29 @@ export default async function QuestionsPage({
         selected={{ company, topic, difficulty: difficulty ?? "", timeframe }}
       />
 
+      {callbackProblems.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold text-zinc-100">
+            Solve on Callback
+          </h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            {callbackProblems.length}{" "}
+            {callbackProblems.length === 1 ? "problem" : "problems"}
+            {companyName ? ` asked at ${companyName}` : ""}
+            {difficulty ? `, ${difficulty}` : ""} — from Callback&apos;s own
+            catalog, with full prompts you can work right here.
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            {callbackProblems.map((p) => (
+              <ProblemRow key={p.slug} problem={p} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <p className="mt-6 text-xs text-zinc-500">
-        {total.toLocaleString()} {total === 1 ? "question" : "questions"}
+        {total.toLocaleString()} LeetCode{" "}
+        {total === 1 ? "question" : "questions"}
         {companyName ? ` at ${companyName}` : ""}
         {topic ? ` tagged ${topic}` : ""}
         {difficulty ? `, ${difficulty}` : ""} ·{" "}
@@ -107,8 +143,8 @@ export default async function QuestionsPage({
 
       {rows.length === 0 ? (
         <p className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-6 text-sm text-zinc-400">
-          No questions match those filters. Try a wider time range, or clear the
-          category.
+          No LeetCode listings match those filters. Try a wider time range, or
+          clear the category.
         </p>
       ) : (
         <QuestionList rows={rows} showCompanyCount={!company} />

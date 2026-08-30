@@ -5,8 +5,10 @@ import {
   countDistinct,
   desc,
   eq,
+  exists,
   inArray,
   max,
+  or,
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
@@ -198,19 +200,35 @@ export async function listQuestionTopics(): Promise<string[]> {
   return result.rows.map((row) => row.topic);
 }
 
-/** Companies that actually have imported questions, by name. */
+/**
+ * Companies the /questions filter can select: any with imported listings or
+ * with authored Callback problems, so a company that only has the latter is
+ * still reachable.
+ */
 export async function listCompaniesWithQuestions(): Promise<
   { slug: string; name: string }[]
 > {
   return db
-    .selectDistinct({
+    .select({
       slug: schema.companies.slug,
       name: schema.companies.name,
     })
-    .from(schema.companyQuestions)
-    .innerJoin(
-      schema.companies,
-      eq(schema.companies.id, schema.companyQuestions.companyId),
+    .from(schema.companies)
+    .where(
+      or(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(schema.companyQuestions)
+            .where(eq(schema.companyQuestions.companyId, schema.companies.id)),
+        ),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(schema.problemCompanies)
+            .where(eq(schema.problemCompanies.companyId, schema.companies.id)),
+        ),
+      ),
     )
     .orderBy(asc(schema.companies.name));
 }
