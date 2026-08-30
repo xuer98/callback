@@ -1,4 +1,10 @@
 import { frontendProblems } from "./seed-frontend";
+import { pinterestProblemsA } from "./seed-pinterest-a";
+import { pinterestProblemsB } from "./seed-pinterest-b";
+import { pinterestProblemsC } from "./seed-pinterest-c";
+import { pinterestProblemsD } from "./seed-pinterest-d";
+import { pinterestProblemsE } from "./seed-pinterest-e";
+import { pinterestProblemsF } from "./seed-pinterest-f";
 import type { Problem, Track } from "./types";
 
 // Canonical seed content. Postgres is the runtime read path (src/lib/data.ts);
@@ -2324,6 +2330,12 @@ function debounce(fn, wait) {
     ],
   },
   ...frontendProblems,
+  ...pinterestProblemsA,
+  ...pinterestProblemsB,
+  ...pinterestProblemsC,
+  ...pinterestProblemsD,
+  ...pinterestProblemsE,
+  ...pinterestProblemsF,
 ];
 
 export const tracks: Track[] = [

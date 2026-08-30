@@ -327,6 +327,299 @@ def resize_buckets(buckets, name, new_size):
         return "threw but mutated its input"
 `,
   },
+  "settle-debts": {
+    entry: "__judge_settle",
+    starterCode: `def settle(payments):
+    """payments: dicts {payer, amount, payees}; amount splits equally, the
+    first amount % len(payees) payees owe one cent extra. Return transfers
+    [frm, to, amount] settling everyone, at most n - 1 of them."""
+    # Your code here
+    return []
+
+
+def min_transfers(debts):
+    """debts: (debtor, creditor, amount) triples. Minimum transfers that
+    settle all balances."""
+    # Your code here
+    return 0
+`,
+    driverCode: `def __judge_settle(op, payments, debts):
+    if op == "min":
+        return min_transfers(debts)
+    bal = {}
+
+    def add(who, delta):
+        bal[who] = bal.get(who, 0) + delta
+
+    for p in payments:
+        share, rem = divmod(p["amount"], len(p["payees"]))
+        add(p["payer"], p["amount"])
+        for i, payee in enumerate(p["payees"]):
+            add(payee, -(share + (1 if i < rem else 0)))
+    nonzero = sum(1 for b in bal.values() if b != 0)
+    transfers = settle(payments)
+    if not isinstance(transfers, list):
+        return "not a list"
+    for t in transfers:
+        if len(t) != 3 or not isinstance(t[2], int) or t[2] <= 0:
+            return "malformed transfer"
+        add(t[0], t[2])
+        add(t[1], -t[2])
+    return {
+        "settled": all(b == 0 for b in bal.values()),
+        "withinBound": len(transfers) <= max(0, nonzero - 1),
+    }
+`,
+  },
+  "reconstruct-itinerary": {
+    entry: "__judge_itinerary",
+    starterCode: `def find_itinerary(tickets, start):
+    """Use every [frm, to] ticket exactly once from start; return the
+    lexicographically smallest itinerary as a list of airports."""
+    # Your code here
+    return []
+
+
+def has_loop(tickets, start):
+    """Does that itinerary ever revisit an airport?"""
+    # Your code here
+    return False
+`,
+    driverCode: `def __judge_itinerary(op, tickets, start):
+    if op == "loop":
+        return has_loop(tickets, start)
+    return find_itinerary(tickets, start)
+`,
+  },
+  "access-log-query": {
+    entry: "__run_operations",
+    starterCode: `class AccessLog:
+    def __init__(self):
+        # Your state here
+        pass
+
+    def add(self, user_id, action, ts):
+        """Records arrive in non-decreasing ts order."""
+        pass
+
+    def get_user_actions(self, user_id, start, end):
+        """That user's actions with start <= ts <= end, in time order."""
+        return []
+
+    def count_unique_users(self, start, end):
+        """Distinct users with at least one record in [start, end]."""
+        return 0
+`,
+    driverCode: `def __run_operations(operations, args):
+    methods = {
+        "add": "add",
+        "getUserActions": "get_user_actions",
+        "countUniqueUsers": "count_unique_users",
+    }
+    log = None
+    out = []
+    for op, arg in zip(operations, args):
+        if op == "AccessLog":
+            log = AccessLog()
+            out.append(None)
+        else:
+            out.append(getattr(log, methods[op])(*arg))
+    return out
+`,
+  },
+  "bus-routes-min-transfers": {
+    entry: "num_buses_to_destination",
+    starterCode: `def num_buses_to_destination(routes, source, target):
+    """Minimum number of buses from stop source to stop target, or -1."""
+    # Your code here
+    return -1
+`,
+  },
+  "board-exact-jumps": {
+    entry: "__judge_board",
+    starterCode: `def can_reach_end(board, start):
+    """Can you reach the last index moving exactly board[i] steps?"""
+    # Your code here
+    return False
+
+
+def min_moves_to_end(board, start):
+    """Minimum moves to reach the last index, or -1."""
+    # Your code here
+    return -1
+`,
+    driverCode: `def __judge_board(op, board, start):
+    if op == "reach":
+        return can_reach_end(board, start)
+    return min_moves_to_end(board, start)
+`,
+  },
+  "restaurant-free-intervals": {
+    entry: "free_intervals",
+    starterCode: `def free_intervals(open_t, close_t, capacity, reservations, n):
+    """All maximal [a, b] within opening hours where free seats >= n.
+    Reservations are (start, end, ppl), half-open [start, end)."""
+    # Your code here
+    return []
+`,
+  },
+  "count-visible-pins": {
+    entry: "max_visible_pins",
+    starterCode: `def max_visible_pins(pins, screen_len):
+    """pins: (top, bottom, column) with column "L" or "R"; same-column pins
+    never overlap. Max pins fully visible in any window of screen_len."""
+    # Your code here
+    return 0
+`,
+  },
+  "count-subarrays-score": {
+    entry: "count_subarrays",
+    starterCode: `def count_subarrays(nums, k):
+    """Count non-empty subarrays of positive nums whose
+    (sum * length) is strictly less than k."""
+    # Your code here
+    return 0
+`,
+  },
+  "count-pixel-objects": {
+    entry: "__judge_pixels",
+    starterCode: `def count_objects(grid):
+    """Count distinct objects via the API:
+    grid.height(), grid.width(), grid.is_background(r, c),
+    grid.is_same_object(r1, c1, r2, c2)  # for 4-adjacent in-bounds pixels
+    Avoid recursion; the grid can be 2000 x 2000."""
+    # Your code here
+    return 0
+`,
+    driverCode: `class __PixelGrid:
+    def __init__(self, rows):
+        self.rows = rows
+
+    def height(self):
+        return len(self.rows)
+
+    def width(self):
+        return len(self.rows[0]) if self.rows else 0
+
+    def is_background(self, r, c):
+        return self.rows[r][c] == "."
+
+    def is_same_object(self, r1, c1, r2, c2):
+        if abs(r1 - r2) + abs(c1 - c2) != 1:
+            return False
+        a, b = self.rows[r1][c1], self.rows[r2][c2]
+        return a != "." and b != "." and a == b
+
+
+def __judge_pixels(rows):
+    return count_objects(__PixelGrid(rows))
+`,
+  },
+  "roads-with-switches": {
+    entry: "__judge_roads",
+    starterCode: `def min_flips(roads, src, dst):
+    """roads: directed (u, v, is_open). Minimum closed roads to flip to
+    drive src -> dst, or -1 if unreachable with unlimited flips."""
+    # Your code here
+    return -1
+
+
+def can_reach(roads, src, dst, k):
+    """True iff min_flips(roads, src, dst) is in [0, k]."""
+    # Your code here
+    return False
+`,
+    driverCode: `def __judge_roads(op, roads, src, dst, k):
+    if op == "min":
+        return min_flips(roads, src, dst)
+    return can_reach(roads, src, dst, k)
+`,
+  },
+  "bank-teller-wait-time": {
+    entry: "__judge_tellers",
+    starterCode: `def wait_time(times, m):
+    """Agent i takes times[i] minutes; m customers are ahead of you; ties
+    go to the lowest-numbered agent. When does your service start?"""
+    # Your code here
+    return 0
+
+
+def min_time_to_serve(times, m):
+    """Smallest T with sum(T // times[i]) >= m."""
+    # Your code here
+    return 0
+`,
+    driverCode: `def __judge_tellers(op, times, m):
+    if op == "wait":
+        return wait_time(times, m)
+    return min_time_to_serve(times, m)
+`,
+  },
+  "first-word-with-prefix": {
+    entry: "__judge_prefix",
+    starterCode: `def first_match(words, prefix):
+    """words is sorted ascending. Index of the first word starting with
+    prefix, or -1. O(log n) comparisons."""
+    # Your code here
+    return -1
+
+
+def match_range(words, prefix):
+    """Inclusive [first, last] of matching indexes, or [-1, -1]."""
+    # Your code here
+    return [-1, -1]
+`,
+    driverCode: `def __judge_prefix(op, words, prefix):
+    if op == "first":
+        return first_match(words, prefix)
+    return match_range(words, prefix)
+`,
+  },
+  "autocomplete-session": {
+    entry: "__run_operations",
+    starterCode: `class AutocompleteSystem:
+    def __init__(self, sentences, times):
+        # Your state here
+        pass
+
+    def input(self, c):
+        """c is a lowercase letter, " ", or "#". Return the top 3 matches
+        for the query typed so far (frequency desc, then lexicographic);
+        "#" records the typed sentence and resets."""
+        return []
+`,
+    driverCode: `def __run_operations(operations, args):
+    system = None
+    out = []
+    for op, arg in zip(operations, args):
+        if op == "AutocompleteSystem":
+            system = AutocompleteSystem(*arg)
+            out.append(None)
+        else:
+            out.append(system.input(*arg))
+    return out
+`,
+  },
+  "reverse-count-and-say": {
+    entry: "__judge_reverse_say",
+    starterCode: `def reverse_count_and_say(s):
+    """All originals whose count-and-say step produces s, sorted
+    ascending. s == "" returns [""]; unparseable s returns []."""
+    # Your code here
+    return []
+
+
+def count_originals(s):
+    """Just how many originals there are."""
+    # Your code here
+    return 0
+`,
+    driverCode: `def __judge_reverse_say(op, s):
+    if op == "all":
+        return reverse_count_and_say(s)
+    return count_originals(s)
+`,
+  },
   "flag-spam-numbers": {
     entry: "flag_spam_numbers",
     starterCode: `def flag_spam_numbers(call_log, reports, min_reports):
