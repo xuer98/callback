@@ -9,13 +9,17 @@ import { PaneTab, SplitPane } from "./resizable";
 export function ProblemPanes({
   description,
   hints,
+  solution,
   workspace,
   hasHints,
+  hasSolution,
 }: {
   description: React.ReactNode;
   hints: React.ReactNode;
+  solution: React.ReactNode;
   workspace: React.ReactNode;
   hasHints: boolean;
+  hasSolution: boolean;
 }) {
   const [tab, setTab] = useState<"description" | "hints" | "solution">(
     "description",
@@ -47,15 +51,21 @@ export function ProblemPanes({
                 Hints
               </PaneTab>
             )}
-            <PaneTab
-              active={tab === "solution"}
-              onClick={() => setTab("solution")}
-            >
-              Solution
-            </PaneTab>
+            {hasSolution && (
+              <PaneTab
+                active={tab === "solution"}
+                onClick={() => setTab("solution")}
+              >
+                Solution
+              </PaneTab>
+            )}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-            {tab === "description" ? description : hints}
+            {tab === "description"
+              ? description
+              : tab === "hints"
+                ? hints
+                : solution}
           </div>
         </section>
       }

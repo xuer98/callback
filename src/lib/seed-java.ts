@@ -443,6 +443,90 @@ class Solution {
         return Json.ofList(out);
     }`,
   },
+  "design-adjustable-id-allocator": {
+    entry: "__call",
+    starterCode: `/** A named contiguous ID range; start and end are -1 for a zero-size bucket. */
+class Bucket {
+    String name;
+    int start;
+    int end;
+
+    Bucket(String name, int start, int end) {
+        this.name = name;
+        this.start = start;
+        this.end = end;
+    }
+}
+
+class Allocator {
+    // Pack (name, size) requests from ID 0 into [0, 999], preserving order.
+    // A zero-size bucket packs as (name, -1, -1) and doesn't advance the
+    // cursor. Throw on a negative size or when the sizes sum past 1000.
+    List<Bucket> pack(String[] names, int[] sizes) {
+        // Your code here
+        return new ArrayList<Bucket>();
+    }
+
+    // Resize one bucket of a packed layout to exactly newSize IDs; the
+    // target keeps its start and later buckets shift by the delta. Must NOT
+    // mutate buckets when the resize is rejected. Throw on an unknown name,
+    // a negative size, or an overfull layout.
+    List<Bucket> resize(List<Bucket> buckets, String name, int newSize) {
+        // Your code here
+        return buckets;
+    }
+}
+`,
+    driverCode: `    static Json __call(List<Json> a) {
+        String op = a.get(0).str();
+        List<Json> rows = a.get(1).list();
+        Allocator alloc = new Allocator();
+        if (op.equals("pack")) {
+            String[] names = new String[rows.size()];
+            int[] sizes = new int[rows.size()];
+            for (int i = 0; i < rows.size(); i++) {
+                List<Json> row = rows.get(i).list();
+                names[i] = row.get(0).str();
+                sizes[i] = row.get(1).asInt();
+            }
+            try {
+                return __layout(alloc.pack(names, sizes));
+            } catch (Exception e) {
+                return Json.of("threw");
+            }
+        }
+        List<Bucket> buckets = new ArrayList<Bucket>();
+        for (int i = 0; i < rows.size(); i++) {
+            List<Json> row = rows.get(i).list();
+            buckets.add(new Bucket(row.get(0).str(), row.get(1).asInt(), row.get(2).asInt()));
+        }
+        try {
+            return __layout(alloc.resize(buckets, a.get(2).str(), a.get(3).asInt()));
+        } catch (Exception e) {
+            for (int i = 0; i < rows.size(); i++) {
+                List<Json> row = rows.get(i).list();
+                Bucket b = buckets.get(i);
+                if (!b.name.equals(row.get(0).str()) || b.start != row.get(1).asInt()
+                        || b.end != row.get(2).asInt()) {
+                    return Json.of("threw but mutated its input");
+                }
+            }
+            return Json.of("threw");
+        }
+    }
+
+    static Json __layout(List<Bucket> layout) {
+        List<Json> out = new ArrayList<Json>();
+        for (Bucket b : layout) {
+            List<Json> row = new ArrayList<Json>();
+            row.add(Json.of(b.name));
+            row.add(Json.of(b.start));
+            row.add(Json.of(b.end));
+            out.add(Json.ofList(row));
+        }
+        return Json.ofList(out);
+    }`,
+  },
   "flag-spam-numbers": {
     entry: "__call",
     starterCode: `class Solution {

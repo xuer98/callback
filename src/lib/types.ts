@@ -33,6 +33,11 @@ export interface Problem {
   prompt: string;
   /** One markdown block each; same syntax as `prompt`. */
   hints: string[];
+  /**
+   * Reference approach shown behind the Solution tab (or a collapsed section
+   * on document pages); same markdown as `prompt`. Absent = no solution yet.
+   */
+  solution?: string;
   /** Present when the problem is runnable in the in-browser editor. */
   judge?: Judge;
   /** Present when the problem is built in the UI workspace (live preview). */

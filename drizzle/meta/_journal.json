@@ -36,6 +36,13 @@
       "when": 1787981098545,
       "tag": "0004_flimsy_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788063291684,
+      "tag": "0005_thankful_the_stranger",
+      "breakpoints": true
     }
   ]
 }

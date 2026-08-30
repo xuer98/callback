@@ -33,6 +33,7 @@ export const problems = pgTable("problems", {
   summary: text("summary").notNull(),
   prompt: text("prompt").notNull(),
   hints: jsonb("hints").$type<string[]>().notNull(),
+  solution: text("solution"),
   judge: jsonb("judge").$type<Judge>(),
   ui: jsonb("ui").$type<UiWorkspace>(),
 });

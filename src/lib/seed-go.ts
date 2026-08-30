@@ -442,6 +442,79 @@ func (a *IDAllocator) SetCapacity(c int) {
 	return out
 }`,
   },
+  "design-adjustable-id-allocator": {
+    entry: "__call",
+    starterCode: `// Bucket is a named contiguous ID range; Start and End are -1 for a
+// zero-size bucket.
+type Bucket struct {
+	Name  string
+	Start int
+	End   int
+}
+
+// PackBuckets packs (name, size) requests from ID 0 into [0, 999],
+// preserving order. A zero-size bucket packs as {name, -1, -1} and doesn't
+// advance the cursor. Panic on a negative size or when the sizes sum past
+// 1000 — the judge recovers.
+func PackBuckets(names []string, sizes []int) []Bucket {
+	// Your code here
+	return []Bucket{}
+}
+
+// ResizeBuckets resizes one bucket of a packed layout to exactly newSize
+// IDs; the target keeps its start and later buckets shift by the delta.
+// Must NOT mutate buckets when the resize is rejected. Panic on an unknown
+// name, a negative size, or an overfull layout.
+func ResizeBuckets(buckets []Bucket, name string, newSize int) []Bucket {
+	// Your code here
+	return buckets
+}
+`,
+    driverCode: `func __layout(layout []Bucket) []interface{} {
+	out := []interface{}{}
+	for _, b := range layout {
+		out = append(out, []interface{}{b.Name, b.Start, b.End})
+	}
+	return out
+}
+
+func __call(a []interface{}) (result interface{}) {
+	op := JStr(a[0])
+	rows := JList(a[1])
+	if op == "pack" {
+		names := []string{}
+		sizes := []int{}
+		for _, raw := range rows {
+			row := JList(raw)
+			names = append(names, JStr(row[0]))
+			sizes = append(sizes, JInt(row[1]))
+		}
+		defer func() {
+			if recover() != nil {
+				result = "threw"
+			}
+		}()
+		return __layout(PackBuckets(names, sizes))
+	}
+	buckets := []Bucket{}
+	for _, raw := range rows {
+		row := JList(raw)
+		buckets = append(buckets, Bucket{Name: JStr(row[0]), Start: JInt(row[1]), End: JInt(row[2])})
+	}
+	defer func() {
+		if recover() != nil {
+			result = "threw"
+			for i, raw := range rows {
+				row := JList(raw)
+				if buckets[i].Name != JStr(row[0]) || buckets[i].Start != JInt(row[1]) || buckets[i].End != JInt(row[2]) {
+					result = "threw but mutated its input"
+				}
+			}
+		}
+	}()
+	return __layout(ResizeBuckets(buckets, JStr(a[2]), JInt(a[3])))
+}`,
+  },
   "flag-spam-numbers": {
     entry: "__call",
     starterCode: `// callLog holds [caller, callee] pairs and reports holds

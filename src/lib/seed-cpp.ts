@@ -418,6 +418,87 @@ public:
     return Json::ofList(out);
 }`,
   },
+  "design-adjustable-id-allocator": {
+    entry: "__call",
+    starterCode: `// A named contiguous ID range; start and end are -1 for a zero-size bucket.
+struct Bucket {
+    string name;
+    int start;
+    int end;
+};
+
+// Pack (name, size) requests from ID 0 into [0, 999], preserving order. A
+// zero-size bucket packs as {name, -1, -1} and doesn't advance the cursor.
+// Throw on a negative size or when the sizes sum past 1000.
+vector<Bucket> packBuckets(const vector<string>& names,
+                           const vector<int>& sizes) {
+    // Your code here
+    return vector<Bucket>();
+}
+
+// Resize one bucket of a packed layout to exactly newSize IDs; the target
+// keeps its start and later buckets shift by the delta. Must NOT mutate
+// buckets when the resize is rejected. Throw on an unknown name, a negative
+// size, or an overfull layout.
+vector<Bucket> resizeBuckets(vector<Bucket>& buckets, const string& name,
+                             int newSize) {
+    // Your code here
+    return buckets;
+}
+`,
+    driverCode: `static Json __layout(const vector<Bucket>& layout) {
+    vector<Json> out;
+    for (size_t i = 0; i < layout.size(); i++) {
+        vector<Json> row;
+        row.push_back(Json::of(layout[i].name));
+        row.push_back(Json::of(layout[i].start));
+        row.push_back(Json::of(layout[i].end));
+        out.push_back(Json::ofList(row));
+    }
+    return Json::ofList(out);
+}
+
+Json __call(const vector<Json>& a) {
+    const string& op = a[0].str();
+    const vector<Json>& rows = a[1].list();
+    if (op == "pack") {
+        vector<string> names;
+        vector<int> sizes;
+        for (size_t i = 0; i < rows.size(); i++) {
+            const vector<Json>& row = rows[i].list();
+            names.push_back(row[0].str());
+            sizes.push_back(row[1].asInt());
+        }
+        try {
+            return __layout(packBuckets(names, sizes));
+        } catch (...) {
+            return Json::of(string("threw"));
+        }
+    }
+    vector<Bucket> buckets;
+    for (size_t i = 0; i < rows.size(); i++) {
+        const vector<Json>& row = rows[i].list();
+        Bucket b;
+        b.name = row[0].str();
+        b.start = row[1].asInt();
+        b.end = row[2].asInt();
+        buckets.push_back(b);
+    }
+    try {
+        return __layout(resizeBuckets(buckets, a[2].str(), a[3].asInt()));
+    } catch (...) {
+        for (size_t i = 0; i < rows.size(); i++) {
+            const vector<Json>& row = rows[i].list();
+            if (buckets[i].name != row[0].str() ||
+                buckets[i].start != row[1].asInt() ||
+                buckets[i].end != row[2].asInt()) {
+                return Json::of(string("threw but mutated its input"));
+            }
+        }
+        return Json::of(string("threw"));
+    }
+}`,
+  },
   "flag-spam-numbers": {
     entry: "__call",
     starterCode: `vector<string> flagSpamNumbers(vector<vector<string> > callLog,

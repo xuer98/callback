@@ -372,6 +372,36 @@ function unallocatedRanges(
   return out;
 }`,
   },
+  "design-adjustable-id-allocator": {
+    entry: "__runAllocatorCase",
+    starterCode: `type Bucket = [name: string, start: number, end: number];
+
+/**
+ * Pack (name, size) requests into [0, 999] from ID 0, preserving order.
+ * A zero-size bucket packs as [name, -1, -1] and doesn't advance the
+ * cursor. Throw on a negative size, or when the sizes sum past 1000.
+ */
+function packBuckets(requests: [string, number][]): Bucket[] {
+  // Your code here
+  return [];
+}
+
+/**
+ * Resize one bucket of a packed layout to exactly newSize IDs. The target
+ * keeps its start; later buckets shift by the delta. Must NOT mutate
+ * \`buckets\` when the resize is rejected. Throw on an unknown name, a
+ * negative size, or a layout past 1000 IDs.
+ */
+function resizeBuckets(
+  buckets: Bucket[],
+  name: string,
+  newSize: number,
+): Bucket[] {
+  // Your code here
+  return buckets;
+}
+`,
+  },
   "flag-spam-numbers": {
     entry: "flagSpamNumbers",
     starterCode: `/**

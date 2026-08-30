@@ -296,6 +296,37 @@ def settle_from_stream(read_chunk):
     return out
 `,
   },
+  "design-adjustable-id-allocator": {
+    entry: "__run_allocator_case",
+    starterCode: `def pack_buckets(requests):
+    """requests: [name, size] pairs. Pack from ID 0 into [0, 999],
+    preserving order; a zero-size bucket packs as [name, -1, -1] and
+    doesn't advance the cursor. Raise ValueError on a negative size or
+    when the sizes sum past 1000."""
+    # Your code here
+    return []
+
+
+def resize_buckets(buckets, name, new_size):
+    """Resize one bucket of a packed layout to exactly new_size IDs; the
+    target keeps its start and later buckets shift by the delta. Must NOT
+    mutate buckets when the resize is rejected. Raise KeyError on an
+    unknown name, ValueError on a negative size or an overfull layout."""
+    # Your code here
+    return buckets
+`,
+    driverCode: `def __run_allocator_case(op, data, name, size):
+    snapshot = [list(row) for row in data]
+    try:
+        if op == "pack":
+            return pack_buckets(data)
+        return resize_buckets(data, name, size)
+    except Exception:
+        if data == snapshot:
+            return "threw"
+        return "threw but mutated its input"
+`,
+  },
   "flag-spam-numbers": {
     entry: "flag_spam_numbers",
     starterCode: `def flag_spam_numbers(call_log, reports, min_reports):

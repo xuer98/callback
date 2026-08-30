@@ -82,6 +82,7 @@ export default async function ProblemPage({
         <ProblemPanes
           key={problem.slug}
           hasHints={problem.hints.length > 0}
+          hasSolution={problem.solution !== undefined}
           description={
             <>
               {header}
@@ -90,6 +91,14 @@ export default async function ProblemPage({
             </>
           }
           hints={<Hints problem={problem} bare />}
+          solution={
+            problem.solution !== undefined && (
+              <RichText
+                text={problem.solution}
+                className="text-sm leading-6 text-zinc-300"
+              />
+            )
+          }
           workspace={workspace}
         />
       </div>
@@ -101,6 +110,7 @@ export default async function ProblemPage({
       {header}
       <Prompt problem={problem} />
       <Hints problem={problem} />
+      <Solution problem={problem} />
       <AskedAt problem={problem} />
     </div>
   );
@@ -144,6 +154,25 @@ function Hints({
           </details>
         ))}
       </div>
+    </section>
+  );
+}
+
+/** On document pages the solution hides behind a click, like a hint. */
+function Solution({ problem }: { problem: Problem }) {
+  if (problem.solution === undefined) return null;
+  return (
+    <section className="mt-10">
+      <h2 className="text-sm font-semibold text-zinc-100">Solution</h2>
+      <details className="group mt-3 rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
+        <summary className="cursor-pointer select-none text-sm text-zinc-400 group-open:text-zinc-200">
+          Show the approach
+        </summary>
+        <RichText
+          text={problem.solution}
+          className="mt-3 text-sm leading-6 text-zinc-300"
+        />
+      </details>
     </section>
   );
 }

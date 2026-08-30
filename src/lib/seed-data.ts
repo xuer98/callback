@@ -1102,7 +1102,7 @@ function unallocatedRanges(n, allocated) {
   },
   {
     slug: "adjustable-id-allocator",
-    title: "Design Adjustable ID Allocator",
+    title: "Design a Smallest-Free ID Allocator",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -1183,6 +1183,223 @@ Shrinking must not invalidate IDs already handed out — an ID beyond the new ca
             [[10], [], [], [], [], [1], [3], [], [], []],
           ],
           expected: [null, 0, 1, 2, 3, true, true, 1, 3, 4],
+        },
+      ],
+    },
+  },
+  {
+    slug: "design-adjustable-id-allocator",
+    title: "Design Adjustable ID Allocator",
+    category: "algorithms",
+    difficulty: "medium",
+    companies: ["pinterest"],
+    summary: "Pack named ID ranges, then resize with all-or-nothing shifts.",
+    prompt: `Manage the fixed ID space [0, 999] — 1000 IDs — divided into named buckets that occupy contiguous, non-overlapping ranges. Implement two operations.
+
+## pack(requests)
+
+Given (name, size) pairs in order, pack the buckets contiguously from ID 0 upward, preserving order, and return the layout as [name, start, end] triples.
+
+- A zero-size bucket appears as [name, -1, -1] and does not advance the cursor.
+- A negative size is an error.
+- If the sizes sum past 1000, fail without allocating anything.
+
+\`\`\`
+pack([["a", 100], ["b", 200], ["c", 50]])
+=> [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]]
+\`\`\`
+
+## resize(buckets, name, newSize)
+
+Given a packed layout, resize one bucket to own exactly newSize IDs:
+
+- **Feasibility first**: if total − currentSize + newSize > 1000, fail **without mutating the layout**.
+- The target keeps its start. Growth extends its end and shifts every later bucket right by the delta; shrinking pulls its end in and later buckets close the gap.
+- An unknown name or a negative size is an error.
+
+\`\`\`
+resize([["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "a", 150)
+=> [["a", 0, 149], ["b", 150, 349], ["c", 350, 399]]
+
+resize([["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "a", 50)
+=> [["a", 0, 49], ["b", 50, 249], ["c", 250, 299]]
+\`\`\`
+
+## Follow-ups
+
+- A validation variant: accept caller-proposed [start, end] ranges (gaps allowed), reject overlap or out-of-bounds, return them sorted by start.
+- How would concurrent resizes be kept safe — a lock over the whole space, or optimistic versioning with retry?`,
+    hints: [
+      "pack is one cursor sweep — but validate every size and the total before you place anything, so a late failure can't leave a half-built layout.",
+      "resize is a delta: newSize − currentSize. Buckets before the target are untouched; the target's end moves by the delta; every later bucket shifts start and end by the same delta.",
+      "All-or-nothing means check feasibility against the sum of sizes first and build the result as a new layout — never edit the input in place.",
+    ],
+    solution: `## Approach
+
+Both operations are single passes; the discipline being tested is **validate before you write**.
+
+**pack** sweeps a cursor from 0. Sum the sizes first (rejecting negatives); if the total exceeds 1000 fail before placing anything — that is the all-or-nothing requirement. Then place each bucket at the cursor and advance by its size, emitting [name, -1, -1] for zero-size buckets without moving.
+
+**resize** is a delta shift. Compute delta = newSize − currentSize, check total − currentSize + newSize ≤ 1000, then rebuild: buckets before the target copy through, the target keeps its start with end = start + newSize − 1, and every later bucket shifts both endpoints by delta. Building a fresh layout (instead of editing in place) makes the no-mutation-on-failure rule free.
+
+\`\`\`js
+const CAPACITY = 1000;
+
+function packBuckets(requests) {
+  let total = 0;
+  for (const [name, size] of requests) {
+    if (size < 0) throw new Error("negative size: " + name);
+    total += size;
+  }
+  if (total > CAPACITY) throw new Error("layout exceeds " + CAPACITY + " IDs");
+
+  const layout = [];
+  let cursor = 0;
+  for (const [name, size] of requests) {
+    if (size === 0) {
+      layout.push([name, -1, -1]);
+    } else {
+      layout.push([name, cursor, cursor + size - 1]);
+      cursor += size;
+    }
+  }
+  return layout;
+}
+
+function resizeBuckets(buckets, name, newSize) {
+  if (newSize < 0) throw new Error("negative size");
+  const sizeOf = ([, start, end]) => (start === -1 ? 0 : end - start + 1);
+  const target = buckets.find((bucket) => bucket[0] === name);
+  if (!target) throw new Error("unknown bucket: " + name);
+
+  const total = buckets.reduce((sum, bucket) => sum + sizeOf(bucket), 0);
+  if (total - sizeOf(target) + newSize > CAPACITY) {
+    throw new Error("resize exceeds " + CAPACITY + " IDs");
+  }
+
+  const delta = newSize - sizeOf(target);
+  const out = [];
+  let past = false;
+  for (const [n, start, end] of buckets) {
+    if (n === name) {
+      past = true;
+      out.push([n, start, start + newSize - 1]);
+    } else if (past) {
+      out.push([n, start + delta, end + delta]);
+    } else {
+      out.push([n, start, end]);
+    }
+  }
+  return out;
+}
+\`\`\`
+
+## Complexity
+
+Both operations are O(n) time and O(n) space for n buckets — one validation pass plus one build pass. Nothing here needs a fancier structure; the interview follow-up about data structures is really about the *other* allocator shape (per-ID allocate/release wants a min-heap of freed IDs plus a watermark).
+
+## Pitfalls worth saying out loud
+
+- Mutating the input and then discovering infeasibility — the reason to validate first and build fresh.
+- Off-by-one on end = start + size − 1, and forgetting zero-size buckets don't advance the cursor.
+- For packed layouts, the sum-of-sizes check is exactly the "last end ≤ 999" check; if gaps were allowed (the validate variant) those two checks diverge.
+
+## Concurrency follow-up
+
+A single mutex over the space is the honest first answer — layouts are tiny and operations are O(n). Under contention, use optimistic versioning: read version v, compute the new layout, commit only if the version is still v, retry otherwise. Since resize returns a fresh layout, compare-and-swap of an immutable snapshot fits naturally.`,
+    judge: {
+      starterCode: `/**
+ * Pack (name, size) requests into [0, 999] from ID 0, preserving order.
+ * @param {Array<[string, number]>} requests
+ * @returns {Array<[string, number, number]>} [name, start, end] triples;
+ *   a zero-size bucket is [name, -1, -1] and doesn't advance the cursor
+ * @throws on a negative size, or when the sizes sum past 1000
+ */
+function packBuckets(requests) {
+  // Your code here
+  return [];
+}
+
+/**
+ * Resize one bucket of a packed layout to exactly newSize IDs. The target
+ * keeps its start; later buckets shift by the delta. Must NOT mutate
+ * \`buckets\` when the resize is rejected.
+ * @throws on an unknown name, a negative size, or a layout past 1000 IDs
+ */
+function resizeBuckets(buckets, name, newSize) {
+  // Your code here
+  return buckets;
+}
+`,
+      entry: "__runAllocatorCase",
+      // "threw" only counts when the input layout survives untouched — the
+      // all-or-nothing rule is graded, not just stated.
+      driverCode: `function __runAllocatorCase(op, data, name, size) {
+  const snapshot = JSON.stringify(data);
+  try {
+    if (op === "pack") return packBuckets(data);
+    return resizeBuckets(data, name, size);
+  } catch (err) {
+    return JSON.stringify(data) === snapshot
+      ? "threw"
+      : "threw but mutated its input";
+  }
+}`,
+      tests: [
+        {
+          name: "Pack from the write-up",
+          input: ["pack", [["a", 100], ["b", 200], ["c", 50]], "", 0],
+          expected: [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]],
+        },
+        {
+          name: "Zero-size buckets hold their place",
+          input: ["pack", [["a", 50], ["z", 0], ["b", 10]], "", 0],
+          expected: [["a", 0, 49], ["z", -1, -1], ["b", 50, 59]],
+        },
+        {
+          name: "Exact fit reaches 999",
+          input: ["pack", [["a", 400], ["b", 600]], "", 0],
+          expected: [["a", 0, 399], ["b", 400, 999]],
+        },
+        {
+          name: "Oversubscription allocates nothing",
+          input: ["pack", [["a", 600], ["b", 401]], "", 0],
+          expected: "threw",
+        },
+        {
+          name: "Negative size is an error",
+          input: ["pack", [["a", -1]], "", 0],
+          expected: "threw",
+        },
+        {
+          name: "Grow the first bucket",
+          input: ["resize", [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "a", 150],
+          expected: [["a", 0, 149], ["b", 150, 349], ["c", 350, 399]],
+        },
+        {
+          name: "Shrink the first bucket",
+          input: ["resize", [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "a", 50],
+          expected: [["a", 0, 49], ["b", 50, 249], ["c", 250, 299]],
+        },
+        {
+          name: "Grow a middle bucket",
+          input: ["resize", [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "b", 250],
+          expected: [["a", 0, 99], ["b", 100, 349], ["c", 350, 399]],
+        },
+        {
+          name: "Grow the last bucket",
+          input: ["resize", [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "c", 650],
+          expected: [["a", 0, 99], ["b", 100, 299], ["c", 300, 949]],
+        },
+        {
+          name: "Infeasible resize leaves the layout untouched",
+          input: ["resize", [["a", 0, 899], ["b", 900, 949]], "b", 150],
+          expected: "threw",
+        },
+        {
+          name: "Unknown bucket name",
+          input: ["resize", [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "x", 10],
+          expected: "threw",
         },
       ],
     },
