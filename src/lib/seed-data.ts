@@ -894,6 +894,8 @@ function collectReachablePins(boards, start) {
 readChunk() -> string    // next chunk of a log stream; "" means end of stream
 \`\`\`
 
+The judge implements readChunk and passes it **into** your code: it is the argument your LineReader constructor and settleFromStream receive (a plain callback in JavaScript, TypeScript, and Python; a Supplier<String> in Java; a function<string()> in C++; a func() string in Go). Don't define it yourself, and don't call it as a global — use the one handed to you.
+
 Chunks split arbitrarily: one chunk may contain several lines, and one line may span several chunks. Implement a LineReader class whose readLine() returns the next complete line WITHOUT the newline; the final line may lack a trailing newline; return null once the stream is exhausted. Call readChunk lazily — only when you do not already have a complete line buffered.
 
 Example:
