@@ -3,88 +3,69 @@
 
 export const sparseMatrixSolution = `## Approach
 
-Dict-of-rows: \`rows: Map(row → Map(col → nonzero value))\`. The representation *is* the invariant — zeros are never stored, so route every write through \`set\`, which deletes on zero. That one choice makes cancellation handling automatic everywhere else.
+Dict-of-rows: \`rows: {row: {col: nonzero value}}\`. The representation *is* the invariant — zeros are never stored, so route every write through \`set\`, which deletes on zero. That one choice makes cancellation handling automatic everywhere else.
 
 - **add** iterates both operands' nonzeros and accumulates through \`set\` — when \`+2\` meets \`−2\`, the second write stores zero and the entry vanishes.
 - **multiply** iterates only A's nonzeros \`(r, k, va)\`, and for each one only B's row-k nonzeros \`(k, c, vb)\` — cost proportional to *matching* nonzero pairs, never to the dense dimensions.
 
-\`\`\`js
-class SparseMatrix {
-  constructor(nRows, nCols) {
-    this.nRows = nRows;
-    this.nCols = nCols;
-    this.rows = new Map(); // row -> Map(col -> nonzero value)
-  }
+\`\`\`python
+class SparseMatrix:
+    def __init__(self, n_rows, n_cols):
+        self.n_rows = n_rows
+        self.n_cols = n_cols
+        self.rows = {}  # row -> {col: nonzero value}
 
-  static fromDense(dense) {
-    const m = new SparseMatrix(dense.length, dense[0]?.length ?? 0);
-    for (let r = 0; r < dense.length; r++) {
-      for (let c = 0; c < dense[r].length; c++) {
-        if (dense[r][c] !== 0) m.set(r, c, dense[r][c]);
-      }
-    }
-    return m;
-  }
+    @classmethod
+    def from_dense(cls, dense):
+        m = cls(len(dense), len(dense[0]) if dense else 0)
+        for r, row in enumerate(dense):
+            for c, v in enumerate(row):
+                if v != 0:
+                    m.set(r, c, v)
+        return m
 
-  get(r, c) {
-    return this.rows.get(r)?.get(c) ?? 0;
-  }
+    def get(self, r, c):
+        return self.rows.get(r, {}).get(c, 0)
 
-  set(r, c, v) {
-    if (v === 0) {
-      const row = this.rows.get(r);
-      if (row) {
-        row.delete(c);
-        if (row.size === 0) this.rows.delete(r);
-      }
-      return;
-    }
-    if (!this.rows.has(r)) this.rows.set(r, new Map());
-    this.rows.get(r).set(c, v);
-  }
+    def set(self, r, c, v):
+        if v == 0:
+            row = self.rows.get(r)
+            if row:
+                row.pop(c, None)
+                if not row:
+                    del self.rows[r]
+            return
+        self.rows.setdefault(r, {})[c] = v
 
-  add(other) {
-    if (this.nRows !== other.nRows || this.nCols !== other.nCols) {
-      throw new Error("dimension mismatch");
-    }
-    const out = new SparseMatrix(this.nRows, this.nCols);
-    for (const m of [this, other]) {
-      for (const [r, row] of m.rows) {
-        for (const [c, v] of row) out.set(r, c, out.get(r, c) + v);
-      }
-    }
-    return out;
-  }
+    def add(self, other):
+        if self.n_rows != other.n_rows or self.n_cols != other.n_cols:
+            raise ValueError("dimension mismatch")
+        out = SparseMatrix(self.n_rows, self.n_cols)
+        for m in (self, other):
+            for r, row in m.rows.items():
+                for c, v in row.items():
+                    out.set(r, c, out.get(r, c) + v)
+        return out
 
-  multiply(other) {
-    if (this.nCols !== other.nRows) throw new Error("dimension mismatch");
-    const out = new SparseMatrix(this.nRows, other.nCols);
-    for (const [r, row] of this.rows) {
-      for (const [k, va] of row) {
-        const rowB = other.rows.get(k);
-        if (!rowB) continue;
-        for (const [c, vb] of rowB) out.set(r, c, out.get(r, c) + va * vb);
-      }
-    }
-    return out;
-  }
+    def multiply(self, other):
+        if self.n_cols != other.n_rows:
+            raise ValueError("dimension mismatch")
+        out = SparseMatrix(self.n_rows, other.n_cols)
+        for r, row in self.rows.items():
+            for k, va in row.items():
+                for c, vb in other.rows.get(k, {}).items():
+                    out.set(r, c, out.get(r, c) + va * vb)
+        return out
 
-  toDense() {
-    const dense = Array.from({ length: this.nRows }, () =>
-      new Array(this.nCols).fill(0),
-    );
-    for (const [r, row] of this.rows) {
-      for (const [c, v] of row) dense[r][c] = v;
-    }
-    return dense;
-  }
+    def to_dense(self):
+        dense = [[0] * self.n_cols for _ in range(self.n_rows)]
+        for r, row in self.rows.items():
+            for c, v in row.items():
+                dense[r][c] = v
+        return dense
 
-  nnz() {
-    let count = 0;
-    for (const row of this.rows.values()) count += row.size;
-    return count;
-  }
-}
+    def nnz(self):
+        return sum(len(row) for row in self.rows.values())
 \`\`\`
 
 ## Complexity
@@ -95,42 +76,43 @@ With nnz(A) = a and nnz(B) = b: \`add\` is O(a + b); \`multiply\` is O(Σ over A
 
 - Cancellation is the planted trap: \`add\` producing a zero must *remove* the entry, or \`nnz\` lies and storage grows monotonically. Routing every write through \`set\` fixes it in one place instead of three.
 - The multiply iteration order (A's entries drive; only B's matching row is touched) is why row-major storage is right for the left operand. If you'd also multiply on the right often, keep a column index too — that trade-off is the follow-up.
-- \`fromDense\` legitimately scans the dense input (it must read it); the *operations* are what must never iterate the dense dimensions.
-- Real recommender pipelines put this in CSR format — three flat arrays, cache-friendly, no per-entry Map overhead. Dict-of-rows is the mutable builder; CSR is the frozen compute format. Naming both is senior signal.`;
+- \`from_dense\` legitimately scans the dense input (it must read it); the *operations* are what must never iterate the dense dimensions.
+- Real recommender pipelines put this in CSR format — three flat arrays, cache-friendly, no per-entry dict overhead (scipy.sparse is exactly this). Dict-of-rows is the mutable builder; CSR is the frozen compute format. Naming both is senior signal.`;
 
 export const nearestElevatorSolution = `## Approach
 
 Write the eligibility predicate as its own function with early rejections, then one linear scan keeps the best \`(distance, id)\` pair. An elevator is eligible when it services the hail floor AND is idle, or is moving in the hailed direction on the correct side of the floor — an "up" elevator at or below it, a "down" elevator at or above it (sitting exactly on the hail floor counts as toward).
 
-\`\`\`js
-function selectElevator(elevators, floor, direction) {
-  const eligible = (e) => {
-    if (!e.serviced.includes(floor)) return false;
-    if (e.direction === "idle") return true;
-    if (e.direction !== direction) return false;
-    return direction === "up" ? e.floor <= floor : e.floor >= floor;
-  };
+\`\`\`python
+def select_elevator(elevators, floor, direction):
+    def eligible(e):
+        if floor not in e["serviced"]:
+            return False
+        if e["direction"] == "idle":
+            return True
+        if e["direction"] != direction:
+            return False
+        if direction == "up":
+            return e["floor"] <= floor
+        return e["floor"] >= floor
 
-  let bestId = -1;
-  let bestDistance = Infinity;
-  for (const e of elevators) {
-    if (!eligible(e)) continue;
-    const distance = Math.abs(e.floor - floor);
-    if (
-      distance < bestDistance ||
-      (distance === bestDistance && e.id < bestId)
-    ) {
-      bestId = e.id;
-      bestDistance = distance;
-    }
-  }
-  return bestId;
-}
+    best_id = -1
+    best_distance = float("inf")
+    for e in elevators:
+        if not eligible(e):
+            continue
+        distance = abs(e["floor"] - floor)
+        if distance < best_distance or (
+            distance == best_distance and e["id"] < best_id
+        ):
+            best_id = e["id"]
+            best_distance = distance
+    return best_id
 \`\`\`
 
 ## Complexity
 
-O(n·s) time for n elevators with serviced lists of length s (make \`serviced\` a Set for O(n) total), O(1) space. Every elevator must be examined once, so the scan is optimal.
+O(n·s) time for n elevators with serviced lists of length s (make \`serviced\` a set for O(n) total), O(1) space. Every elevator must be examined once, so the scan is optimal.
 
 ## Worth saying out loud
 
@@ -144,30 +126,32 @@ Two classic ideas composed. **Precedence** is handled with the \`(total, last)\`
 
 Success can be checked at any point once something is chosen — choosing to stop *is* skipping the rest. Because every number is a positive integer, \`total + last\` never decreases along any extension, which gives a clean prune: once it exceeds the target, abandon the branch. Memoize visited states to kill re-exploration.
 
-\`\`\`js
-function canReachTarget(nums, target) {
-  const seen = new Set();
+\`\`\`python
+def can_reach_target(nums, target):
+    seen = set()
 
-  const search = (i, total, last, started) => {
-    if (started && total + last === target) return true;
-    if (i === nums.length) return false;
-    if (started && total + last > target) return false; // positives only grow
-    const key = i + "," + total + "," + last + "," + started;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    def search(i, total, last, started):
+        if started and total + last == target:
+            return True
+        if i == len(nums):
+            return False
+        if started and total + last > target:
+            return False  # positive values only grow
+        key = (i, total, last, started)
+        if key in seen:
+            return False
+        seen.add(key)
 
-    if (search(i + 1, total, last, started)) return true; // skip nums[i]
-    if (!started) {
-      return search(i + 1, 0, nums[i], true); // start the expression here
-    }
-    return (
-      search(i + 1, total + last, nums[i], true) || // ... + nums[i]
-      search(i + 1, total, last * nums[i], true)    // ... * nums[i]
-    );
-  };
+        if search(i + 1, total, last, started):  # skip nums[i]
+            return True
+        if not started:
+            return search(i + 1, 0, nums[i], True)  # start the expression here
+        return (
+            search(i + 1, total + last, nums[i], True)     # ... + nums[i]
+            or search(i + 1, total, last * nums[i], True)  # ... * nums[i]
+        )
 
-  return search(0, 0, 0, false);
-}
+    return search(0, 0, 0, False)
 \`\`\`
 
 ## Complexity
@@ -184,36 +168,29 @@ export const robotCoverageSolution = `## Approach
 
 Sliding movement changes what a "state" is: the robot can only *decide* anything at rest positions, so search over rest positions, not cells. BFS from the start; expanding a rest position simulates the four slides, adding every cell passed through to the \`cleaned\` set and enqueueing only each slide's **endpoint** (if it's a new rest position). Plain flood fill is the classic wrong answer here — it ignores the physics and overcounts both sets.
 
-\`\`\`js
-function robotCoverage(grid, start) {
-  const rows = grid.length;
-  const cols = grid[0].length;
-  const open = (r, c) =>
-    r >= 0 && r < rows && c >= 0 && c < cols && grid[r][c] !== "#";
-  const key = (r, c) => r * cols + c;
+\`\`\`python
+def robot_coverage(grid, start):
+    rows, cols = len(grid), len(grid[0])
 
-  const cleaned = new Set([key(start[0], start[1])]);
-  const rests = new Set([key(start[0], start[1])]);
-  const queue = [start];
+    def is_open(r, c):
+        return 0 <= r < rows and 0 <= c < cols and grid[r][c] != "#"
 
-  while (queue.length) {
-    const [r, c] = queue.pop();
-    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      let nr = r;
-      let nc = c;
-      while (open(nr + dr, nc + dc)) {
-        nr += dr;
-        nc += dc;
-        cleaned.add(key(nr, nc));
-      }
-      if ((nr !== r || nc !== c) && !rests.has(key(nr, nc))) {
-        rests.add(key(nr, nc));
-        queue.push([nr, nc]);
-      }
-    }
-  }
-  return [cleaned.size, rests.size];
-}
+    origin = (start[0], start[1])
+    cleaned = {origin}
+    rests = {origin}
+    stack = [origin]
+    while stack:
+        r, c = stack.pop()
+        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nr, nc = r, c
+            while is_open(nr + dr, nc + dc):
+                nr += dr
+                nc += dc
+                cleaned.add((nr, nc))
+            if (nr, nc) != (r, c) and (nr, nc) not in rests:
+                rests.add((nr, nc))
+                stack.append((nr, nc))
+    return [len(cleaned), len(rests)]
 \`\`\`
 
 ## Complexity
@@ -223,31 +200,29 @@ Each rest position expands once, and each expansion slides at most the grid's wi
 ## Worth saying out loud
 
 - Cleaned and restable are *different* sets with different membership rules — cells flown through are cleaned but not branchable. The open 3×3 grid makes the distinction vivid: the center gets cleaned by a passing slide but can never be a rest cell, and nothing ever stops there.
-- A slide of zero cells is not a move — without the \`(nr, nc) !== (r, c)\` guard you'd re-enqueue the current cell forever.
+- A slide of zero cells is not a move — without the \`(nr, nc) != (r, c)\` guard you'd re-enqueue the current cell forever.
 - Termination argument: rest positions are finite and each enqueues once (the \`rests\` set doubles as visited), so cycles like corridor ping-pong are free.`;
 
 export const warehouseBoxesSolution = `## Approach
 
 Two observations crack it. First, a room's *real* ceiling is the minimum of every ceiling on the way in — a box must pass all of them — so compute the prefix-min \`usable[i] = min(heights[0..i])\`, which is non-increasing by construction. Second, an exchange-argument greedy: sort the boxes ascending, walk the rooms deepest-first (most constrained first), and place the smallest unused box whenever it fits the room's usable ceiling.
 
-\`\`\`js
-function maxBoxes(heights, boxes) {
-  const usable = heights.slice();
-  for (let i = 1; i < usable.length; i++) {
-    usable[i] = Math.min(usable[i], usable[i - 1]);
-  }
+\`\`\`python
+def max_boxes(heights, boxes):
+    usable = list(heights)
+    for i in range(1, len(usable)):
+        usable[i] = min(usable[i], usable[i - 1])
 
-  const sorted = boxes.slice().sort((a, b) => a - b);
-  let next = 0; // smallest unused box
-  let stored = 0;
-  for (let i = usable.length - 1; i >= 0 && next < sorted.length; i--) {
-    if (sorted[next] <= usable[i]) {
-      stored++;
-      next++;
-    }
-  }
-  return stored;
-}
+    sorted_boxes = sorted(boxes)
+    nxt = 0  # smallest unused box
+    stored = 0
+    for ceiling in reversed(usable):
+        if nxt == len(sorted_boxes):
+            break
+        if sorted_boxes[nxt] <= ceiling:
+            stored += 1
+            nxt += 1
+    return stored
 \`\`\`
 
 ## Complexity
@@ -264,32 +239,30 @@ export const markAndCompactSolution = `## Approach
 
 Garbage collection in miniature — two phases, exactly as named.
 
-**Mark**: walk the implicit subtree from k with an explicit stack; the node at i has children at 2i+1 and 2i+2, and both out-of-range indices and null slots stop the walk (a null slot means no node, so nothing exists below it either). An invalid k marks nothing.
+**Mark**: walk the implicit subtree from k with an explicit stack; the node at i has children at 2i+1 and 2i+2, and both out-of-range indices and \`None\` slots stop the walk (\`None\` means no node, so nothing exists below it either). An invalid k marks nothing.
 
-**Compact**: one left-to-right pass copies every surviving value — non-null and unmarked — to the front of a new array, recording \`old index → new index\` in the remap as it goes. Null slots are dropped by compaction regardless of the mark phase.
+**Compact**: one left-to-right pass copies every surviving value — non-\`None\` and unmarked — to the front of a new array, recording \`old index → new index\` in the remap as it goes. \`None\` slots are dropped by compaction regardless of the mark phase.
 
-\`\`\`js
-function markAndCompact(heapArray, k) {
-  const marked = new Set();
-  if (k >= 0 && k < heapArray.length && heapArray[k] !== null) {
-    const stack = [k];
-    while (stack.length) {
-      const i = stack.pop();
-      if (i >= heapArray.length || heapArray[i] === null) continue;
-      marked.add(i);
-      stack.push(2 * i + 1, 2 * i + 2);
-    }
-  }
+\`\`\`python
+def mark_and_compact(heap_array, k):
+    marked = set()
+    if 0 <= k < len(heap_array) and heap_array[k] is not None:
+        stack = [k]
+        while stack:
+            i = stack.pop()
+            if i >= len(heap_array) or heap_array[i] is None:
+                continue
+            marked.add(i)
+            stack.extend((2 * i + 1, 2 * i + 2))
 
-  const newArray = [];
-  const remap = {};
-  for (let i = 0; i < heapArray.length; i++) {
-    if (heapArray[i] === null || marked.has(i)) continue;
-    remap[i] = newArray.length;
-    newArray.push(heapArray[i]);
-  }
-  return [newArray, remap];
-}
+    new_array = []
+    remap = {}
+    for i, value in enumerate(heap_array):
+        if value is None or i in marked:
+            continue
+        remap[i] = len(new_array)
+        new_array.append(value)
+    return [new_array, remap]
 \`\`\`
 
 ## Complexity
@@ -299,5 +272,5 @@ O(n) time — the mark walk visits at most n indices once and compaction is a si
 ## Worth saying out loud
 
 - Why the remap must be returned is the design point, so voice it: compaction moves survivors, which breaks every index-based reference into the array (including the implicit parent/child arithmetic) — the remap is the patch table a real collector applies to the root set, exactly like the forwarding addresses in a compacting GC.
-- Null slots prune the mark walk — index 2i+1 being null means the marked subtree simply doesn't extend there; marking "through" a hole would touch nodes that belong to other subtrees.
+- \`None\` slots prune the mark walk — index 2i+1 being \`None\` means the marked subtree simply doesn't extend there; marking "through" a hole would touch nodes that belong to other subtrees.
 - Preserving original order (rather than heap-reordering survivors) is what makes the remap the *only* invalidation — a stable compaction is a one-pointer sweep, and stability is why order appears in the spec at all.`;
