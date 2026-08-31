@@ -9,6 +9,30 @@ import { designProblemsA } from "./seed-design-a";
 import { designProblemsB } from "./seed-design-b";
 import { designProblemsC } from "./seed-design-c";
 import { designProblemsD } from "./seed-design-d";
+import {
+  assignPinsSolution,
+  collectReachablePinsSolution,
+  maxWidthSolution,
+  nestedSetEqualitySolution,
+  roundNumericStringsSolution,
+  violationLogSolution,
+} from "./seed-pinterest-solutions-a";
+import {
+  escapeRoomLeaderboardSolution,
+  flagSpamSolution,
+  idAllocatorSolution,
+  rebalanceBucketsSolution,
+  streamLineReaderSolution,
+  unallocatedBucketsSolution,
+} from "./seed-pinterest-solutions-b";
+import {
+  markAndCompactSolution,
+  nearestElevatorSolution,
+  robotCoverageSolution,
+  sparseMatrixSolution,
+  subsequenceExpressionSolution,
+  warehouseBoxesSolution,
+} from "./seed-pinterest-solutions-c";
 import type { Problem, Track } from "./types";
 
 // Canonical seed content. Postgres is the runtime read path (src/lib/data.ts);
@@ -219,6 +243,7 @@ justify(words, max_width)
       "Greedy: keep adding words to the current line while they still fit with single spaces between them, then justify the finished line.",
       "For a line with g gaps and s spaces to place, every gap gets floor(s / g), and the leftmost s mod g gaps get one extra — that reproduces \"example  of text\" from the example.",
     ],
+    solution: maxWidthSolution,
     judge: {
       starterCode: `/**
  * @param {string[]} words
@@ -267,6 +292,16 @@ function justify(words, maxWidth) {
             "justification.",
           ],
         },
+        {
+          name: "Exact fit needs no extra padding",
+          input: [["aa", "bb", "cc"], 8],
+          expected: ["aa bb cc"],
+        },
+        {
+          name: "Every word forces its own line",
+          input: [["abc", "de"], 3],
+          expected: ["abc", "de "],
+        },
       ],
     },
   },
@@ -294,6 +329,7 @@ Part 2: given a comma-separated string of such values, return the comma-separate
       "Only the first fractional digit matters for direction: with half-away-from-zero, the magnitude rounds up exactly when that digit is 5 or more.",
       "Split off the sign and round the magnitude, reattaching the sign only when the result is not 0. Rounding up is big-integer addition: walk the integer digits right to left carrying a 1, and prepend a digit if the carry survives (999 to 1000).",
     ],
+    solution: roundNumericStringsSolution,
     judge: {
       starterCode: `/**
  * Part 1: round one numeric string to the nearest integer, rounding
@@ -355,6 +391,21 @@ function roundAll(csv) {
           input: ["csv", "2.5,-2.5,9.99,-0.4"],
           expected: "3,-3,10,0",
         },
+        {
+          name: "Negative half rounds away from zero",
+          input: ["single", "-0.5"],
+          expected: "-1",
+        },
+        {
+          name: "Just below half stays put",
+          input: ["single", "7.499"],
+          expected: "7",
+        },
+        {
+          name: "Negative carry ripples all the way",
+          input: ["single", "-99999999999999999999.9"],
+          expected: "-100000000000000000000",
+        },
       ],
     },
   },
@@ -383,6 +434,7 @@ Conventions for the judge: timestamps are integer seconds, and a window of W sec
       "Per-user append-only timestamp lists (time never decreases) plus a running all-time count per user are enough state for all three queries.",
       "For shouldBan, run two pointers over that user's timestamps: advance the left pointer while t[right] - t[left] >= window, and check whether the window ever holds maxViolations events.",
     ],
+    solution: violationLogSolution,
     judge: {
       starterCode: `class ViolationLog {
   constructor() {
@@ -563,6 +615,22 @@ Conventions for the judge: timestamps are integer seconds, and a window of W sec
           ],
           expected: [null, null, null, null, true, false, 1, 2],
         },
+        {
+          name: "countRecent tracks the moving latest timestamp",
+          input: [
+            ["ViolationLog", "record", "record", "record", "countRecent", "countRecent", "shouldBan", "shouldBan"],
+            [[], [0, "u", "a"], [9, "u", "b"], [15, "u", "c"], ["u", 10], ["u", 6], ["u", 3, 16], ["u", 3, 15]],
+          ],
+          expected: [null, null, null, null, 2, 1, true, false],
+        },
+        {
+          name: "topK edge sizes",
+          input: [
+            ["ViolationLog", "record", "record", "record", "topK", "topK", "topK"],
+            [[], [1, "a", "x"], [2, "b", "x"], [3, "b", "y"], [0], [1], [5]],
+          ],
+          expected: [null, null, null, null, [], [["b", 2]], [["b", 2], ["a", 1]]],
+        },
       ],
     },
   },
@@ -590,6 +658,7 @@ Examples:
       "Recursively canonicalize each structure bottom-up into a comparable form — one that erases order and duplicates at every depth, then compare the canonical forms.",
       "In JavaScript: map children to canonical strings, collapse duplicates with a Set, sort, and wrap in braces. An integer and a one-element set containing it must stay distinct.",
     ],
+    solution: nestedSetEqualitySolution,
     judge: {
       starterCode: `/**
  * Nested sets are given as (possibly nested) arrays of integers.
@@ -636,6 +705,16 @@ function nestedSetEqual(a, b) {
           expected: true,
         },
         { name: "Deep nesting", input: [[[[1]]], [[[1]]]], expected: true },
+        {
+          name: "Duplicates collapse inside nested sets too",
+          input: [[1, [2, 2, 3]], [[3, 2], 1, 1]],
+          expected: true,
+        },
+        {
+          name: "Extra element breaks equality",
+          input: [[1, 2], [1, 2, 3]],
+          expected: false,
+        },
       ],
     },
   },
@@ -664,6 +743,7 @@ answer: [0, 1, 1, 0]
       "Track each column's running height; every pin goes to the current minimum. A scan per pin is O(n·k); a min-heap of (height, columnIndex) makes it O(n log k).",
       "Ordering pairs by height first and column index second makes the leftmost-on-tie rule fall out of the comparison for free.",
     ],
+    solution: assignPinsSolution,
     judge: {
       starterCode: `/**
  * @param {number[]} heights - pin heights, in feed order
@@ -695,6 +775,11 @@ function assignPins(heights, k) {
         { name: "Single column", input: [[4, 2, 7], 1], expected: [0, 0, 0] },
         { name: "One pin, many columns", input: [[10], 4], expected: [0] },
         { name: "No pins", input: [[], 3], expected: [] },
+        {
+          name: "Tie created mid-stream goes leftmost",
+          input: [[3, 1, 1, 1], 2],
+          expected: [0, 1, 1, 1],
+        },
       ],
     },
   },
@@ -727,6 +812,7 @@ For the judge, return the reachable pins as a sorted array. A missing start boar
       "Do not build board-to-board edges — every pair of boards sharing a pin would get one, which blows up on popular pins. Traverse board -> its pins -> their boards instead, using an inverted pin-to-boards index.",
       "Mark both pins and boards as visited. The visited-pin set is what keeps one pin saved to thousands of boards from being re-expanded each time.",
     ],
+    solution: collectReachablePinsSolution,
     judge: {
       starterCode: `/**
  * @param {Record<string, string[]>} boards - board id -> pin ids on that board
@@ -779,6 +865,19 @@ function collectReachablePins(boards, start) {
           input: [{ A: ["hub"], B: ["hub", "x"], C: ["hub", "y"] }, "A"],
           expected: ["hub", "x", "y"],
         },
+        {
+          name: "Duplicate pin entries on one board count once",
+          input: [{ A: ["p", "p", "q"] }, "A"],
+          expected: ["p", "q"],
+        },
+        {
+          name: "Long chain of single shared pins",
+          input: [
+            { B1: ["a"], B2: ["a", "b"], B3: ["b", "c"], B4: ["c", "d"], B5: ["z"] },
+            "B1",
+          ],
+          expected: ["a", "b", "c", "d"],
+        },
       ],
     },
   },
@@ -809,6 +908,7 @@ Part 2 (as actually reported): each line of the stream is payer,payee,amount. Im
       "Keep two pieces of state: a queue of complete lines ready to serve, and the fragments of the current unterminated line. chunk.split(\"\\n\") tells you everything — every piece except the last completes a line, and the last piece is the new partial. Join fragments only when a line completes, and flush the partial at EOF.",
       "For Part 2, compute net balances first — people who net to zero drop out entirely. Settling the remaining nonzero balances in the fewest transactions is a backtracking search: match each nonzero against later opposite-sign balances (exponential, but fine because few distinct nonzero balances remain).",
     ],
+    solution: streamLineReaderSolution,
     judge: {
       starterCode: `class LineReader {
   /** @param {() => string} readChunk - returns "" once the stream ends */
@@ -883,6 +983,16 @@ function settleFromStream(readChunk) {
           input: ["settle", ["a,b,1\nc,d,1"], 0],
           expected: 2,
         },
+        {
+          name: "Chunk boundary lands right after a newline",
+          input: ["lines", ["ab\n", "cd"], 10],
+          expected: ["ab", "cd", null],
+        },
+        {
+          name: "Settle: amounts split across chunks",
+          input: ["settle", ["x,y,1", "0\nz,w,", "10\n"], 0],
+          expected: 2,
+        },
       ],
     },
   },
@@ -905,6 +1015,7 @@ lb.topK(k)                 // the k best team names, in rank order
       "Keep a map of each team's best time; an attempt only matters when it beats the stored best. Rank and topK both read from the standings ordered by (bestTime, team).",
       "Ordering by the (time, team) pair gives the alphabetical tie-break for free. Re-sorting on every query is acceptable here — name the O(log n) order-statistic upgrade rather than hand-waving it.",
     ],
+    solution: escapeRoomLeaderboardSolution,
     judge: {
       starterCode: `class Leaderboard {
   constructor() {
@@ -966,6 +1077,30 @@ lb.topK(k)                 // the k best team names, in rank order
           ],
           expected: [null, -1, []],
         },
+        {
+          name: "topK past the field returns everyone",
+          input: [
+            ["Leaderboard", "addResult", "addResult", "topK", "rank"],
+            [[], ["a", 50], ["b", 60], [10], ["b"]],
+          ],
+          expected: [null, null, null, ["a", "b"], 2],
+        },
+        {
+          name: "Equal re-attempt changes nothing",
+          input: [
+            ["Leaderboard", "addResult", "addResult", "rank", "addResult", "rank", "topK"],
+            [[], ["zeta", 100], ["alpha", 100], ["zeta"], ["zeta", 100], ["zeta"], [2]],
+          ],
+          expected: [null, null, null, 2, null, 2, ["alpha", "zeta"]],
+        },
+        {
+          name: "An improvement breaks a tie",
+          input: [
+            ["Leaderboard", "addResult", "addResult", "rank", "addResult", "rank", "topK"],
+            [[], ["a", 100], ["b", 100], ["b"], ["b", 99], ["b"], [2]],
+          ],
+          expected: [null, null, null, 2, null, 1, ["b", "a"]],
+        },
       ],
     },
   },
@@ -990,6 +1125,7 @@ The judge accepts any assignment that meets the targets exactly with the minimum
       "A group can keep at most min(currentCount, target) of its buckets, so keep each group's buckets up to its target in a first pass; every other assigned bucket is surplus and must change no matter what.",
       "Fill deficits from surplus buckets before touching never-assigned ones: a surplus bucket's change is already paid for, while an untouched null bucket only costs a change if you use it.",
     ],
+    solution: rebalanceBucketsSolution,
     judge: {
       starterCode: `/**
  * @param {(string | null)[]} current - per-bucket group, null = unassigned
@@ -1047,6 +1183,16 @@ function rebalanceBuckets(current, targets) {
           input: [["A", "A"], { A: 1 }],
           expected: { targetsMet: true, changes: 1 },
         },
+        {
+          name: "New group reuses a surplus bucket",
+          input: [["A", "A", "B", null], { A: 1, B: 1, C: 1 }],
+          expected: { targetsMet: true, changes: 1 },
+        },
+        {
+          name: "Every group over target",
+          input: [["A", "A", "B", "B"], { A: 1, B: 1 }],
+          expected: { targetsMet: true, changes: 2 },
+        },
       ],
     },
   },
@@ -1066,6 +1212,7 @@ unallocatedRanges(10, [[2, 4], [6, 6]])  ->  [[0, 1], [5, 5], [7, 9]]
       "Sort ranges by start and sweep once with a cursor holding the smallest bucket not yet proven allocated: any gap before a range's start is free.",
       "Advance the cursor with max(cursor, end + 1) — the max is what absorbs overlapping and fully-contained ranges. Emit the tail after the last range, and note why the sweep beats a boolean array when n is huge.",
     ],
+    solution: unallocatedBucketsSolution,
     judge: {
       starterCode: `/**
  * @param {number} n - bucket space is [0, n)
@@ -1107,6 +1254,16 @@ function unallocatedRanges(n, allocated) {
           input: [5, [[-3, 1], [6, 9]]],
           expected: [[2, 4]],
         },
+        {
+          name: "Contained range is absorbed",
+          input: [10, [[2, 8], [3, 4]]],
+          expected: [[0, 1], [9, 9]],
+        },
+        {
+          name: "Single-bucket space, nothing allocated",
+          input: [1, []],
+          expected: [[0, 0]],
+        },
       ],
     },
   },
@@ -1132,6 +1289,7 @@ Shrinking must not invalidate IDs already handed out — an ID beyond the new ca
       "Keep a pool of released IDs, a watermark for the smallest never-handed-out ID, and a set of currently allocated IDs for release validation. The smallest free ID is the best released one under capacity, else the watermark.",
       "Make setCapacity lazy — just store the number. Released IDs at or above capacity stay in the pool, dormant until capacity grows back over them; a min-ordering guarantees they never block smaller IDs.",
     ],
+    solution: idAllocatorSolution,
     judge: {
       starterCode: `class IDAllocator {
   /** @param {number} capacity - IDs live in [0, capacity) */
@@ -1193,6 +1351,30 @@ Shrinking must not invalidate IDs already handed out — an ID beyond the new ca
             [[10], [], [], [], [], [1], [3], [], [], []],
           ],
           expected: [null, 0, 1, 2, 3, true, true, 1, 3, 4],
+        },
+        {
+          name: "Growth reopens the watermark",
+          input: [
+            ["IDAllocator", "allocate", "allocate", "allocate", "setCapacity", "allocate", "allocate", "allocate", "release", "allocate"],
+            [[2], [], [], [], [4], [], [], [], [0], []],
+          ],
+          expected: [null, 0, 1, -1, null, 2, 3, -1, true, 0],
+        },
+        {
+          name: "Shrink to zero keeps outstanding IDs releasable",
+          input: [
+            ["IDAllocator", "allocate", "setCapacity", "allocate", "release", "release", "setCapacity", "allocate"],
+            [[3], [], [0], [], [0], [0], [1], []],
+          ],
+          expected: [null, 0, null, -1, true, false, null, 0],
+        },
+        {
+          name: "Tiny capacity round-trips",
+          input: [
+            ["IDAllocator", "allocate", "release", "allocate", "allocate"],
+            [[1], [], [0], [], []],
+          ],
+          expected: [null, 0, true, 0, -1],
         },
       ],
     },
@@ -1433,6 +1615,7 @@ A report is valid only if the reporter actually received a call from the number 
       "This is a hash join: build number -> set of people it called from the call log, then stream the reports and keep only those where the reporter appears in that set.",
       "Count distinct valid reporters per number (a set per number — the same user reporting twice counts once), then threshold and sort.",
     ],
+    solution: flagSpamSolution,
     judge: {
       starterCode: `/**
  * @param {[string, string][]} callLog - [caller, callee] pairs
@@ -1497,6 +1680,15 @@ function flagSpamNumbers(callLog, reports, minReports) {
           input: [[], [["a", "b"]], 1],
           expected: [],
         },
+        {
+          name: "Repeat calls and repeat reports stay one voice",
+          input: [
+            [["555", "al"], ["555", "al"]],
+            [["al", "555"], ["al", "555"]],
+            2,
+          ],
+          expected: [],
+        },
       ],
     },
   },
@@ -1523,6 +1715,7 @@ Addition and multiplication must exploit sparsity — never iterate the full den
       "A dict-of-rows representation (row -> { col: value }) gives O(1) get/set and natural sparse iteration; never store zeros — set(r, c, 0) deletes.",
       "For multiply, iterate only A's nonzeros (r, k, va), and for each one only B's row-k nonzeros — cost proportional to matching nonzeros, not dimensions. In add, route every write through set so cancellations delete their entries.",
     ],
+    solution: sparseMatrixSolution,
     judge: {
       starterCode: `class SparseMatrix {
   constructor(nRows, nCols) {
@@ -1627,6 +1820,16 @@ Addition and multiplication must exploit sparsity — never iterate the full den
           input: ["multiply", [[0, 5], [0, 0]], [[3, 3], [0, 0]], []],
           expected: { dense: [[0, 0], [0, 0]], nnz: 0 },
         },
+        {
+          name: "Add dimension mismatch throws",
+          input: ["add", [[1]], [[1, 2]], []],
+          expected: "error",
+        },
+        {
+          name: "Multiply cancellation stores nothing",
+          input: ["multiply", [[1, 1]], [[1], [-1]], []],
+          expected: { dense: [[0]], nnz: 0 },
+        },
       ],
     },
   },
@@ -1650,6 +1853,7 @@ A hail arrives: (floor, direction). An elevator is eligible if it services that 
       "Write the eligibility predicate as its own small check with early rejections — services the floor, then direction: idle always matches; a moving elevator must match the hailed direction and be on the correct side (at the hail floor counts as toward).",
       "One linear scan keeping the best (distance, id) pair is optimal — every elevator must be examined once. The pair comparison gives the lowest-id tie-break for free.",
     ],
+    solution: nearestElevatorSolution,
     judge: {
       starterCode: `/**
  * @param {{id: number, floor: number, direction: "up" | "down" | "idle",
@@ -1738,6 +1942,24 @@ function selectElevator(elevators, floor, direction) {
           expected: -1,
         },
         { name: "No elevators", input: [[], 3, "up"], expected: -1 },
+        {
+          name: "Down elevator above the hail floor is toward it",
+          input: [
+            [{ id: 5, floor: 9, direction: "down", serviced: [5, 9] }],
+            5,
+            "down",
+          ],
+          expected: 5,
+        },
+        {
+          name: "At the hail floor but moving the other way",
+          input: [
+            [{ id: 2, floor: 5, direction: "down", serviced: [5] }],
+            5,
+            "up",
+          ],
+          expected: -1,
+        },
       ],
     },
   },
@@ -1759,6 +1981,7 @@ canReachTarget([2, 3, 5], 13)  ->  false   // no subsequence works
       "Handle precedence with the (total, last) state from Expression Add Operators: the true value is total + last, where last is the pending product. Adding v commits the product (total += last, last = v); multiplying extends it (last *= v).",
       "Layer subsequence choice on top: at each index either skip, start here if nothing is chosen yet, or extend with + or *. Memoize visited (index, total, last, started) states — the search is exponential in the worst case, and saying so is expected.",
     ],
+    solution: subsequenceExpressionSolution,
     judge: {
       starterCode: `/**
  * @param {number[]} nums - positive integers
@@ -1785,6 +2008,21 @@ function canReachTarget(nums, target) {
           expected: true,
         },
         { name: "Empty array", input: [[], 7], expected: false },
+        {
+          name: "Multiply the whole chain",
+          input: [[2, 2, 2], 8],
+          expected: true,
+        },
+        {
+          name: "Seven is out of reach for three twos",
+          input: [[2, 2, 2], 7],
+          expected: false,
+        },
+        {
+          name: "Precedence: 1 + 2*3",
+          input: [[1, 2, 3], 7],
+          expected: true,
+        },
       ],
     },
   },
@@ -1807,6 +2045,7 @@ Return [number of cells the robot can clean, number of cells where it can come t
       "With sliding movement the search states are rest positions, not cells — a cell you fly through is cleaned but is not a place you can branch from. BFS over rest positions; each expansion simulates the four slides.",
       "During each slide, add every cell passed through to a cleaned set; enqueue only the slide's endpoint (if new). Plain flood fill is the classic wrong answer here — it ignores the physics.",
     ],
+    solution: robotCoverageSolution,
     judge: {
       starterCode: `/**
  * @param {string[]} grid - rows of '.' (open) and '#' (obstacle)
@@ -1845,6 +2084,16 @@ function robotCoverage(grid, start) {
           input: [["...", ".#.", "..."], [0, 0]],
           expected: [8, 4],
         },
+        {
+          name: "Start mid-corridor",
+          input: [["....."], [0, 2]],
+          expected: [5, 3],
+        },
+        {
+          name: "Wall stops the robot short of the far side",
+          input: [["..#.."], [0, 0]],
+          expected: [2, 2],
+        },
       ],
     },
   },
@@ -1865,6 +2114,7 @@ maxBoxes([1, 2, 2, 3, 4], [3, 4, 1, 2])     ->  1    // height-1 entrance chokes
       "A room's real ceiling is the minimum of every ceiling on the way in: usable[i] = min(heights[0..i]), a non-increasing prefix min.",
       "Sort boxes ascending and walk rooms deepest-first (most constrained): if the smallest unused box fits the current room's usable ceiling, place it. An exchange argument shows smallest-into-deepest never loses a box.",
     ],
+    solution: warehouseBoxesSolution,
     judge: {
       starterCode: `/**
  * @param {number[]} heights - room ceilings, entrance at index 0
@@ -1905,6 +2155,16 @@ function maxBoxes(heights, boxes) {
         },
         { name: "No rooms", input: [[], [1]], expected: 0 },
         { name: "No boxes", input: [[3], []], expected: 0 },
+        {
+          name: "Equal heights pass through",
+          input: [[3, 3, 3], [3, 3, 3]],
+          expected: 3,
+        },
+        {
+          name: "Rising ceilings can't beat the entrance",
+          input: [[2, 9, 9], [2, 2, 9]],
+          expected: 2,
+        },
       ],
     },
   },
@@ -1927,6 +2187,7 @@ markAndCompact(["A","B","C","D","E","F","G"], 1)
       "Phase one, mark: walk the implicit tree from k with an explicit stack (children 2i+1 and 2i+2), stopping at out-of-range indices and null slots — a null slot prunes its whole implicit subtree.",
       "Phase two, compact: one left-to-right pass copying every non-null unmarked value, recording old -> new in the remap as you go. Voicing why the remap must be returned (compaction breaks the implicit indexing) is the design point.",
     ],
+    solution: markAndCompactSolution,
     judge: {
       starterCode: `/**
  * @param {(string | null)[]} heapArray - implicit binary tree; null = no node
@@ -1979,6 +2240,16 @@ function markAndCompact(heapArray, k) {
         {
           name: "Removing a leaf",
           input: [["A", "B", "C"], 2],
+          expected: { newArray: ["A", "B"], remap: { 0: 0, 1: 1 } },
+        },
+        {
+          name: "Marked subtree runs past the array edge",
+          input: [["A", "B", "C", "D"], 1],
+          expected: { newArray: ["A", "C"], remap: { 0: 0, 2: 1 } },
+        },
+        {
+          name: "Marking a leaf leaves the rest in order",
+          input: [["A", "B", null, "D"], 3],
           expected: { newArray: ["A", "B"], remap: { 0: 0, 1: 1 } },
         },
       ],
