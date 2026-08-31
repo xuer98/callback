@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ProblemRow } from "@/components/problem-row";
+import { CompanyProblems } from "@/components/company-problems";
 import { QuestionList } from "@/components/question-list";
 import {
   getCompany,
@@ -66,11 +66,19 @@ export default async function CompanyPage({
           <h2 className="text-sm font-semibold text-zinc-100">
             Practice questions
           </h2>
-          <div className="mt-3 flex flex-col gap-2">
-            {asked.map((p) => (
-              <ProblemRow key={p.slug} problem={p} />
-            ))}
-          </div>
+          {/* Slim payload: the client filter only needs the card fields,
+              not prompts and judges. */}
+          <CompanyProblems
+            problems={asked.map(
+              ({ slug, title, category, difficulty, summary }) => ({
+                slug,
+                title,
+                category,
+                difficulty,
+                summary,
+              }),
+            )}
+          />
         </section>
       )}
 

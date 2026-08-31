@@ -4,7 +4,17 @@ import { RichLine } from "./markdown";
 import { ProgressMarker } from "./progress";
 import { CATEGORY_LABELS, type Problem } from "@/lib/types";
 
-export function ProblemRow({ problem }: { problem: Problem }) {
+/**
+ * Just the fields the row renders — callers with a full Problem still fit,
+ * and client components can pass a slim payload instead of serializing
+ * prompts and judges into the page.
+ */
+export type ProblemCardData = Pick<
+  Problem,
+  "slug" | "title" | "category" | "difficulty" | "summary"
+>;
+
+export function ProblemRow({ problem }: { problem: ProblemCardData }) {
   return (
     <Link
       href={`/problems/${problem.slug}`}
