@@ -13,11 +13,13 @@ import {
   writeStored,
 } from "@/lib/workspace-sync";
 
-// The whiteboard pane for system-design problems: an Excalidraw canvas
+// The whiteboard canvas for system-design problems: an Excalidraw scene
 // persisted per problem — localStorage always, and the account when signed
-// in (reconciled on load, newest wins, mirroring solution code). Excalidraw
-// touches window at module scope, so it is loaded client-side only — and
-// code-split, so problem pages without a whiteboard never download it.
+// in (reconciled on load, newest wins, mirroring solution code). The pane
+// chrome (tabs, save note, submit) lives in DesignWorkspace; this component
+// is just the canvas and its persistence. Excalidraw touches window at
+// module scope, so it is loaded client-side only — and code-split, so
+// problem pages without a whiteboard never download it.
 const Excalidraw = dynamic(
   () => import("@excalidraw/excalidraw").then((mod) => mod.Excalidraw),
   {
@@ -31,7 +33,9 @@ const Excalidraw = dynamic(
 const LOCAL_DEBOUNCE_MS = 400;
 const REMOTE_DEBOUNCE_MS = 1500;
 
-function storageKeyFor(slug: string) {
+/** The localStorage key for a problem's board scene — shared with the
+ * submit flow in DesignWorkspace, which exports the scene for review. */
+export function boardStorageKey(slug: string) {
   return `callback:board:${slug}`;
 }
 
@@ -66,7 +70,7 @@ interface SceneView {
 type InitialData = React.ComponentProps<typeof Excalidraw>["initialData"];
 
 export function Whiteboard({ slug }: { slug: string }) {
-  const storageKey = storageKeyFor(slug);
+  const storageKey = boardStorageKey(slug);
   const { signedIn } = useProgress();
 
   // The scene Excalidraw mounts with; adopting a newer server copy swaps it
@@ -93,7 +97,7 @@ export function Whiteboard({ slug }: { slug: string }) {
   const pushRemote = useCallback(
     (payload: string) => {
       void saveBoard(slug, payload).then((ms) => {
-        if (ms !== null) writeSavedAt(storageKeyFor(slug), ms);
+        if (ms !== null) writeSavedAt(boardStorageKey(slug), ms);
       });
     },
     [slug],
@@ -106,7 +110,7 @@ export function Whiteboard({ slug }: { slug: string }) {
     let cancelled = false;
     void fetchWorkspace(slug).then((remote) => {
       if (cancelled || !remote?.signedIn) return;
-      const key = storageKeyFor(slug);
+      const key = boardStorageKey(slug);
       const local = readStored(key);
       const localAt = readSavedAt(key);
       const theirs = remote.board;
@@ -174,32 +178,13 @@ export function Whiteboard({ slug }: { slug: string }) {
   }, [storageKey, pushRemote]);
 
   return (
-    <section className="flex min-h-[480px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <span aria-hidden className="font-mono text-xs text-zinc-600">
-            ▦
-          </span>
-          <span className="text-xs font-medium text-zinc-300">Whiteboard</span>
-        </div>
-        <span className="text-xs text-zinc-600">
-          {signedIn
-            ? "sketches save to your account"
-            : "sketches save in this browser"}
-        </span>
-      </header>
-      {/* Positioned, not percentage-sized, for the same reason as the code
-          editor: stacked on mobile the pane's height comes from flex. */}
-      <div className="relative min-h-0 flex-1">
-        <div className="absolute inset-0">
-          <Excalidraw
-            key={boardEpoch}
-            theme="dark"
-            initialData={initialData}
-            onChange={handleChange}
-          />
-        </div>
-      </div>
-    </section>
+    <div className="h-full w-full">
+      <Excalidraw
+        key={boardEpoch}
+        theme="dark"
+        initialData={initialData}
+        onChange={handleChange}
+      />
+    </div>
   );
 }

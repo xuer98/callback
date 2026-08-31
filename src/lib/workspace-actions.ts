@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -29,12 +29,20 @@ async function problemIdBySlug(slug: string): Promise<number | null> {
 }
 
 /**
- * A saved document's key: a language for the judged editor, or "ui:<file>"
- * for a UI-workspace file. UI keys are checked against the problem's own
- * file list, so the table can't accumulate rows for files that don't exist.
+ * A saved document's key: a language for the judged editor, "ui:<file>" for
+ * a UI-workspace file, or "design" for a system-design write-up. UI keys are
+ * checked against the problem's own file list and "design" against the
+ * category, so the table can't accumulate rows that don't belong.
  */
 async function validSlot(slug: string, slot: string): Promise<boolean> {
   if ((LANGUAGES as readonly string[]).includes(slot)) return true;
+  if (slot === "design") {
+    const row = await db.query.problems.findFirst({
+      where: eq(schema.problems.slug, slug),
+      columns: { category: true },
+    });
+    return row?.category === "system-design";
+  }
   if (!slot.startsWith("ui:")) return false;
   const row = await db.query.problems.findFirst({
     where: eq(schema.problems.slug, slug),
@@ -99,6 +107,45 @@ export async function deleteSolution(
         eq(schema.solutions.language, language),
       ),
     );
+}
+
+export interface DesignFeedback {
+  id: number;
+  feedback: string;
+  /** Server timestamp, ms epoch — serializable across the action boundary. */
+  createdAt: number;
+}
+
+/** The signed-in user's past AI design reviews for one problem, newest first. */
+export async function listDesignFeedback(
+  problemSlug: unknown,
+): Promise<DesignFeedback[]> {
+  if (typeof problemSlug !== "string") return [];
+  const userId = await sessionUserId();
+  if (!userId) return [];
+  const problemId = await problemIdBySlug(problemSlug);
+  if (problemId === null) return [];
+
+  const rows = await db
+    .select({
+      id: schema.designSubmissions.id,
+      feedback: schema.designSubmissions.feedback,
+      createdAt: schema.designSubmissions.createdAt,
+    })
+    .from(schema.designSubmissions)
+    .where(
+      and(
+        eq(schema.designSubmissions.userId, userId),
+        eq(schema.designSubmissions.problemId, problemId),
+      ),
+    )
+    .orderBy(desc(schema.designSubmissions.createdAt))
+    .limit(20);
+  return rows.map((row) => ({
+    id: row.id,
+    feedback: row.feedback,
+    createdAt: row.createdAt.getTime(),
+  }));
 }
 
 /**

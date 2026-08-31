@@ -45,6 +45,7 @@ function toProblem(row: ProblemRow): Problem {
     prompt: row.prompt,
     hints: row.hints,
     solution: row.solution ?? undefined,
+    rubric: row.rubric ?? undefined,
     judge: row.judge ?? undefined,
     ui: row.ui ?? undefined,
   };

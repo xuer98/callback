@@ -38,6 +38,12 @@ export interface Problem {
    * on document pages); same markdown as `prompt`. Absent = no solution yet.
    */
   solution?: string;
+  /**
+   * Grading rubric for the AI design review (markdown criteria list). Read
+   * server-side by the grade route only — never rendered in the UI. Absent =
+   * the generic system-design rubric applies.
+   */
+  rubric?: string;
   /** Present when the problem is runnable in the in-browser editor. */
   judge?: Judge;
   /** Present when the problem is built in the UI workspace (live preview). */

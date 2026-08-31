@@ -43,6 +43,13 @@
       "when": 1788063291684,
       "tag": "0005_thankful_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788160979055,
+      "tag": "0006_known_speedball",
+      "breakpoints": true
     }
   ]
 }

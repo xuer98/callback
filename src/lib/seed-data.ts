@@ -2286,6 +2286,14 @@ function debounce(fn, wait) {
       "Compare fixed window, sliding window log, and token bucket by the burst behavior each allows.",
       "Centralized counters (for example in Redis) trade latency for accuracy. Decide when approximately correct is acceptable.",
     ],
+    rubric: [
+      "- **Requirements & semantics** — pins down what \"100 req/min per client\" means: the client key (API key, user, IP), burst vs. sustained allowance, per-endpoint vs. global limits, hard rejection vs. soft throttling.",
+      "- **Algorithm choice** — compares at least fixed window, sliding window, and token bucket by burst behavior and memory per key, and picks one with a justification tied to the requirements rather than by name-dropping.",
+      "- **Distributed counters** — says where counter state lives across API nodes (e.g. Redis vs. node-local), how increment-and-check stays atomic (INCR+EXPIRE, Lua), and what the counter hop adds to request latency.",
+      "- **Failure modes** — reasons about the counter store being down or slow: fail open vs. fail closed and why, plus any degraded local fallback. Not mentioning failure at all is a major gap.",
+      "- **Client contract** — throttled requests get 429 with Retry-After / rate-limit headers, and the design says what well-behaved clients should do.",
+      "- **Estimates** — rough numbers for key cardinality, memory per key, and counter-store QPS; notices hot keys if one client dominates.",
+    ].join("\n"),
   },
   {
     slug: "design-url-shortener",
@@ -2300,6 +2308,14 @@ function debounce(fn, wait) {
       "Base62 over an auto-incrementing id is simple — think about what it leaks and when you need random codes instead.",
       "Redirects are overwhelmingly read-heavy. Work out where caches and CDNs fit before sharding anything.",
     ],
+    rubric: [
+      "- **Requirements & estimates** — states the read/write ratio (redirects dwarf creates), does the code-length math (base62: 62^7 ≈ 3.5T), and sizes storage and redirect QPS with actual numbers.",
+      "- **Code generation** — compares sequential-counter base62, random codes, and hash-based schemes; addresses collisions and what sequential codes leak (volume, enumerability); handles custom aliases.",
+      "- **API & data model** — create and redirect endpoints, the mapping table keyed for the lookup path, expiry/ownership if claimed as a feature.",
+      "- **Redirect path** — a concrete latency budget: cache layers (CDN/edge, then Redis, then store), and a 301 vs. 302 decision connected to caching and analytics consequences.",
+      "- **Scaling** — replication or sharding for the mapping store with a stated partition key, and a story for hot links beyond \"add a cache\".",
+      "- **Analytics follow-up** — click tracking that stays off the synchronous redirect path (async events/queue), matching the prompt's constraint.",
+    ].join("\n"),
   },
   {
     slug: "design-news-feed",
@@ -2314,6 +2330,14 @@ function debounce(fn, wait) {
       "Precomputing timelines is cheap for most users and ruinous for celebrities — hybrid fan-out exists for a reason.",
       "Separate the storage problem (what happened) from the ranking problem (what to show first).",
     ],
+    rubric: [
+      "- **Requirements & scale** — DAU, posts/day, feed reads/day, and the skew that matters: the follow graph is power-law, so averages mislead. Read-heavy conclusion should be explicit.",
+      "- **Fan-out decision** — explains fan-out-on-write vs. fan-out-on-read costs, lands on a hybrid with a stated celebrity threshold, and says what happens when a celebrity posts.",
+      "- **Storage layout** — separates the posts store, the follow graph, and per-user timeline caches (e.g. capped lists in Redis); says what a timeline entry is (ids, not full posts).",
+      "- **Read path & ranking** — assembles candidates (precomputed + pulled celebrity posts), hands them to a ranking service, and handles pagination/backfill on cache miss. Ranking placed in the read path, not at write time.",
+      "- **Consistency & latency** — owns that timelines are eventually consistent and bounds the write-to-visible delay; dedupes at merge; posting latency decoupled from fan-out completion.",
+      "- **Edge cases** — deletes and unfollows against precomputed timelines, thundering herds on hot posts, and what degrades first under load.",
+    ].join("\n"),
   },
   {
     slug: "conflict-with-teammate",

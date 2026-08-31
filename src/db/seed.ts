@@ -77,6 +77,7 @@ async function main() {
         prompt: problem.prompt,
         hints: problem.hints,
         solution: problem.solution ?? null,
+        rubric: problem.rubric ?? null,
         // Judges gain their per-language definitions at seed time.
         judge: problem.judge
           ? {

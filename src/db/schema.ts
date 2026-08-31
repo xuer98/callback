@@ -34,6 +34,8 @@ export const problems = pgTable("problems", {
   prompt: text("prompt").notNull(),
   hints: jsonb("hints").$type<string[]>().notNull(),
   solution: text("solution"),
+  /** Grading rubric for AI design review (markdown). Never shown in the UI. */
+  rubric: text("rubric"),
   judge: jsonb("judge").$type<Judge>(),
   ui: jsonb("ui").$type<UiWorkspace>(),
 });
@@ -137,6 +139,36 @@ export const boards = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.problemId] })],
+);
+
+// One AI-graded system-design submission: the candidate's write-up at submit
+// time and the streamed review that came back. The diagram itself is not
+// stored — the latest scene already lives in `boards`, and the PNG sent for
+// grading is transient. Token counts are kept for cost observability.
+export const designSubmissions = pgTable(
+  "design_submissions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    writeup: text("writeup").notNull(),
+    feedback: text("feedback").notNull(),
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("design_submissions_user_problem_idx").on(
+      table.userId,
+      table.problemId,
+      table.createdAt,
+    ),
+  ],
 );
 
 // LeetCode questions companies are known to ask, imported from the

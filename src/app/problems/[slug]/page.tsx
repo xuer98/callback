@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DesignWorkspace } from "@/components/design-workspace";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
 import { RichText } from "@/components/markdown";
 import { ProblemPanes } from "@/components/problem-panes";
 import { UiWorkspace } from "@/components/ui-workspace";
-import { Whiteboard } from "@/components/whiteboard";
 import { Workspace } from "@/components/workspace";
 import { getCompany, getProblem, listProblems } from "@/lib/data";
 import { CATEGORY_LABELS, type Company, type Problem } from "@/lib/types";
@@ -61,14 +61,15 @@ export default async function ProblemPage({
   );
 
   // Judged problems get the editor workspace; frontend problems with starter
-  // files get the live-preview UI workspace; system-design problems get a
-  // whiteboard to sketch the architecture on. Everything else is a document.
+  // files get the live-preview UI workspace; system-design problems get the
+  // whiteboard + write-up + AI-review workspace. Everything else is a
+  // document.
   const workspace = judge ? (
     <Workspace slug={problem.slug} judge={judge} />
   ) : problem.ui ? (
     <UiWorkspace slug={problem.slug} ui={problem.ui} />
   ) : problem.category === "system-design" ? (
-    <Whiteboard slug={problem.slug} />
+    <DesignWorkspace slug={problem.slug} />
   ) : null;
 
   if (workspace) {
