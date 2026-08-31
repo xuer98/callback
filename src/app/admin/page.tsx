@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DifficultyBadge } from "@/components/difficulty-badge";
-import { adminEmail } from "@/lib/admin-actions";
+import { adminEmail, editedProblemSlugs } from "@/lib/admin-actions";
 import { listProblems } from "@/lib/data";
 import { CATEGORY_LABELS } from "@/lib/types";
 
@@ -14,7 +14,11 @@ export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminPage() {
   if (!(await adminEmail())) notFound();
-  const problems = await listProblems();
+  const [problems, editedList] = await Promise.all([
+    listProblems(),
+    editedProblemSlugs(),
+  ]);
+  const edited = new Set(editedList);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10">
@@ -28,10 +32,10 @@ export default async function AdminPage() {
         </Link>
       </div>
       <p className="mt-2 text-xs leading-5 text-zinc-500">
-        {problems.length} problems. Heads up: <code>pnpm db:seed</code>{" "}
-        overwrites seeded slugs with the repo&apos;s content, so console edits
-        to those last only until the next seed — problems created here are
-        left alone.
+        {problems.length} problems. Saving here marks a problem{" "}
+        <span className="text-indigo-400">console-edited</span>, and{" "}
+        <code>pnpm db:seed</code> leaves those alone; release one from its
+        edit page to put the repo back in charge on the next seed.
       </p>
 
       <ul className="mt-6 flex flex-col gap-2">
@@ -50,6 +54,9 @@ export default async function AdminPage() {
                   {problem.judge ? " · judge" : ""}
                   {problem.ui ? " · ui" : ""}
                   {problem.solution ? " · solution" : ""}
+                  {edited.has(problem.slug) && (
+                    <span className="text-indigo-400"> · console-edited</span>
+                  )}
                 </p>
               </div>
               <DifficultyBadge difficulty={problem.difficulty} />

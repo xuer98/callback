@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminProblemForm } from "@/components/admin-problem-form";
-import { adminEmail } from "@/lib/admin-actions";
+import { adminEmail, editedProblemSlugs } from "@/lib/admin-actions";
 import { getProblem } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Edit problem" };
@@ -14,8 +14,12 @@ export default async function EditProblemPage({
 }) {
   if (!(await adminEmail())) notFound();
   const { slug } = await params;
-  const problem = await getProblem(slug);
+  const [problem, editedList] = await Promise.all([
+    getProblem(slug),
+    editedProblemSlugs(),
+  ]);
   if (!problem) notFound();
+  const edited = editedList.includes(slug);
 
   // The judge splits into the tests array (the common edit) and everything
   // else (starter/entry/drivers/per-language) as one JSON blob that
@@ -48,6 +52,7 @@ export default async function EditProblemPage({
         <AdminProblemForm
           mode="edit"
           slug={slug}
+          edited={edited}
           initial={{
             title: problem.title,
             summary: problem.summary,

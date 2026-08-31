@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -17,10 +17,10 @@ import {
 
 // Admin console writes. Every action re-checks the caller against
 // ADMIN_EMAILS — server actions are public endpoints, so the page-level
-// guard is presentation, not security. Content edited here lands in the
-// same problems table the seed script upserts into, so `pnpm db:seed`
-// overwrites console edits to seeded slugs (console-created problems are
-// untouched — the seed only writes its own slugs).
+// guard is presentation, not security. Every save stamps edited_at, which
+// makes the console own the row: db:seed skips console-edited problems
+// (fields and company links) until releaseProblem clears the stamp and the
+// next seed re-syncs the repo's version.
 
 const MAX_TITLE = 200;
 const MAX_SUMMARY = 1000;
@@ -372,6 +372,7 @@ export async function saveProblem(
       rubric: parsed.rubric,
       judge: parsed.judge,
       ui: parsed.ui,
+      editedAt: new Date(),
     })
     .where(eq(schema.problems.id, existing.id));
   await writeLinks(existing.id, ids);
@@ -422,10 +423,41 @@ export async function createProblem(
       rubric: parsed.rubric,
       judge: parsed.judge,
       ui: parsed.ui,
+      editedAt: new Date(),
     })
     .returning({ id: schema.problems.id });
   await writeLinks(row.id, ids);
 
   refreshAfterWrite(slug);
+  return { ok: true };
+}
+
+/** Slugs the console currently owns (edited_at set) — for the admin badges. */
+export async function editedProblemSlugs(): Promise<string[]> {
+  if (!(await sessionAdminEmail())) return [];
+  const rows = await db
+    .select({ slug: schema.problems.slug })
+    .from(schema.problems)
+    .where(isNotNull(schema.problems.editedAt));
+  return rows.map((row) => row.slug);
+}
+
+/**
+ * Hand a console-edited problem back to the repo: clears edited_at, so the
+ * next `pnpm db:seed` overwrites it with seed content again. The row's
+ * current content is untouched until then.
+ */
+export async function releaseProblem(slug: unknown): Promise<SaveResult> {
+  if (!(await sessionAdminEmail())) return fail("Not authorized.");
+  if (typeof slug !== "string") return fail("Malformed submission.");
+  const existing = await db.query.problems.findFirst({
+    where: eq(schema.problems.slug, slug),
+    columns: { id: true },
+  });
+  if (!existing) return fail("No such problem.");
+  await db
+    .update(schema.problems)
+    .set({ editedAt: null })
+    .where(eq(schema.problems.id, existing.id));
   return { ok: true };
 }

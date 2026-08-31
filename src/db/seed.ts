@@ -47,6 +47,7 @@ import { goJudges } from "../lib/seed-go";
 // safe to run after every content edit in src/lib/seed-data.ts.
 async function main() {
   let questionCount = 0;
+  let skippedEdited = 0;
   const pool = new Pool({
     connectionString:
       process.env.DATABASE_URL ?? "postgres://localhost:5432/callback",
@@ -91,10 +92,17 @@ async function main() {
           : null,
         ui: problem.ui ?? null,
       };
+      // Console-edited problems (edited_at set) belong to the admin console
+      // until released — the seed inserts missing rows but never overwrites
+      // an edited one.
       await tx
         .insert(schema.problems)
         .values(values)
-        .onConflictDoUpdate({ target: schema.problems.slug, set: values });
+        .onConflictDoUpdate({
+          target: schema.problems.slug,
+          set: values,
+          setWhere: sql`${schema.problems.editedAt} is null`,
+        });
     }
 
     for (const track of seedTracks) {
@@ -109,8 +117,10 @@ async function main() {
         .onConflictDoUpdate({ target: schema.tracks.slug, set: values });
     }
 
-    const problemIds = new Map(
-      (await tx.select().from(schema.problems)).map((p) => [p.slug, p.id]),
+    const problemRows = await tx.select().from(schema.problems);
+    const problemIds = new Map(problemRows.map((p) => [p.slug, p.id]));
+    const editedSlugs = new Set(
+      problemRows.filter((p) => p.editedAt !== null).map((p) => p.slug),
     );
     const companyIds = new Map(
       (await tx.select().from(schema.companies)).map((c) => [c.slug, c.id]),
@@ -125,15 +135,21 @@ async function main() {
       return id;
     };
 
-    // Rebuild company links for seeded problems only — problems created in
-    // the admin console keep theirs.
-    const seededProblemIds = seedProblems.map((problem) =>
+    // Rebuild company links only for seeded problems the console doesn't
+    // own — console-created and console-edited problems keep theirs.
+    const linkable = seedProblems.filter(
+      (problem) => !editedSlugs.has(problem.slug),
+    );
+    skippedEdited = seedProblems.length - linkable.length;
+    const linkableIds = linkable.map((problem) =>
       requireId(problemIds, problem.slug, "problem"),
     );
-    await tx
-      .delete(schema.problemCompanies)
-      .where(inArray(schema.problemCompanies.problemId, seededProblemIds));
-    const companyLinks = seedProblems.flatMap((problem) =>
+    if (linkableIds.length > 0) {
+      await tx
+        .delete(schema.problemCompanies)
+        .where(inArray(schema.problemCompanies.problemId, linkableIds));
+    }
+    const companyLinks = linkable.flatMap((problem) =>
       problem.companies.map((companySlug) => ({
         problemId: requireId(problemIds, problem.slug, "problem"),
         companyId: requireId(companyIds, companySlug, "company"),
@@ -211,6 +227,11 @@ async function main() {
   console.log(
     `Seeded ${seedProblems.length} problems, ${seedCompanies.length} companies, ${seedTracks.length} tracks, ${questionCount} company question listings.`,
   );
+  if (skippedEdited > 0) {
+    console.log(
+      `Left ${skippedEdited} console-edited problem(s) alone — release them in /admin to re-sync from the repo.`,
+    );
+  }
   await pool.end();
 }
 

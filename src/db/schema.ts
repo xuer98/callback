@@ -38,6 +38,12 @@ export const problems = pgTable("problems", {
   rubric: text("rubric"),
   judge: jsonb("judge").$type<Judge>(),
   ui: jsonb("ui").$type<UiWorkspace>(),
+  /**
+   * Stamped by every admin-console save. A non-null value means the console
+   * owns this row: db:seed skips its fields and company links until the
+   * admin releases it back to the repo (which clears the stamp).
+   */
+  editedAt: timestamp("edited_at"),
 });
 
 export const companies = pgTable("companies", {

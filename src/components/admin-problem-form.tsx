@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   createProblem,
+  releaseProblem,
   saveProblem,
   type ProblemPayload,
 } from "@/lib/admin-actions";
@@ -17,10 +18,13 @@ import { CATEGORIES, CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
 export function AdminProblemForm({
   mode,
   slug: existingSlug,
+  edited = false,
   initial,
 }: {
   mode: "create" | "edit";
   slug?: string;
+  /** Whether the console currently owns this problem (edited_at set). */
+  edited?: boolean;
   initial: ProblemPayload;
 }) {
   const router = useRouter();
@@ -64,8 +68,46 @@ export function AdminProblemForm({
     }
   };
 
+  const release = async () => {
+    if (status.kind === "saving") return;
+    setStatus({ kind: "saving" });
+    const result = await releaseProblem(existingSlug);
+    if (!result.ok) {
+      setStatus({ kind: "error", message: result.error });
+      return;
+    }
+    setStatus({ kind: "idle" });
+    router.refresh();
+  };
+
   return (
     <div className="flex flex-col gap-5">
+      {mode === "edit" && (
+        <p className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-xs leading-5 text-zinc-400">
+          {edited ? (
+            <>
+              <span className="font-medium text-indigo-400">
+                Console-edited.
+              </span>{" "}
+              <code>pnpm db:seed</code> leaves this problem alone.{" "}
+              <button
+                type="button"
+                onClick={() => void release()}
+                className="underline underline-offset-2 transition-colors hover:text-zinc-200"
+              >
+                Release to the repo
+              </button>{" "}
+              to let the next seed overwrite it with the repo&apos;s version.
+            </>
+          ) : (
+            <>
+              <span className="font-medium text-zinc-300">Repo-owned.</span>{" "}
+              Saving marks it console-edited, which stops{" "}
+              <code>pnpm db:seed</code> from overwriting it until released.
+            </>
+          )}
+        </p>
+      )}
       {mode === "create" && (
         <Field label="Slug" hint="lowercase-words-with-hyphens; becomes the URL and can't change later">
           <input
