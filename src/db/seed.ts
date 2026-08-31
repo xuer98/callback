@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
@@ -125,7 +125,14 @@ async function main() {
       return id;
     };
 
-    await tx.delete(schema.problemCompanies);
+    // Rebuild company links for seeded problems only — problems created in
+    // the admin console keep theirs.
+    const seededProblemIds = seedProblems.map((problem) =>
+      requireId(problemIds, problem.slug, "problem"),
+    );
+    await tx
+      .delete(schema.problemCompanies)
+      .where(inArray(schema.problemCompanies.problemId, seededProblemIds));
     const companyLinks = seedProblems.flatMap((problem) =>
       problem.companies.map((companySlug) => ({
         problemId: requireId(problemIds, problem.slug, "problem"),
