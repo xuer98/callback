@@ -5,6 +5,10 @@ import { pinterestProblemsC } from "./seed-pinterest-c";
 import { pinterestProblemsD } from "./seed-pinterest-d";
 import { pinterestProblemsE } from "./seed-pinterest-e";
 import { pinterestProblemsF } from "./seed-pinterest-f";
+import { designProblemsA } from "./seed-design-a";
+import { designProblemsB } from "./seed-design-b";
+import { designProblemsC } from "./seed-design-c";
+import { designProblemsD } from "./seed-design-d";
 import type { Problem, Track } from "./types";
 
 // Canonical seed content. Postgres is the runtime read path (src/lib/data.ts);
@@ -2278,7 +2282,9 @@ function debounce(fn, wait) {
     title: "Design a Rate Limiter",
     category: "system-design",
     difficulty: "medium",
-    companies: ["stripe", "amazon"],
+    // Pinterest: reported for its design round (Exponent ~July 2026,
+    // PracHub ×3, incl. a multi-region variant).
+    companies: ["stripe", "amazon", "pinterest"],
     summary: "Token bucket, sliding window, and where the counters live.",
     prompt:
       "Design a rate limiter for a public API that enforces per-client limits such as 100 requests per minute. Cover the algorithm choice (fixed window, sliding window, token bucket), where counters live in a multi-node deployment, failure modes when the counter store is down, and what response a throttled client should receive.",
@@ -2360,6 +2366,10 @@ function debounce(fn, wait) {
   ...pinterestProblemsD,
   ...pinterestProblemsE,
   ...pinterestProblemsF,
+  ...designProblemsA,
+  ...designProblemsB,
+  ...designProblemsC,
+  ...designProblemsD,
 ];
 
 export const tracks: Track[] = [
