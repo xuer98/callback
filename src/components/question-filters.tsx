@@ -15,18 +15,19 @@ interface Option {
 }
 
 /**
- * The query controls for /problems. Each change rewrites the URL, so a
- * filtered view is linkable and the server does the actual filtering.
+ * The dropdown query controls for /problems — company, topic, time range,
+ * and difficulty. The category filter is the chip row the page renders above
+ * this component; `selected.category` is still passed so Clear knows a
+ * filtered view is active. Each change rewrites the URL, so a filtered view
+ * is linkable and the server does the actual filtering.
  */
 export function QuestionFilters({
   companies,
   topics,
-  categories,
   selected,
 }: {
   companies: { slug: string; name: string }[];
   topics: string[];
-  categories: Option[];
   selected: {
     category: string;
     company: string;
@@ -56,17 +57,10 @@ export function QuestionFilters({
 
   return (
     <div
-      className={`mt-6 flex flex-wrap items-end gap-3 ${
+      className={`mt-4 flex flex-wrap items-end gap-3 ${
         pending ? "opacity-60" : ""
       }`}
     >
-      <Select
-        label="Category"
-        value={selected.category}
-        placeholder="All categories"
-        options={categories}
-        onChange={(value) => apply("category", value)}
-      />
       <Select
         label="Company"
         value={selected.company}

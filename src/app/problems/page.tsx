@@ -107,9 +107,11 @@ export default async function ProblemsPage({
 
   const companyName = companies.find((c) => c.slug === company)?.name;
   const lastPage = Math.max(1, Math.ceil(total / QUESTIONS_PER_PAGE));
-  const linkFor = (nextPage: number) => {
+  // One href builder for both the category chips (which change the category
+  // and reset the page) and pagination (which keeps the category).
+  const hrefFor = (cat: Category | undefined, nextPage: number) => {
     const next = new URLSearchParams();
-    if (category) next.set("category", category);
+    if (cat) next.set("category", cat);
     if (company) next.set("company", company);
     if (topic) next.set("topic", topic);
     if (difficulty) next.set("difficulty", difficulty);
@@ -118,6 +120,7 @@ export default async function ProblemsPage({
     const query = next.toString();
     return query ? `/problems?${query}` : "/problems";
   };
+  const linkFor = (nextPage: number) => hrefFor(category, nextPage);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
@@ -128,13 +131,25 @@ export default async function ProblemsPage({
         difficulty, and how recently a question showed up.
       </p>
 
+      <div className="mt-6 flex flex-wrap gap-2">
+        <FilterChip
+          href={hrefFor(undefined, 1)}
+          label="All"
+          active={!category}
+        />
+        {CATEGORIES.map((c) => (
+          <FilterChip
+            key={c}
+            href={hrefFor(c, 1)}
+            label={CATEGORY_LABELS[c]}
+            active={category === c}
+          />
+        ))}
+      </div>
+
       <QuestionFilters
         companies={companies}
         topics={topics}
-        categories={CATEGORIES.map((c) => ({
-          value: c,
-          label: CATEGORY_LABELS[c],
-        }))}
         selected={{
           category: category ?? "",
           company,
@@ -238,5 +253,28 @@ export default async function ProblemsPage({
         </p>
       )}
     </div>
+  );
+}
+
+function FilterChip({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+        active
+          ? "bg-indigo-500 text-white"
+          : "bg-zinc-900 text-zinc-400 ring-1 ring-inset ring-zinc-800 hover:text-zinc-100"
+      }`}
+    >
+      {label}
+    </Link>
   );
 }
