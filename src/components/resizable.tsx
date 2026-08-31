@@ -5,29 +5,21 @@ import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 // Pane chrome: a two-pane split with a draggable divider, plus the tab
 // button both panes use for their headers.
 //
-// A two-pane split with a draggable divider. Below the `lg` breakpoint the
-// panes simply stack and the divider disappears — dragging a 375px-wide
-// column into two is worse than scrolling it.
+// Below the `lg` breakpoint the panes simply stack and the divider
+// disappears — dragging a 375px-wide column into two is worse than
+// scrolling it.
 //
-// The stored fraction is applied only after mount (via a mounted gate rather
-// than an effect) so the server and hydrating client agree on the default.
+// The split is applied entirely through CSS: the dragged fraction rides in
+// a custom property and only an `lg:` flex-basis class consumes it, in the
+// same media query that tiles the panes. Sizing never mirrors the viewport
+// in JS, so a window resize — including across the breakpoint — can't
+// strand the layout half-switched behind a missed resize event.
+//
+// The stored fraction is applied only after mount (via a mounted gate
+// rather than an effect) so the server and hydrating client agree on the
+// default.
 
-const DESKTOP_QUERY = "(min-width: 1024px)";
-
-function subscribeToDesktop(onChange: () => void) {
-  const mql = window.matchMedia(DESKTOP_QUERY);
-  mql.addEventListener("change", onChange);
-  return () => mql.removeEventListener("change", onChange);
-}
-
-/** True once mounted on a viewport wide enough to split. */
-function useIsSplit() {
-  return useSyncExternalStore(
-    subscribeToDesktop,
-    () => window.matchMedia(DESKTOP_QUERY).matches,
-    () => false,
-  );
-}
+const subscribeNoop = () => () => {};
 
 function readStoredFraction(key: string): number | null {
   if (typeof window === "undefined") return null;
@@ -61,13 +53,24 @@ export function SplitPane({
   second: React.ReactNode;
   className?: string;
 }) {
-  const isSplit = useIsSplit();
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [fraction, setFraction] = useState<number | null>(null);
 
-  const effective =
-    fraction ?? (isSplit ? readStoredFraction(storageKey) : null) ?? initial;
+  // Clamped on the way in too: a stale or hand-edited stored value must not
+  // be able to collapse a pane.
+  const effective = Math.min(
+    max,
+    Math.max(
+      min,
+      fraction ?? (mounted ? readStoredFraction(storageKey) : null) ?? initial,
+    ),
+  );
   const horizontal = direction === "horizontal";
 
   const commit = useCallback(
@@ -109,15 +112,12 @@ export function SplitPane({
         horizontal ? "lg:flex-row" : "lg:flex-col"
       } ${className}`}
     >
+      {/* flex-basis resolves along the container's main axis, so the same
+          class sizes the pane's width in a horizontal split and its height
+          in a vertical one — the direction classes above pick which. */}
       <div
-        className="flex min-h-0 min-w-0 flex-col"
-        style={
-          isSplit
-            ? horizontal
-              ? { width: `${effective * 100}%` }
-              : { height: `${effective * 100}%` }
-            : undefined
-        }
+        className="flex min-h-0 min-w-0 flex-col lg:shrink-0 lg:grow-0 lg:basis-[var(--split)]"
+        style={{ "--split": `${effective * 100}%` } as React.CSSProperties}
       >
         {first}
       </div>
