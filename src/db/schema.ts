@@ -177,6 +177,39 @@ export const designSubmissions = pgTable(
   ],
 );
 
+// One graded attempt at a judged problem: the code exactly as submitted,
+// the language it ran in, and the verdict. Run stays ephemeral; Submit
+// archives. Language and status are text, not enums, for the same
+// no-migration reason as `solutions` — the server action validates.
+export const algoSubmissions = pgTable(
+  "algo_submissions",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    language: text("language").notNull(),
+    code: text("code").notNull(),
+    /** "pass" | "fail" | "error" | "timeout" */
+    status: text("status").notNull(),
+    passed: integer("passed").notNull(),
+    total: integer("total").notNull(),
+    /** Summed per-case runtime, ms; null when nothing ran (error/timeout). */
+    runtimeMs: integer("runtime_ms"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("algo_submissions_user_problem_idx").on(
+      table.userId,
+      table.problemId,
+      table.createdAt,
+    ),
+  ],
+);
+
 // LeetCode questions companies are known to ask, imported from the
 // liquidslr/leetcode-company-wise-problems snapshot. These are listings, not
 // prompts: title, difficulty, topics, and a link out. Callback's own authored

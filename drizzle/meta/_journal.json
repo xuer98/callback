@@ -57,6 +57,13 @@
       "when": 1788172763064,
       "tag": "0007_burly_spencer_smythe",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788212781267,
+      "tag": "0008_spicy_gateway",
+      "breakpoints": true
     }
   ]
 }

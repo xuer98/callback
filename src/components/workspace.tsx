@@ -22,8 +22,17 @@ import { jsCompletions, pythonCompletions } from "@/lib/editor-completions";
 import { formatDocument } from "@/lib/editor-format";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
-import { ResultsPanel, TestcasePanel } from "./workspace-console";
+import {
+  ResultsPanel,
+  SubmissionsPanel,
+  TestcasePanel,
+} from "./workspace-console";
 import { useProgress } from "./progress";
+import {
+  listSubmissions,
+  recordSubmission,
+  type AlgoSubmission,
+} from "@/lib/workspace-actions";
 import {
   readStored,
   removeStored,
@@ -129,7 +138,12 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   const [note, setNote] = useState<string | null>(null);
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const [running, setRunning] = useState(false);
-  const [bottomTab, setBottomTab] = useState<"testcase" | "result">("testcase");
+  const [submitting, setSubmitting] = useState(false);
+  const [bottomTab, setBottomTab] = useState<
+    "testcase" | "result" | "submissions"
+  >("testcase");
+  // null until the first load; Submit prepends once loaded.
+  const [submissions, setSubmissions] = useState<AlgoSubmission[] | null>(null);
   const { signedIn, reportRun } = useProgress();
 
   // Account sync: on load, newer server copies land in localStorage and the
@@ -177,15 +191,27 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     writeStored("callback:lang", lang);
   };
 
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = (text: string) => {
+    setNote(text);
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setNote(null), 1600);
+  };
+  useEffect(() => () => {
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+  }, []);
+
+  // Prefer the Judge0 sandbox; fall back to the in-browser runner when
+  // the server route reports it isn't configured (or is unreachable).
+  // Java, C++, and Go have no browser runtime, so there is nothing to
+  // fall back to — say so rather than failing silently.
+  const grade = async (): Promise<RunResult> =>
+    (await runOnServer(slug, code, language)) ?? (await runInBrowser());
+
   const run = async () => {
     setRunning(true);
     setResult(null);
-    // Prefer the Judge0 sandbox; fall back to the in-browser runner when
-    // the server route reports it isn't configured (or is unreachable).
-    // Java, C++, and Go have no browser runtime, so there is nothing to
-    // fall back to — say so rather than failing silently.
-    const runResult =
-      (await runOnServer(slug, code, language)) ?? (await runInBrowser());
+    const runResult = await grade();
     setResult(runResult);
     setRunning(false);
     setBottomTab("result");
@@ -193,6 +219,86 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
       void reportRun(slug, runResult.status === "pass");
     }
   };
+
+  // Submit is Run plus a record: the code exactly as graded, the language,
+  // and the verdict are archived to the account's submission history.
+  const submit = async () => {
+    setRunning(true);
+    setSubmitting(true);
+    setResult(null);
+    const runResult = await grade();
+    setResult(runResult);
+    setBottomTab("result");
+    if (runResult.status === "pass" || runResult.status === "fail") {
+      void reportRun(slug, runResult.status === "pass");
+    }
+    // A server-only language without the sandbox never ran — no attempt.
+    const neverRan = runResult.status === "error" && isServerOnly(language);
+    if (!signedIn) {
+      if (!neverRan) flash("Sign in to save submissions");
+    } else if (!neverRan) {
+      const graded =
+        runResult.status === "pass" || runResult.status === "fail";
+      const stored = await recordSubmission(slug, language, code, {
+        status: runResult.status,
+        passed: graded
+          ? runResult.verdicts.filter((v) => v.pass).length
+          : 0,
+        total: graded ? runResult.verdicts.length : judge.tests.length,
+        runtimeMs: graded
+          ? Math.round(
+              runResult.verdicts.reduce((sum, v) => sum + v.timeMs, 0),
+            )
+          : null,
+      });
+      if (stored) {
+        // An unloaded history stays null so its first open fetches
+        // everything, new row included.
+        setSubmissions((prev) => (prev ? [stored, ...prev] : prev));
+        flash(stored.status === "pass" ? "Accepted — saved" : "Submission saved");
+      }
+    }
+    setRunning(false);
+    setSubmitting(false);
+  };
+
+  // Fetch history the first time the tab opens; Submit keeps it fresh after.
+  useEffect(() => {
+    if (bottomTab !== "submissions" || !signedIn || submissions !== null) {
+      return;
+    }
+    let cancelled = false;
+    listSubmissions(slug)
+      .then((rows) => {
+        if (!cancelled) setSubmissions(rows);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [bottomTab, signedIn, submissions, slug]);
+
+  /** Load a past submission's code (and language) back into the editor. */
+  const restore = useCallback(
+    (submission: AlgoSubmission) => {
+      if (running) return;
+      const lang = submission.language as Language;
+      if (!available.includes(lang)) return;
+      if (lang !== language) {
+        setLanguage(lang);
+        writeStored("callback:lang", lang);
+      }
+      setCode(submission.code);
+      setEditorEpoch((epoch) => epoch + 1);
+      setResult(null);
+      const key = storageKeyFor(slug, lang);
+      writeStored(key, submission.code);
+      writeSavedAt(key, Date.now());
+      if (signedIn) queueSave(lang, submission.code);
+      flash("Restored to editor");
+    },
+    [running, available, language, slug, signedIn, queueSave],
+  );
 
   const runInBrowser = (): Promise<RunResult> => {
     if (isServerOnly(language)) {
@@ -216,16 +322,6 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     if (signedIn) dropSolution(language);
   };
 
-  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const flash = (text: string) => {
-    setNote(text);
-    if (noteTimer.current) clearTimeout(noteTimer.current);
-    noteTimer.current = setTimeout(() => setNote(null), 1600);
-  };
-  useEffect(() => () => {
-    if (noteTimer.current) clearTimeout(noteTimer.current);
-  }, []);
-
   // Every edit already writes localStorage and queues an account save, so
   // Cmd+S is really "stop waiting for the debounce" plus an acknowledgement.
   const save = () => {
@@ -243,17 +339,18 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     flash("Formatted");
   };
 
-  // Run grades every test and records the outcome, so it is also what
-  // Submit does — there is no separate sample-tests-only pass to run first.
   const runFromKeyboard = () => {
     if (!running) void run();
+  };
+  const submitFromKeyboard = () => {
+    if (!running) void submit();
   };
 
   useEditorShortcuts({
     save,
     format,
     run: runFromKeyboard,
-    submit: runFromKeyboard,
+    submit: submitFromKeyboard,
   });
 
   if (!mounted) {
@@ -335,12 +432,18 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
               <button
                 onClick={run}
                 disabled={running}
-                title={`Run all tests (${shortcutHint("run")} or ${shortcutHint(
-                  "submit",
-                )})`}
+                title={`Run all tests (${shortcutHint("run")})`}
                 className="rounded-md bg-indigo-500 px-4 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-default disabled:opacity-60"
               >
-                {running ? "Running\u2026" : "Run"}
+                {running && !submitting ? "Running\u2026" : "Run"}
+              </button>
+              <button
+                onClick={submit}
+                disabled={running}
+                title={`Grade and save the attempt (${shortcutHint("submit")})`}
+                className="rounded-md bg-emerald-600 px-4 py-1 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-default disabled:opacity-60"
+              >
+                {submitting ? "Submitting\u2026" : "Submit"}
               </button>
             </div>
           </header>
@@ -382,6 +485,12 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
             >
               Test Result
             </PaneTab>
+            <PaneTab
+              active={bottomTab === "submissions"}
+              onClick={() => setBottomTab("submissions")}
+            >
+              Submissions
+            </PaneTab>
             {passed !== null && (
               <span
                 className={`ml-auto pr-1 text-xs ${
@@ -400,7 +509,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {bottomTab === "testcase" ? (
               <TestcasePanel tests={judge.tests} />
-            ) : (
+            ) : bottomTab === "result" ? (
               <ResultsPanel
                 result={result}
                 running={running}
@@ -414,6 +523,13 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
                         ? "compiling in the server sandbox"
                         : null
                 }
+              />
+            ) : (
+              <SubmissionsPanel
+                submissions={submissions}
+                signedIn={signedIn}
+                busy={running}
+                onRestore={restore}
               />
             )}
           </div>

@@ -148,6 +148,133 @@ export async function listDesignFeedback(
   }));
 }
 
+export interface AlgoSubmission {
+  id: number;
+  language: string;
+  code: string;
+  status: "pass" | "fail" | "error" | "timeout";
+  passed: number;
+  total: number;
+  runtimeMs: number | null;
+  /** Server timestamp, ms epoch — serializable across the action boundary. */
+  createdAt: number;
+}
+
+const SUBMISSION_STATUSES = ["pass", "fail", "error", "timeout"] as const;
+/** Generous ceilings — no judge has anywhere near this many tests. */
+const MAX_SUBMISSION_TESTS = 500;
+const MAX_RUNTIME_MS = 3_600_000;
+
+function asCount(value: unknown, max: number): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= max
+    ? value
+    : null;
+}
+
+/**
+ * Archive one graded attempt (the Submit button; Run stays ephemeral).
+ * The verdict is client-reported — it's the user's own practice record,
+ * so the boundary checks shapes and ceilings, not honesty. Returns the
+ * stored row for prepending to the history, or null when nothing was saved.
+ */
+export async function recordSubmission(
+  problemSlug: unknown,
+  language: unknown,
+  code: unknown,
+  outcome: unknown,
+): Promise<AlgoSubmission | null> {
+  if (typeof problemSlug !== "string" || typeof code !== "string") return null;
+  if (
+    typeof language !== "string" ||
+    !(LANGUAGES as readonly string[]).includes(language)
+  ) {
+    return null;
+  }
+  if (new TextEncoder().encode(code).length > MAX_CODE_BYTES) return null;
+  if (typeof outcome !== "object" || outcome === null) return null;
+  const { status, runtimeMs } = outcome as Record<string, unknown>;
+  if (!(SUBMISSION_STATUSES as readonly unknown[]).includes(status)) return null;
+  const passed = asCount((outcome as Record<string, unknown>).passed, MAX_SUBMISSION_TESTS);
+  const total = asCount((outcome as Record<string, unknown>).total, MAX_SUBMISSION_TESTS);
+  if (passed === null || total === null || passed > total) return null;
+  const runtime =
+    runtimeMs === null ? null : asCount(runtimeMs, MAX_RUNTIME_MS);
+  if (runtime === null && runtimeMs !== null) return null;
+
+  const userId = await sessionUserId();
+  if (!userId) return null;
+  const problem = await db.query.problems.findFirst({
+    where: eq(schema.problems.slug, problemSlug),
+    columns: { id: true, judge: true },
+  });
+  // Submissions exist only for judged problems — that's what "graded" means.
+  if (!problem || problem.judge === null) return null;
+
+  const [row] = await db
+    .insert(schema.algoSubmissions)
+    .values({
+      userId,
+      problemId: problem.id,
+      language,
+      code,
+      status: status as string,
+      passed,
+      total,
+      runtimeMs: runtime,
+    })
+    .returning({
+      id: schema.algoSubmissions.id,
+      createdAt: schema.algoSubmissions.createdAt,
+    });
+  return {
+    id: row.id,
+    language,
+    code,
+    status: status as AlgoSubmission["status"],
+    passed,
+    total,
+    runtimeMs: runtime,
+    createdAt: row.createdAt.getTime(),
+  };
+}
+
+/** The signed-in user's recent submissions for one problem, newest first. */
+export async function listSubmissions(
+  problemSlug: unknown,
+): Promise<AlgoSubmission[]> {
+  if (typeof problemSlug !== "string") return [];
+  const userId = await sessionUserId();
+  if (!userId) return [];
+  const problemId = await problemIdBySlug(problemSlug);
+  if (problemId === null) return [];
+
+  const rows = await db
+    .select({
+      id: schema.algoSubmissions.id,
+      language: schema.algoSubmissions.language,
+      code: schema.algoSubmissions.code,
+      status: schema.algoSubmissions.status,
+      passed: schema.algoSubmissions.passed,
+      total: schema.algoSubmissions.total,
+      runtimeMs: schema.algoSubmissions.runtimeMs,
+      createdAt: schema.algoSubmissions.createdAt,
+    })
+    .from(schema.algoSubmissions)
+    .where(
+      and(
+        eq(schema.algoSubmissions.userId, userId),
+        eq(schema.algoSubmissions.problemId, problemId),
+      ),
+    )
+    .orderBy(desc(schema.algoSubmissions.createdAt), desc(schema.algoSubmissions.id))
+    .limit(20);
+  return rows.map((row) => ({
+    ...row,
+    status: row.status as AlgoSubmission["status"],
+    createdAt: row.createdAt.getTime(),
+  }));
+}
+
 /**
  * Upsert the user's whiteboard scene for one problem. Takes the serialized
  * scene (the same string the client writes to localStorage) so both copies
