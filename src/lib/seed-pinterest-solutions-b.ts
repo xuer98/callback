@@ -79,40 +79,131 @@ Reading is O(total characters) — each character is split once and joined once.
 
 export const escapeRoomLeaderboardSolution = `## Approach
 
-The standings are fully determined by one dict: team → best time (an attempt only matters when it beats the stored best — regressions are ignored at insert time, not query time). Both queries read the entries ordered by \`(best_time, name)\`; ordering by the pair gives the alphabetical tie-break for free.
+A "bucket per room" whose arrival order matters is a doubly-linked list per room — exactly the LRU-cache trick. \`advance()\` unlinks the player's node from room \`r\` and appends it to the tail of room \`r + 1\`, both O(1); because movement is forward-only, nobody ever enters a room twice, so each room's list head→tail *is* its earliest-entry order — no timestamps needed. \`leaderboard()\` walks rooms from the highest occupied one down, reading each list head→tail. Sorting on every call is the stated auto-fail: O(N log N) per query for an answer the structure already holds.
+
+One integer, \`_top\`, tracks the highest occupied room. It never decreases (forward-only again), so maintaining it is a single \`max\` on advance — no heap.
 
 \`\`\`python
-class Leaderboard:
-    def __init__(self):
-        self.best = {}  # team -> best (lowest) time
+from typing import Dict, List, Optional
 
-    def add_result(self, team, time):
-        if team not in self.best or time < self.best[team]:
-            self.best[team] = time
+class _Node:
+    __slots__ = ("pid", "room", "prev", "next")
 
-    def standings(self):
-        return sorted(self.best.items(), key=lambda e: (e[1], e[0]))
+    def __init__(self, pid: int, room: int):
+        self.pid, self.room = pid, room
+        self.prev: Optional["_Node"] = None
+        self.next: Optional["_Node"] = None
 
-    def rank(self, team):
-        if team not in self.best:
-            return -1
-        return next(
-            i for i, (name, _) in enumerate(self.standings(), 1) if name == team
-        )
+class EscapeRoomGame:
+    def __init__(self, player_ids: List[int], R: int):
+        self.R = R
+        self._head: List[Optional[_Node]] = [None] * (R + 1)   # per-room list head (earliest)
+        self._tail: List[Optional[_Node]] = [None] * (R + 1)   # per-room list tail (latest)
+        self._nodes: Dict[int, _Node] = {}
+        self._top = 0                                           # highest occupied room
+        for pid in player_ids:                                  # O(N)
+            node = _Node(pid, 0)
+            self._nodes[pid] = node
+            self._append(node)
 
-    def top_k(self, k):
-        return [name for name, _ in self.standings()[:k]]
+    # -- linked-list helpers (all O(1)) --
+    def _append(self, node: _Node) -> None:
+        r = node.room
+        node.prev, node.next = self._tail[r], None
+        if self._tail[r] is None:
+            self._head[r] = node
+        else:
+            self._tail[r].next = node
+        self._tail[r] = node
+
+    def _unlink(self, node: _Node) -> None:
+        r = node.room
+        if node.prev: node.prev.next = node.next
+        else:         self._head[r] = node.next
+        if node.next: node.next.prev = node.prev
+        else:         self._tail[r] = node.prev
+        node.prev = node.next = None
+
+    # -- API --
+    def advance(self, pid: int) -> None:            # O(1)
+        node = self._nodes[pid]
+        if node.room == self.R:
+            return                                  # stays; order unchanged (clarify with interviewer)
+        self._unlink(node)
+        node.room += 1
+        self._append(node)                          # newest arrival goes to the tail
+        if node.room > self._top:
+            self._top = node.room                   # players only move forward -> top never decreases
+
+    def get_room(self, pid: int) -> int:            # O(1)
+        return self._nodes[pid].room
+
+    def leaderboard(self, k: int) -> List[int]:     # O(R + k) worst case; O(k) when rooms are dense
+        out: List[int] = []
+        r = self._top
+        while r >= 0 and len(out) < k:
+            node = self._head[r]
+            while node is not None and len(out) < k:
+                out.append(node.pid)
+                node = node.next
+            r -= 1
+        return out
+\`\`\`
+
+## The R >> N follow-up
+
+The walk above visits empty rooms between clusters, so a sparse board costs O(R) per query. Fix: keep a *second* doubly-linked list — of non-empty rooms, ordered by room index. When a player moves \`r → r + 1\` and \`r + 1\` was empty, splice \`r + 1\` in right above \`r\` (\`r\` is non-empty at that instant — the player was just there): O(1). If \`r\` then became empty, unlink it: O(1). \`leaderboard()\` now hops only occupied rooms, so it's O(k). Building on the class above:
+
+\`\`\`python
+class EscapeRoomGameSparse(EscapeRoomGame):
+    def __init__(self, player_ids: List[int], R: int):
+        super().__init__(player_ids, R)
+        self._next_room: Dict[int, Optional[int]] = {0: None}   # non-empty room -> next lower non-empty room
+        self._prev_room: Dict[int, Optional[int]] = {0: None}   # non-empty room -> next higher non-empty room
+
+    def advance(self, pid: int) -> None:
+        node = self._nodes[pid]
+        if node.room == self.R:
+            return
+        r = node.room
+        self._unlink(node)
+        node.room = r + 1
+        self._append(node)
+        if r + 1 not in self._next_room:                 # r+1 just became non-empty: splice above r
+            higher = self._prev_room[r]
+            self._prev_room[r + 1], self._next_room[r + 1] = higher, r
+            self._prev_room[r] = r + 1
+            if higher is None: self._top = r + 1
+            else:              self._next_room[higher] = r + 1
+        if self._head[r] is None:                        # r became empty: unlink it
+            higher, lower = self._prev_room.pop(r), self._next_room.pop(r)
+            if higher is None: self._top = lower if lower is not None else 0
+            else:              self._next_room[higher] = lower
+            if lower is not None: self._prev_room[lower] = higher
+
+    def leaderboard(self, k: int) -> List[int]:      # O(k)
+        out: List[int] = []
+        r: Optional[int] = self._top
+        while r is not None and len(out) < k:
+            node = self._head[r]
+            while node is not None and len(out) < k:
+                out.append(node.pid)
+                node = node.next
+            r = self._next_room.get(r)
+        return out
 \`\`\`
 
 ## Complexity
 
-\`add_result\` O(1). Each query re-sorts: O(n log n) for n teams. That's the honest baseline — then name the upgrade path instead of hand-waving it: keep a sorted structure incrementally (an order-statistic tree / skip list keyed by \`(time, name)\`, or the third-party \`sortedcontainers.SortedList\`) for O(log n) \`add_result\` and \`rank\`, and O(k + log n) \`top_k\`. The standard library has no ordered-by-key container, which is exactly why saying the words matters more than writing one in the interview.
+\`advance\` and \`get_room\`: O(1). \`leaderboard(k)\`: O(R + k) with the plain walk, O(k) with the non-empty-room list. Space O(N + R) (the per-room head/tail arrays), or O(N) if the sparse version also swaps those arrays for dicts.
 
 ## Worth saying out loud
 
-- The data-structure trade-off *is* the question: sort-per-query wins when reads are rare, the incremental structure wins when \`rank\` is hot. State the read/write mix you're assuming.
-- \`rank\` needs the position among *distinct teams by best time* — a heap can't answer that without draining; that observation is what justifies the order-statistic tree.
-- Watch the equal-time re-attempt: \`time < self.best[team]\` (strict) means an equal result changes nothing — no re-insert, no tie-order churn.`;
+- Forward-only movement is what makes "earliest entry" free: append order *is* entry order, and \`_top\` only ever grows. Say that invariant — it's the whole design.
+- The no-op at room R must not re-append the node: the player keeps their original arrival slot. Whether a re-\`advance\` at the cap should refresh tie order is genuinely ambiguous — ask, then codify (here: unchanged).
+- Backward moves break both halves of the invariant: \`_top\` can shrink and a room can be re-entered, so "earliest entry" needs per-entry timestamps or re-append semantics — and the non-empty-room list stops being optional. Naming that is the point of the follow-up.
+- Python's insertion-ordered \`dict\` per room (\`del\` is O(1), iteration is insertion order) gives the same behavior without hand-rolling the links — a \`LinkedHashSet\` in Java. Offer it as the pragmatic version; write the nodes to show you can.
+- Many readers: \`leaderboard\` is pure read, so an RW-lock works — or have writers maintain a small immutable top-k snapshot readers grab without locking.`;
 
 export const rebalanceBucketsSolution = `## Approach
 

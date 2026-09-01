@@ -282,47 +282,48 @@ func settleFromStream(readChunk func() string) int {
   },
   "escape-room-leaderboard": {
     entry: "__call",
-    starterCode: `type Leaderboard struct {
+    starterCode: `type EscapeRoomGame struct {
 	// Your state here
 }
 
-func Constructor() *Leaderboard {
-	return &Leaderboard{}
+// Constructor: playerIds fixes the room-0 tie order; rooms run 0..maxRoom.
+func Constructor(playerIds []int, maxRoom int) *EscapeRoomGame {
+	return &EscapeRoomGame{}
 }
 
-// AddResult records an attempt; only improvements change the standings.
-func (lb *Leaderboard) AddResult(team string, seconds int) {
+// Advance moves the player forward one room; at the last room, a no-op. O(1).
+func (g *EscapeRoomGame) Advance(playerID int) {
 	// Your code here
 }
 
-// Rank is the 1-indexed rank by best time (ties alphabetical), or -1.
-func (lb *Leaderboard) Rank(team string) int {
+// GetRoom is the player's current room. O(1).
+func (g *EscapeRoomGame) GetRoom(playerID int) int {
 	return -1
 }
 
-// TopK returns the k best team names, in rank order.
-func (lb *Leaderboard) TopK(k int) []string {
-	return []string{}
+// Leaderboard returns up to k ids: room desc, ties by earliest entry. O(N + k).
+func (g *EscapeRoomGame) Leaderboard(k int) []int {
+	return []int{}
 }
 `,
     driverCode: `func __call(a []interface{}) interface{} {
 	ops := JList(a[0])
 	args := JList(a[1])
-	var lb *Leaderboard
+	var game *EscapeRoomGame
 	out := []interface{}{}
 	for i, opRaw := range ops {
 		x := JList(args[i])
 		switch JStr(opRaw) {
-		case "Leaderboard":
-			lb = Constructor()
+		case "EscapeRoomGame":
+			game = Constructor(JInts(x[0]), JInt(x[1]))
 			out = append(out, nil)
-		case "addResult":
-			lb.AddResult(JStr(x[0]), JInt(x[1]))
+		case "advance":
+			game.Advance(JInt(x[0]))
 			out = append(out, nil)
-		case "rank":
-			out = append(out, lb.Rank(JStr(x[0])))
+		case "getRoom":
+			out = append(out, game.GetRoom(JInt(x[0])))
 		default:
-			out = append(out, lb.TopK(JInt(x[0])))
+			out = append(out, game.Leaderboard(JInt(x[0])))
 		}
 	}
 	return out

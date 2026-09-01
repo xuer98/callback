@@ -1004,104 +1004,166 @@ function settleFromStream(readChunk) {
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
-    summary: "Best-time standings with live ranks — the data-structure trade-off talk.",
-    prompt: `Teams attempt an escape room repeatedly. Each attempt reports (team, timeSeconds); a team's standing is its best (lowest) time. Implement:
+    summary: "Advance players in O(1), rank them without sorting — a linked list per room.",
+    prompt: `Design \`EscapeRoomGame\` for a fixed set of players moving through rooms 0..R.
+All players start in room 0. Their initial tie order is the order of the
+constructor's player list.
 
 \`\`\`
-lb.addResult(team, time)   // record an attempt (keep the team's best)
-lb.rank(team)              // 1-indexed rank by best time; ties broken
-                           // alphabetically; -1 if the team never played
-lb.topK(k)                 // the k best team names, in rank order
-\`\`\``,
+advance(player_id)     -> None   move the player forward one room. O(1).
+                                 A player already in room R stays there.
+get_room(player_id)    -> int    the player's current room. O(1).
+leaderboard(k)         -> list   up to k player ids ordered by
+                                 room DESC, ties broken by EARLIEST
+                                 entry into that room.  Must be O(N + k),
+                                 NOT O(N log N)  (sorting is the reported fail).
+\`\`\`
+
+Example
+
+\`\`\`
+g = EscapeRoomGame([7, 3, 9], R=2)
+g.leaderboard(3)  -> [7, 3, 9]        # all in room 0, constructor order
+g.advance(3); g.advance(9)
+g.leaderboard(2)  -> [3, 9]           # both in room 1, 3 entered first
+g.advance(9)
+g.leaderboard(3)  -> [9, 3, 7]
+\`\`\`
+
+Constraints: 1 <= N <= 1e5 players, ids unique in [0, 1e9]; 1 <= R <= 1e4;
+up to 2e5 operations; 1 <= k <= N.
+
+Follow-ups
+
+- Why is sorting on every leaderboard() call wrong? (O(N log N) per query)
+- What if R >> N? (walking empty rooms costs O(R))
+- What if players could also move BACKWARD?
+- Thread-safety / many readers.`,
     hints: [
-      "Keep a map of each team's best time; an attempt only matters when it beats the stored best. Rank and topK both read from the standings ordered by (bestTime, team).",
-      "Ordering by the (time, team) pair gives the alphabetical tie-break for free. Re-sorting on every query is acceptable here — name the O(log n) order-statistic upgrade rather than hand-waving it.",
+      "One doubly-linked list per room, exactly the LRU-cache trick: advance() unlinks a node and appends it to the next room's tail",
+      "leaderboard() walks rooms from the highest occupied one down. No sorting, no heap.",
     ],
     solution: escapeRoomLeaderboardSolution,
     judge: {
-      starterCode: `class Leaderboard {
-  constructor() {
+      starterCode: `class EscapeRoomGame {
+  /**
+   * @param {number[]} playerIds  every player, fixing the room-0 tie order
+   * @param {number} maxRoom      rooms are numbered 0..maxRoom
+   */
+  constructor(playerIds, maxRoom) {
     // Your state here
   }
 
-  /** Record an attempt; only improvements change the standings. */
-  addResult(team, time) {
+  /** Move the player forward one room; at the last room, a no-op. O(1). */
+  advance(playerId) {
     // Your code here
   }
 
-  /** @returns {number} 1-indexed rank by best time (ties alphabetical), or -1 */
-  rank(team) {
+  /** @returns {number} the player's current room. O(1). */
+  getRoom(playerId) {
     return -1;
   }
 
-  /** @returns {string[]} the k best team names, in rank order */
-  topK(k) {
+  /** @returns {number[]} up to k ids: room desc, ties by earliest entry. O(N + k). */
+  leaderboard(k) {
     return [];
   }
 }
 `,
       entry: "__runOperations",
       driverCode: `function __runOperations(operations, args) {
-  let lb = null;
+  let game = null;
   const out = [];
   for (let i = 0; i < operations.length; i++) {
-    if (operations[i] === "Leaderboard") {
-      lb = new Leaderboard(...args[i]);
+    if (operations[i] === "EscapeRoomGame") {
+      game = new EscapeRoomGame(...args[i]);
       out.push(null);
     } else {
-      out.push(lb[operations[i]](...args[i]) ?? null);
+      out.push(game[operations[i]](...args[i]) ?? null);
     }
   }
   return out;
 }`,
       tests: [
         {
-          name: "Ties break alphabetically",
+          name: "Worked example",
           input: [
-            ["Leaderboard", "addResult", "addResult", "addResult", "rank", "rank", "rank", "topK"],
-            [[], ["alpha", 300], ["beta", 300], ["gamma", 250], ["alpha"], ["beta"], ["gamma"], [2]],
+            ["EscapeRoomGame", "leaderboard", "advance", "advance", "leaderboard", "advance", "leaderboard"],
+            [[[7, 3, 9], 2], [3], [3], [9], [2], [9], [3]],
           ],
-          expected: [null, null, null, null, 2, 3, 1, ["gamma", "alpha"]],
+          expected: [null, [7, 3, 9], null, null, [3, 9], null, [9, 3, 7]],
         },
         {
-          name: "Improvements move ranks, regressions are ignored",
+          name: "Room 0 order is the constructor's",
           input: [
-            ["Leaderboard", "addResult", "addResult", "rank", "addResult", "rank", "addResult", "rank", "topK"],
-            [[], ["x", 100], ["y", 90], ["x"], ["x", 80], ["x"], ["x", 999], ["x"], [5]],
+            ["EscapeRoomGame", "leaderboard", "getRoom"],
+            [[[5, 1, 4, 2], 3], [4], [4]],
           ],
-          expected: [null, null, null, 2, null, 1, null, 1, ["x", "y"]],
+          expected: [null, [5, 1, 4, 2], 0],
         },
         {
-          name: "Unknown team and empty board",
+          name: "Ties go to the earliest arrival, not the smallest id",
           input: [
-            ["Leaderboard", "rank", "topK"],
-            [[], ["ghost"], [3]],
+            ["EscapeRoomGame", "advance", "advance", "leaderboard", "getRoom", "getRoom"],
+            [[[10, 20, 30], 2], [30], [10], [3], [30], [20]],
           ],
-          expected: [null, -1, []],
+          expected: [null, null, null, [30, 10, 20], 1, 0],
         },
         {
-          name: "topK past the field returns everyone",
+          name: "Advancing at the last room is a no-op",
           input: [
-            ["Leaderboard", "addResult", "addResult", "topK", "rank"],
-            [[], ["a", 50], ["b", 60], [10], ["b"]],
+            ["EscapeRoomGame", "advance", "advance", "advance", "leaderboard", "getRoom"],
+            [[[1, 2], 1], [1], [2], [1], [2], [1]],
           ],
-          expected: [null, null, null, ["a", "b"], 2],
+          expected: [null, null, null, null, [1, 2], 1],
         },
         {
-          name: "Equal re-attempt changes nothing",
+          name: "k truncates mid-room",
           input: [
-            ["Leaderboard", "addResult", "addResult", "rank", "addResult", "rank", "topK"],
-            [[], ["zeta", 100], ["alpha", 100], ["zeta"], ["zeta", 100], ["zeta"], [2]],
+            ["EscapeRoomGame", "advance", "advance", "leaderboard", "leaderboard"],
+            [[[1, 2, 3, 4], 2], [2], [4], [3], [1]],
           ],
-          expected: [null, null, null, 2, null, 2, ["alpha", "zeta"]],
+          expected: [null, null, null, [2, 4, 1], [2]],
         },
         {
-          name: "An improvement breaks a tie",
+          name: "Empty rooms in between are skipped",
           input: [
-            ["Leaderboard", "addResult", "addResult", "rank", "addResult", "rank", "topK"],
-            [[], ["a", 100], ["b", 100], ["b"], ["b", 99], ["b"], [2]],
+            ["EscapeRoomGame", "advance", "advance", "advance", "advance", "leaderboard", "getRoom"],
+            [[[8, 6], 4], [8], [8], [8], [8], [2], [8]],
           ],
-          expected: [null, null, null, 2, null, 1, ["b", "a"]],
+          expected: [null, null, null, null, null, [8, 6], 4],
+        },
+        {
+          name: "Single player, capped at the last room",
+          input: [
+            ["EscapeRoomGame", "leaderboard", "advance", "advance", "advance", "getRoom", "leaderboard"],
+            [[[42], 2], [1], [42], [42], [42], [42], [1]],
+          ],
+          expected: [null, [42], null, null, null, 2, [42]],
+        },
+        {
+          name: "The lead changes hands",
+          input: [
+            ["EscapeRoomGame", "leaderboard", "advance", "leaderboard", "advance", "advance", "leaderboard", "advance", "leaderboard"],
+            [[[1, 2], 3], [1], [2], [1], [1], [1], [1], [2], [2]],
+          ],
+          expected: [null, [1], null, [2], null, null, [1], null, [1, 2]],
+        },
+        {
+          name: "A vacated room can be re-entered",
+          input: [
+            ["EscapeRoomGame", "advance", "advance", "advance", "leaderboard", "getRoom"],
+            [[[3, 7], 2], [3], [3], [7], [2], [7]],
+          ],
+          expected: [null, null, null, null, [3, 7], 1],
+        },
+        {
+          name: "Ids near the 1e9 bound",
+          input: [
+            ["EscapeRoomGame", "advance", "leaderboard"],
+            [[[1000000000, 999999999], 1], [999999999], [2]],
+          ],
+          expected: [null, null, [999999999, 1000000000]],
         },
       ],
     },

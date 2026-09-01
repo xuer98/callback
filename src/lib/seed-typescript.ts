@@ -247,36 +247,37 @@ function settleFromStream(readChunk: () => string): number {
   },
   "escape-room-leaderboard": {
     entry: "__runOperations",
-    starterCode: `class Leaderboard {
-  constructor() {
+    starterCode: `class EscapeRoomGame {
+  /** playerIds fixes the room-0 tie order; rooms run 0..maxRoom. */
+  constructor(playerIds: number[], maxRoom: number) {
     // Your state here
   }
 
-  /** Record an attempt; only improvements change the standings. */
-  addResult(team: string, time: number): void {
+  /** Move the player forward one room; at the last room, a no-op. O(1). */
+  advance(playerId: number): void {
     // Your code here
   }
 
-  /** @returns 1-indexed rank by best time (ties alphabetical), or -1 */
-  rank(team: string): number {
+  /** The player's current room. O(1). */
+  getRoom(playerId: number): number {
     return -1;
   }
 
-  /** @returns the k best team names, in rank order */
-  topK(k: number): string[] {
+  /** Up to k ids: room desc, ties by earliest entry. O(N + k). */
+  leaderboard(k: number): number[] {
     return [];
   }
 }
 `,
     driverCode: `function __runOperations(operations, args) {
-  let lb = null;
+  let game = null;
   const out = [];
   for (let i = 0; i < operations.length; i++) {
-    if (operations[i] === "Leaderboard") {
-      lb = new Leaderboard(...args[i]);
+    if (operations[i] === "EscapeRoomGame") {
+      game = new EscapeRoomGame(...args[i]);
       out.push(null);
     } else {
-      out.push(lb[operations[i]](...args[i]) ?? null);
+      out.push(game[operations[i]](...args[i]) ?? null);
     }
   }
   return out;

@@ -295,44 +295,44 @@ class Solution {
   },
   "escape-room-leaderboard": {
     entry: "__call",
-    starterCode: `class Leaderboard {
-    Leaderboard() {
-        // Your state here
+    starterCode: `class EscapeRoomGame {
+    EscapeRoomGame(int[] playerIds, int maxRoom) {
+        // Rooms run 0..maxRoom; playerIds fixes the room-0 tie order.
     }
 
-    void addResult(String team, int time) {
-        // Record an attempt; only improvements change the standings.
+    void advance(int playerId) {
+        // Move the player forward one room; at the last room, a no-op. O(1).
     }
 
-    int rank(String team) {
-        // 1-indexed rank by best time (ties alphabetical), or -1.
+    int getRoom(int playerId) {
+        // The player's current room. O(1).
         return -1;
     }
 
-    List<String> topK(int k) {
-        // The k best team names, in rank order.
-        return new ArrayList<String>();
+    List<Integer> leaderboard(int k) {
+        // Up to k ids: room desc, ties by earliest entry. O(N + k).
+        return new ArrayList<Integer>();
     }
 }
 `,
     driverCode: `    static Json __call(List<Json> a) {
         List<Json> ops = a.get(0).list();
         List<Json> args = a.get(1).list();
-        Leaderboard lb = null;
+        EscapeRoomGame game = null;
         List<Json> out = new ArrayList<Json>();
         for (int i = 0; i < ops.size(); i++) {
             String op = ops.get(i).str();
             List<Json> x = args.get(i).list();
-            if (op.equals("Leaderboard")) {
-                lb = new Leaderboard();
+            if (op.equals("EscapeRoomGame")) {
+                game = new EscapeRoomGame(x.get(0).ints(), x.get(1).asInt());
                 out.add(Json.NULL);
-            } else if (op.equals("addResult")) {
-                lb.addResult(x.get(0).str(), x.get(1).asInt());
+            } else if (op.equals("advance")) {
+                game.advance(x.get(0).asInt());
                 out.add(Json.NULL);
-            } else if (op.equals("rank")) {
-                out.add(Json.of(lb.rank(x.get(0).str())));
+            } else if (op.equals("getRoom")) {
+                out.add(Json.of(game.getRoom(x.get(0).asInt())));
             } else {
-                out.add(Json.ofStringList(lb.topK(x.get(0).asInt())));
+                out.add(Json.ofIntList(game.leaderboard(x.get(0).asInt())));
             }
         }
         return Json.ofList(out);

@@ -195,33 +195,33 @@ def settle_from_stream(read_chunk):
   },
   "escape-room-leaderboard": {
     entry: "__run_operations",
-    starterCode: `class Leaderboard:
-    def __init__(self):
-        # Your state here
+    starterCode: `class EscapeRoomGame:
+    def __init__(self, player_ids, max_room):
+        # Rooms run 0..max_room; player_ids fixes the room-0 tie order.
         pass
 
-    def add_result(self, team, time):
-        """Record an attempt; only improvements change the standings."""
+    def advance(self, player_id):
+        """Move the player forward one room; at the last room, a no-op. O(1)."""
         pass
 
-    def rank(self, team):
-        """1-indexed rank by best time (ties alphabetical), or -1."""
+    def get_room(self, player_id):
+        """The player's current room. O(1)."""
         return -1
 
-    def top_k(self, k):
-        """The k best team names, in rank order."""
+    def leaderboard(self, k):
+        """Up to k ids: room desc, ties by earliest entry. O(N + k)."""
         return []
 `,
     driverCode: `def __run_operations(operations, args):
-    methods = {"addResult": "add_result", "rank": "rank", "topK": "top_k"}
-    lb = None
+    methods = {"advance": "advance", "getRoom": "get_room", "leaderboard": "leaderboard"}
+    game = None
     out = []
     for op, a in zip(operations, args):
-        if op == "Leaderboard":
-            lb = Leaderboard(*a)
+        if op == "EscapeRoomGame":
+            game = EscapeRoomGame(*a)
             out.append(None)
         else:
-            out.append(getattr(lb, methods[op])(*a))
+            out.append(getattr(game, methods[op])(*a))
     return out
 `,
   },

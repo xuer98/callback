@@ -271,48 +271,48 @@ int settleFromStream(function<string()> readChunk) {
   },
   "escape-room-leaderboard": {
     entry: "__call",
-    starterCode: `class Leaderboard {
+    starterCode: `class EscapeRoomGame {
 public:
-    Leaderboard() {
-        // Your state here
+    EscapeRoomGame(const vector<int>& playerIds, int maxRoom) {
+        // Rooms run 0..maxRoom; playerIds fixes the room-0 tie order.
     }
 
-    void addResult(const string& team, int time) {
-        // Record an attempt; only improvements change the standings.
+    void advance(int playerId) {
+        // Move the player forward one room; at the last room, a no-op. O(1).
     }
 
-    int rank(const string& team) {
-        // 1-indexed rank by best time (ties alphabetical), or -1.
+    int getRoom(int playerId) {
+        // The player's current room. O(1).
         return -1;
     }
 
-    vector<string> topK(int k) {
-        // The k best team names, in rank order.
-        return vector<string>();
+    vector<int> leaderboard(int k) {
+        // Up to k ids: room desc, ties by earliest entry. O(N + k).
+        return vector<int>();
     }
 };
 `,
     driverCode: `Json __call(const vector<Json>& a) {
     const vector<Json>& ops = a[0].list();
     const vector<Json>& args = a[1].list();
-    Leaderboard* lb = 0;
+    EscapeRoomGame* game = 0;
     vector<Json> out;
     for (size_t i = 0; i < ops.size(); i++) {
         const string& op = ops[i].str();
         const vector<Json>& x = args[i].list();
-        if (op == "Leaderboard") {
-            lb = new Leaderboard();
+        if (op == "EscapeRoomGame") {
+            game = new EscapeRoomGame(x[0].ints(), x[1].asInt());
             out.push_back(Json::ofNull());
-        } else if (op == "addResult") {
-            lb->addResult(x[0].str(), x[1].asInt());
+        } else if (op == "advance") {
+            game->advance(x[0].asInt());
             out.push_back(Json::ofNull());
-        } else if (op == "rank") {
-            out.push_back(Json::of(lb->rank(x[0].str())));
+        } else if (op == "getRoom") {
+            out.push_back(Json::of(game->getRoom(x[0].asInt())));
         } else {
-            out.push_back(Json::ofStrings(lb->topK(x[0].asInt())));
+            out.push_back(Json::ofInts(game->leaderboard(x[0].asInt())));
         }
     }
-    delete lb;
+    delete game;
     return Json::ofList(out);
 }`,
   },
