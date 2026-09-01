@@ -100,6 +100,36 @@ const EXTENSIONS = {
   go: [go(), EDITOR_KEYMAP, indentUnit.of(INDENT.go)],
 } satisfies Record<Language, unknown[]>;
 
+// Header action icons: 16-box paths so the buttons stay crisp at text size.
+const PLAY_ICON = "M5 3.2v9.6L13 8z";
+const UPLOAD_ICON = "M8 10.5V3.8M4.8 7 8 3.8 11.2 7M3.5 12.5h9";
+const RESET_ICON =
+  "M2.75 8a5.25 5.25 0 1 0 5.25-5.25 5.69 5.69 0 0 0-3.93 1.6L2.75 5.67M2.75 2.75v2.92h2.92";
+const FULLSCREEN_ICON =
+  "M6 2H3.5A1.5 1.5 0 0 0 2 3.5V6M10 2h2.5A1.5 1.5 0 0 1 14 3.5V6M6 14H3.5A1.5 1.5 0 0 1 2 12.5V10M10 14h2.5a1.5 1.5 0 0 0 1.5-1.5V10";
+const EXIT_FULLSCREEN_ICON =
+  "M2 6h2.5A1.5 1.5 0 0 0 6 4.5V2M14 6h-2.5A1.5 1.5 0 0 1 10 4.5V2M2 10h2.5A1.5 1.5 0 0 1 6 11.5V14M14 10h-2.5a1.5 1.5 0 0 0-1.5 1.5V14";
+
+function ActionIcon({ d, filled = false }: { d: string; filled?: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5"
+      fill={filled ? "currentColor" : "none"}
+      stroke={filled ? "none" : "currentColor"}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
+const ICON_BUTTON =
+  "h-6 w-6 items-center justify-center rounded-md border border-zinc-800 text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-200 disabled:opacity-60";
+
 const subscribeNoop = () => () => {};
 
 export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
@@ -142,6 +172,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   const [bottomTab, setBottomTab] = useState<
     "testcase" | "result" | "submissions"
   >("testcase");
+  const [fullscreen, setFullscreen] = useState(false);
   // null until the first load; Submit prepends once loaded.
   const [submissions, setSubmissions] = useState<AlgoSubmission[] | null>(null);
   const { signedIn, reportRun } = useProgress();
@@ -200,6 +231,17 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   useEffect(() => () => {
     if (noteTimer.current) clearTimeout(noteTimer.current);
   }, []);
+
+  // Fullscreen is a plain fixed overlay, so Esc is ours to handle. The
+  // listener bubbles (no capture): CodeMirror popups see the key first.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fullscreen]);
 
   // Prefer the Judge0 sandbox; fall back to the in-browser runner when
   // the server route reports it isn't configured (or is unreachable).
@@ -374,7 +416,13 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
       initial={0.62}
       min={0.25}
       max={0.85}
-      className="min-h-0 flex-1"
+      // Fullscreen restyles this same split into a viewport overlay — the
+      // editor keeps its state because nothing remounts.
+      className={
+        fullscreen
+          ? "fixed inset-0 z-50 overflow-y-auto bg-zinc-950 p-3 lg:overflow-hidden"
+          : "min-h-0 flex-1"
+      }
       first={
         <section className="flex min-h-[420px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
           <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
@@ -421,29 +469,64 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
                 {note ?? ""}
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={format}
+                aria-label="Format code"
+                title={`Format code (${shortcutHint("format")})`}
+                className={`inline-flex ${ICON_BUTTON}`}
+              >
+                <span aria-hidden className="font-mono text-[11px] leading-none">
+                  {"{}"}
+                </span>
+              </button>
               <button
                 onClick={reset}
                 disabled={running}
-                className="rounded-md border border-zinc-800 px-3 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-200 disabled:opacity-60"
+                aria-label="Reset to the starter code"
+                title="Reset to the starter code"
+                className={`inline-flex ${ICON_BUTTON}`}
               >
-                Reset
+                <ActionIcon d={RESET_ICON} />
               </button>
               <button
                 onClick={run}
                 disabled={running}
                 title={`Run all tests (${shortcutHint("run")})`}
-                className="rounded-md bg-indigo-500 px-4 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-default disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-md bg-indigo-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-indigo-400 disabled:cursor-default disabled:opacity-60"
               >
+                <ActionIcon d={PLAY_ICON} filled />
                 {running && !submitting ? "Running\u2026" : "Run"}
               </button>
               <button
                 onClick={submit}
                 disabled={running}
                 title={`Grade and save the attempt (${shortcutHint("submit")})`}
-                className="rounded-md bg-emerald-600 px-4 py-1 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-default disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-emerald-500 disabled:cursor-default disabled:opacity-60"
               >
+                <ActionIcon d={UPLOAD_ICON} />
                 {submitting ? "Submitting\u2026" : "Submit"}
+              </button>
+              {/* Hidden below lg (the stacked layout already fills the
+                  screen) \u2014 except while active, so exit is always in reach
+                  when the window narrows mid-fullscreen. */}
+              <button
+                onClick={() => setFullscreen((current) => !current)}
+                aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+                title={
+                  fullscreen
+                    ? "Exit fullscreen (Esc)"
+                    : "Expand the workspace to fill the window"
+                }
+                className={
+                  fullscreen
+                    ? `inline-flex ${ICON_BUTTON}`
+                    : `hidden lg:inline-flex ${ICON_BUTTON}`
+                }
+              >
+                <ActionIcon
+                  d={fullscreen ? EXIT_FULLSCREEN_ICON : FULLSCREEN_ICON}
+                />
               </button>
             </div>
           </header>
