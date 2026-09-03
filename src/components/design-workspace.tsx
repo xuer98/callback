@@ -103,6 +103,9 @@ export function DesignWorkspace({ slug }: { slug: string }) {
   const writeupKey = storageKeyFor(slug, WRITEUP_SLOT);
 
   const [tab, setTab] = useState<Tab>("board");
+  // The write-up is authored as markdown; Preview renders it with the same
+  // RichText used everywhere else, so what you see is what a reviewer sees.
+  const [writeupView, setWriteupView] = useState<"write" | "preview">("write");
   const [writeup, setWriteup] = useState(
     () => readStored(storageKeyFor(slug, WRITEUP_SLOT)) ?? "",
   );
@@ -259,15 +262,51 @@ export function DesignWorkspace({ slug }: { slug: string }) {
           <Whiteboard slug={slug} />
         </Pane>
         <Pane active={tab === "writeup"}>
-          <textarea
-            value={writeup}
-            onChange={(e) => onWriteupChange(e.target.value)}
-            spellCheck={false}
-            placeholder={
-              "Explain the design like you would to your interviewer: requirements and scope, scale estimates, API and data model, how the pieces talk, and the tradeoffs you're making.\n\nThe review grades this together with the whiteboard."
-            }
-            className="h-full w-full resize-none bg-transparent p-4 text-[13px] leading-6 text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
-          />
+          <div className="flex h-full flex-col">
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800/60 px-3 py-1.5">
+              <div className="flex gap-1.5">
+                <WriteupModeButton
+                  active={writeupView === "write"}
+                  onClick={() => setWriteupView("write")}
+                >
+                  Write
+                </WriteupModeButton>
+                <WriteupModeButton
+                  active={writeupView === "preview"}
+                  onClick={() => setWriteupView("preview")}
+                >
+                  Preview
+                </WriteupModeButton>
+              </div>
+              <span className="text-[11px] text-zinc-600">
+                Markdown — headings, lists, tables, code blocks
+              </span>
+            </div>
+            {writeupView === "write" ? (
+              <textarea
+                value={writeup}
+                onChange={(e) => onWriteupChange(e.target.value)}
+                spellCheck={false}
+                placeholder={
+                  "Explain the design like you would to your interviewer: requirements and scope, scale estimates, API and data model, how the pieces talk, and the tradeoffs you're making.\n\nMarkdown is supported — structure it like a real design doc.\n\nThe review grades this together with the whiteboard."
+                }
+                className="min-h-0 w-full flex-1 resize-none bg-transparent p-4 text-[13px] leading-6 text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
+              />
+            ) : (
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                {writeup.trim() === "" ? (
+                  <p className="text-sm leading-6 text-zinc-600">
+                    Nothing to preview yet — write something first.
+                  </p>
+                ) : (
+                  <RichText
+                    text={writeup}
+                    className="text-sm leading-6 text-zinc-300"
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </Pane>
         <Pane active={tab === "feedback"}>
           <div className="h-full overflow-y-auto p-4">
@@ -318,6 +357,29 @@ export function DesignWorkspace({ slug }: { slug: string }) {
         </Pane>
       </div>
     </section>
+  );
+}
+
+function WriteupModeButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+        active
+          ? "bg-zinc-800 text-zinc-100"
+          : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
