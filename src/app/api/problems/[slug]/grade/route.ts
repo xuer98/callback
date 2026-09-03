@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic, { APIError } from "@anthropic-ai/sdk";
 import { and, count, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -62,6 +62,13 @@ const GENERIC_RUBRIC = [
 
 function jsonError(status: number, error: string): Response {
   return Response.json({ error }, { status });
+}
+
+/** The API's own one-line reason, e.g. "invalid x-api-key" — no secrets. */
+function upstreamDetail(err: APIError): string {
+  const body = err.error as { error?: { message?: unknown } } | undefined;
+  const message = body?.error?.message;
+  return typeof message === "string" ? message : err.message;
 }
 
 interface GradeBody {
@@ -183,21 +190,45 @@ export async function POST(
 
   const client = new Anthropic();
   const aborter = new AbortController();
-  const stream = client.messages.stream(
-    {
-      model: MODEL,
-      max_tokens: MAX_OUTPUT_TOKENS,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [{ role: "user", content }],
-    },
-    { signal: aborter.signal },
-  );
+  // `stream: true` resolves once response headers arrive, so a request the
+  // API rejects outright — bad key, no access to the model, empty credits,
+  // rate limit — surfaces here as a real HTTP error with its reason, instead
+  // of a 200 stream that dies on its first read.
+  let upstream: Awaited<ReturnType<typeof client.messages.create>> & AsyncIterable<Anthropic.RawMessageStreamEvent>;
+  try {
+    upstream = await client.messages.create(
+      {
+        model: MODEL,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        system: [
+          {
+            type: "text",
+            text: SYSTEM_PROMPT,
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        messages: [{ role: "user", content }],
+        stream: true,
+      },
+      { signal: aborter.signal },
+    );
+  } catch (err) {
+    console.error("AI review request failed before streaming:", err);
+    if (err instanceof APIError) {
+      const hint =
+        err.status === 401
+          ? "the server's ANTHROPIC_API_KEY was rejected"
+          : err.status === 404
+            ? `this API key can't use the review model (${MODEL})`
+            : err.status === 429
+              ? "the review backend is rate-limited right now"
+              : (err.status ?? 0) >= 500
+                ? "the review backend is overloaded — try again in a minute"
+                : "the review backend rejected the request";
+      return jsonError(502, `Review failed — ${hint}. (${upstreamDetail(err)})`);
+    }
+    return jsonError(502, "Review failed — couldn't reach the review backend.");
+  }
 
   const encoder = new TextEncoder();
   const responseBody = new ReadableStream<Uint8Array>({
@@ -205,43 +236,53 @@ export async function POST(
       /** Text the model actually produced — the persistence gate. */
       let reviewText = "";
       let feedback = "";
+      let model = MODEL;
+      let stopReason: string | null = null;
+      let inputTokens = 0;
+      let outputTokens = 0;
       try {
-        for await (const event of stream) {
-          if (
+        for await (const event of upstream) {
+          if (event.type === "message_start") {
+            const usage = event.message.usage;
+            model = event.message.model;
+            inputTokens =
+              usage.input_tokens +
+              (usage.cache_read_input_tokens ?? 0) +
+              (usage.cache_creation_input_tokens ?? 0);
+          } else if (
             event.type === "content_block_delta" &&
             event.delta.type === "text_delta"
           ) {
             reviewText += event.delta.text;
             feedback += event.delta.text;
             controller.enqueue(encoder.encode(event.delta.text));
+          } else if (event.type === "message_delta") {
+            stopReason = event.delta.stop_reason ?? stopReason;
+            outputTokens = event.usage.output_tokens;
           }
         }
-        const final = await stream.finalMessage();
-        if (final.stop_reason === "refusal") {
+        if (stopReason === "refusal") {
           const note =
             "\n\n---\n*The reviewer declined to grade this submission.*";
           feedback += note;
           controller.enqueue(encoder.encode(note));
         }
         if (reviewText.trim() !== "") {
-          const usage = final.usage;
           await db.insert(schema.designSubmissions).values({
             userId,
             problemId: problem.id,
             writeup,
             feedback,
-            model: final.model,
-            inputTokens:
-              usage.input_tokens +
-              (usage.cache_read_input_tokens ?? 0) +
-              (usage.cache_creation_input_tokens ?? 0),
-            outputTokens: usage.output_tokens,
+            model,
+            inputTokens,
+            outputTokens,
           });
         }
         controller.close();
-      } catch {
+      } catch (err) {
         // Mid-stream failure (or client gone): surface it in-band if anyone
         // is still listening, and don't persist the partial review.
+        console.error("AI review stream failed mid-review:", err);
         try {
           controller.enqueue(
             encoder.encode(
