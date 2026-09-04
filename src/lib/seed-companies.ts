@@ -163,15 +163,16 @@ export const companies: Company[] = ([] = [
   },
   {
     slug: "anduril",
-    name: "Anduril",
+    name: "Anduril Industries",
     blurb:
-      "Defense-technology loops with systems depth — C++ or Rust rounds, real-time constraints, and questions about software that has to work in the field.",
+      "LeetCode-medium problems wrapped in defense stories — drones, sensors, border towers — with deliberately vague prompts that grow in phases. Clarifying constraints and extending working code is what gets graded; senior screens add “what if the input were massive?”",
     process: [
-      "Recruiter screen",
-      "Technical phone screen",
-      "Onsite: two systems coding rounds",
-      "Architecture round on real-time constraints",
-      "Mission and team conversation",
+      "Recruiter screen: 30 min — why Anduril, comfort with defense work",
+      "Technical phone screen: 60 min on HackerRank CodePair — one multi-phase medium (~10 min intro, ~40 coding, ~10 for your questions)",
+      "Some teams add a hiring-manager call: resume plus role-specific coding",
+      "Final loop, ~4 × 60 min: two coding rounds in the same multi-phase style",
+      "System design / OOD round (radar-tower model, data-structure design)",
+      "Behavioral with senior staff: line-by-line resume drill",
     ],
   },
   {

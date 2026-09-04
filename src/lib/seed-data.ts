@@ -1,3 +1,7 @@
+import { andurilProblemsA } from "./seed-anduril-a";
+import { andurilProblemsB } from "./seed-anduril-b";
+import { andurilProblemsC } from "./seed-anduril-c";
+import { andurilProblemsD } from "./seed-anduril-d";
 import { frontendProblems } from "./seed-frontend";
 import { pinterestProblemsA } from "./seed-pinterest-a";
 import { pinterestProblemsB } from "./seed-pinterest-b";
@@ -2705,6 +2709,10 @@ function debounce(fn, wait) {
   ...designProblemsB,
   ...designProblemsC,
   ...designProblemsD,
+  ...andurilProblemsA,
+  ...andurilProblemsB,
+  ...andurilProblemsC,
+  ...andurilProblemsD,
 ];
 
 export const tracks: Track[] = [
