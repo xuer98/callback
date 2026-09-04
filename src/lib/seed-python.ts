@@ -775,4 +775,361 @@ def count_originals(s):
     return res
 `,
   },
+  // -- Anduril bank ----------------------------------------------------------
+  "team-photo-arrangement": {
+    entry: "__judge_team_photo",
+    starterCode: `def can_stand_behind(front, back):
+    """Phase 1: equal sizes — does every back player clear the front player ahead?"""
+    # Your code here
+    return False
+
+
+def photo_order(team_a, team_b):
+    """Phase 1: ("A", "B") if team A stands in front, ("B", "A") if B does, None if neither."""
+    return None
+
+
+def can_arrange_with_gaps(front, back):
+    """Phase 2: different sizes, empty slots allowed (rows have max(len) slots)."""
+    return False
+
+
+def arrange_with_gaps(front, back):
+    """Phase 3: (front_row, back_row) with None for empty slots, or None when impossible."""
+    return None
+`,
+    driverCode: `def __judge_team_photo(kind, front, back):
+    if kind == "behind":
+        return can_stand_behind(front, back)
+    if kind == "order":
+        result = photo_order(front, back)
+        return None if result is None else list(result)
+    if kind == "gaps":
+        return can_arrange_with_gaps(front, back)
+    rows = arrange_with_gaps(front, back)
+    if rows is None:
+        return "impossible"
+    if not isinstance(rows, (list, tuple)) or len(rows) != 2:
+        return "not two rows"
+    row_f, row_b = rows
+    n = max(len(front), len(back))
+    if len(row_f) != n or len(row_b) != n:
+        return "wrong row length"
+    if sorted(h for h in row_f if h is not None) != sorted(front):
+        return "front row changed"
+    if sorted(h for h in row_b if h is not None) != sorted(back):
+        return "back row changed"
+    for i, (f, b) in enumerate(zip(row_f, row_b)):
+        if f is not None and b is not None and not b > f:
+            return "blocked at slot " + str(i)
+    return "valid"
+`,
+  },
+  "largest-sensor-distance": {
+    entry: "__judge_sensors",
+    starterCode: `def largest_sensor_distance(targets, sensors):
+    """Largest distance from any target to its closest sensor. Neither list is
+    sorted. Return 0 when either list is empty."""
+    # Your code here
+    return 0
+
+
+def min_towers_to_cover(crossings, r):
+    """Phase 3: fewest towers of range r (covering [x - r, x + r]) that cover every crossing."""
+    return 0
+`,
+    driverCode: `def __judge_sensors(kind, a, b):
+    if kind == "largest":
+        return largest_sensor_distance(a, b)
+    return min_towers_to_cover(a, b)
+`,
+  },
+  "surveillance-footage": {
+    entry: "__judge_footage",
+    starterCode: `def min_clips(clips, T):
+    """Fewest clips whose union covers [0, T], or -1 when impossible."""
+    # Your code here
+    return -1
+
+
+def min_clips_with_choice(clips, T):
+    """Phase 2: the chosen clips themselves (any minimal set), or None when impossible."""
+    return None
+
+
+def uncovered_gaps(clips, T):
+    """Phase 3: every [start, end] sub-interval of [0, T] no clip covers, in order."""
+    return []
+`,
+    driverCode: `def __judge_footage(kind, clips, T):
+    if kind == "count":
+        return min_clips(clips, T)
+    if kind == "gaps":
+        return [list(g) for g in uncovered_gaps(clips, T)]
+    known = {tuple(c) for c in clips}
+    chosen = min_clips_with_choice(clips, T)
+    if chosen is None:
+        return "impossible"
+    if not isinstance(chosen, (list, tuple)):
+        return "not a list"
+    for c in chosen:
+        if not isinstance(c, (list, tuple)) or len(c) != 2 or tuple(c) not in known:
+            return "unknown clip"
+    covered = 0
+    for s, e in sorted(chosen):
+        if s <= covered:
+            covered = max(covered, e)
+    return {"clips": len(chosen), "covers": covered >= T}
+`,
+  },
+  "shortest-path-with-obstacles": {
+    entry: "__judge_paths",
+    starterCode: `def euclid(p, q):
+    """Phases 1-2: straight-line distance between two points of any dimension."""
+    # Your code here
+    return 0.0
+
+
+def shortest_path_grid(grid, src, dst, diagonal=False):
+    """Phase 3: grid of 0 (free) / 1 (blocked); src and dst are (row, col) tuples.
+    Steps along the shortest path (8-directional when diagonal), or -1."""
+    return -1
+
+
+def astar_grid(grid, src, dst):
+    """Phase 4: the same answer as BFS, found with an admissible heuristic."""
+    return -1
+
+
+def dijkstra_grid(cost, src, dst):
+    """Phase 5: cost[r][c] is the cost to enter a cell, -1 = obstacle. Cheapest path cost, or -1."""
+    return -1
+`,
+    driverCode: `def __judge_paths(kind, a, b, c=None, d=None):
+    if kind == "euclid":
+        return euclid(tuple(a), tuple(b))
+    if kind == "grid":
+        return shortest_path_grid(a, tuple(b), tuple(c), bool(d))
+    if kind == "astar":
+        return astar_grid(a, tuple(b), tuple(c))
+    return dijkstra_grid(a, tuple(b), tuple(c))
+`,
+  },
+  "sensor-network-cycles": {
+    entry: "__judge_network",
+    starterCode: `def has_cycle_directed(n, edges):
+    """Directed edges (u, v) over sensors 0..n-1: is there a cycle?"""
+    # Your code here
+    return False
+
+
+def topo_order(n, edges):
+    """Directed: a processing order that respects every edge, or [] when there's a cycle."""
+    return []
+
+
+def undirected_cycle_and_components(n, edges):
+    """Undirected: (has_cycle, component_count)."""
+    return (False, 0)
+`,
+    driverCode: `def __judge_network(kind, n, edges):
+    if kind == "cycle":
+        return has_cycle_directed(n, edges)
+    if kind == "components":
+        return list(undirected_cycle_and_components(n, edges))
+    order = topo_order(n, edges)
+    if not isinstance(order, (list, tuple)):
+        return "not a list"
+    if len(order) == 0:
+        return "empty"
+    if sorted(order) != list(range(n)):
+        return "not a permutation"
+    pos = {v: i for i, v in enumerate(order)}
+    for u, v in edges:
+        if pos[u] > pos[v]:
+            return "violates edge " + str(u) + "->" + str(v)
+    return "valid-order"
+`,
+  },
+  "rod-cutting-profit": {
+    entry: "__judge_rod",
+    starterCode: `def rod_cutting(prices, n):
+    """(revenue, piece_lengths) for the best way to cut a rod of length n
+    (prices[i] sells a piece of length i + 1)."""
+    # Your code here
+    return (0, [])
+
+
+def rod_cutting_with_cost(prices, n, cut_cost):
+    """Phase 2: every cut costs cut_cost; selling the rod whole makes zero cuts."""
+    return 0
+
+
+def rod_cutting_limited(prices, n, max_pieces):
+    """Phase 3: at most max_pieces pieces."""
+    return 0
+`,
+    driverCode: `def __judge_rod(kind, prices, n, extra=None):
+    if kind == "cost":
+        return rod_cutting_with_cost(prices, n, extra)
+    if kind == "limited":
+        return rod_cutting_limited(prices, n, extra)
+    result = rod_cutting(prices, n)
+    if not isinstance(result, (list, tuple)) or len(result) != 2:
+        return "expected (revenue, cuts)"
+    revenue, cuts = result
+    if not isinstance(cuts, (list, tuple)):
+        return "cuts is not a list"
+    total = length = 0
+    for piece in cuts:
+        if not isinstance(piece, int) or piece < 1 or piece > len(prices):
+            return "bad piece " + str(piece)
+        total += prices[piece - 1]
+        length += piece
+    return {"revenue": revenue, "cutsValid": length == n and total == revenue}
+`,
+  },
+  "brace-expansion": {
+    entry: "__judge_braces",
+    starterCode: `def brace_expansion(s):
+    """Flat groups only: "{a,b}c{d,e}f" -> every string it produces, sorted."""
+    # Your code here
+    return []
+
+
+def brace_expansion_ii(expression):
+    """Phase 2: groups nest and commas union whole sub-expressions. Sorted, deduplicated."""
+    return []
+`,
+    driverCode: `def __judge_braces(kind, s):
+    if kind == "flat":
+        return brace_expansion(s)
+    return brace_expansion_ii(s)
+`,
+  },
+  "transactional-kv-store": {
+    entry: "__run_operations",
+    starterCode: `class TransactionalKV:
+    def __init__(self):
+        # Your state here
+        pass
+
+    def get(self, key):
+        """The current value, or None."""
+        return None
+
+    def set(self, key, value):
+        pass
+
+    def delete(self, key):
+        pass
+
+    def begin(self):
+        """Open a (possibly nested) transaction."""
+        pass
+
+    def commit(self):
+        """False when no transaction is open."""
+        return False
+
+    def rollback(self):
+        """False when no transaction is open."""
+        return False
+`,
+    driverCode: `def __run_operations(operations, args):
+    kv = None
+    out = []
+    for op, a in zip(operations, args):
+        if op == "TransactionalKV":
+            kv = TransactionalKV()
+            out.append(None)
+        else:
+            out.append(getattr(kv, op)(*a))
+    return out
+`,
+  },
+  "replace-without-builtins": {
+    entry: "__judge_strings",
+    starterCode: `def replace_all(s, old, new):
+    """Replace every non-overlapping, left-to-right occurrence of old with new —
+    no str methods (no replace / find / split)."""
+    # Your code here
+    return s
+
+
+def rle_encode(s):
+    """Phase 2: 'aaabcc' -> 'a3b1c2'"""
+    return ""
+
+
+def rle_decode(s):
+    """Phase 2: 'a3b1c12' -> 'aaab' + 'c' * 12 (counts can be multi-digit)."""
+    return ""
+
+
+def compress_inplace(chars):
+    """Phase 3: rewrite the list in place as char + count (count omitted when 1),
+    O(1) extra space. Return the new length."""
+    return len(chars)
+`,
+    driverCode: `def __judge_strings(kind, a, b=None, c=None):
+    if kind == "replace":
+        return replace_all(a, b, c)
+    if kind == "encode":
+        return rle_encode(a)
+    if kind == "decode":
+        return rle_decode(a)
+    chars = list(a)
+    n = compress_inplace(chars)
+    return [n, chars[:n]]
+`,
+  },
+  "drone-zone-sensor": {
+    entry: "__run_operations",
+    starterCode: `class DroneZoneSensor:
+    def __init__(self, transport):
+        # transport is anything with a .send(payload) method
+        pass
+
+    def sense(self, zone, object_id, **attrs):
+        """Record (or update) one detected object in a zone."""
+        pass
+
+    def retrieve(self, zone):
+        """Every detection in the zone, each shaped {"id": ..., **attrs}."""
+        return []
+
+    def send(self, zone=None):
+        """Send every zone changed since the last send — or just zone when given —
+        as transport.send({"zone": ..., "objects": [...]}). Returns zones sent."""
+        return 0
+`,
+    driverCode: `def __run_operations(operations, args):
+    log = []
+
+    class _Transport:
+        def send(self, payload):
+            log.append(payload)
+
+    def by_id(items):
+        return sorted((dict(x) for x in items), key=lambda x: str(x["id"]))
+
+    drone = None
+    out = []
+    for op, a in zip(operations, args):
+        if op == "DroneZoneSensor":
+            drone = DroneZoneSensor(_Transport())
+            out.append(None)
+        elif op == "sense":
+            drone.sense(a[0], a[1], **a[2])
+            out.append(None)
+        elif op == "retrieve":
+            out.append(by_id(drone.retrieve(a[0])))
+        elif op == "send":
+            out.append(drone.send(a[0] if a else None))
+        else:
+            out.append([{"zone": p["zone"], "objects": by_id(p["objects"])} for p in log])
+    return out
+`,
+  },
 };

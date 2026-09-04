@@ -123,6 +123,69 @@ O(n log n + m log m) for the sorts; the matching sweeps are linear. O(n + m) spa
 - "Ties allowed" is a one-character change (\`<=\` becomes \`<\` in the skip loops) — keep the comparison in one place so the follow-up is cheap.
 - Three rows → run the pairwise check on adjacent rows.
 - "Heights arrive as a stream" → you need them all before sorting; say so. Bounded integer heights → counting sort, O(n + range), which is also the answer to "millions of players".`,
+    judge: {
+      starterCode: `/** Phase 1: equal sizes — does every back player clear the front player ahead of them? */
+function canStandBehind(front, back) {
+  // Your code here
+  return false;
+}
+
+/** Phase 1: ["A", "B"] if team A stands in front, ["B", "A"] if B does, null if neither works. */
+function photoOrder(teamA, teamB) {
+  return null;
+}
+
+/** Phase 2: different sizes, empty slots allowed (rows have max(len) slots). */
+function canArrangeWithGaps(front, back) {
+  return false;
+}
+
+/** Phase 3: [frontRow, backRow] with null for empty slots, or null when impossible. */
+function arrangeWithGaps(front, back) {
+  return null;
+}
+`,
+      entry: "__judgeTeamPhoto",
+      // arrangeWithGaps has many valid answers, so "rows" cases are validated:
+      // both rows keep their team's heights, and every faced pair clears.
+      driverCode: `function __judgeTeamPhoto(kind, front, back) {
+  if (kind === "behind") return canStandBehind(front, back);
+  if (kind === "order") return photoOrder(front, back);
+  if (kind === "gaps") return canArrangeWithGaps(front, back);
+  const rows = arrangeWithGaps(front, back);
+  if (rows === null || rows === undefined) return "impossible";
+  if (!Array.isArray(rows) || rows.length !== 2) return "not two rows";
+  const [rowF, rowB] = rows;
+  const n = Math.max(front.length, back.length);
+  if (!Array.isArray(rowF) || !Array.isArray(rowB) || rowF.length !== n || rowB.length !== n) {
+    return "wrong row length";
+  }
+  const heights = (row) => row.filter((h) => h !== null && h !== undefined).sort((a, b) => a - b).join(",");
+  if (heights(rowF) !== [...front].sort((a, b) => a - b).join(",")) return "front row changed";
+  if (heights(rowB) !== [...back].sort((a, b) => a - b).join(",")) return "back row changed";
+  for (let i = 0; i < n; i++) {
+    const f = rowF[i], b = rowB[i];
+    if (f !== null && f !== undefined && b !== null && b !== undefined && !(b > f)) {
+      return "blocked at slot " + i;
+    }
+  }
+  return "valid";
+}`,
+      tests: [
+        { name: "Equal sizes, valid", input: ["behind", [170, 160], [180, 165]], expected: true },
+        { name: "Equal height blocks", input: ["behind", [170], [170]], expected: false },
+        { name: "Different sizes fail the equal-size check", input: ["behind", [1], [2, 3]], expected: false },
+        { name: "Team A in front", input: ["order", [1, 2], [3, 4]], expected: ["A", "B"] },
+        { name: "Team B in front", input: ["order", [3, 4], [1, 2]], expected: ["B", "A"] },
+        { name: "Neither order works", input: ["order", [1, 4], [2, 3]], expected: null },
+        { name: "Smaller front team with gaps", input: ["gaps", [170], [160, 180]], expected: true },
+        { name: "Nobody taller than the front player", input: ["gaps", [180], [160, 170]], expected: false },
+        { name: "Larger front team", input: ["gaps", [150, 160, 170], [165]], expected: true },
+        { name: "Rows for a smaller front team", input: ["rows", [170], [160, 180]], expected: "valid" },
+        { name: "Rows for a larger front team", input: ["rows", [150, 160, 170], [165, 155]], expected: "valid" },
+        { name: "Rows when it's impossible", input: ["rows", [180], [160, 170]], expected: "impossible" },
+      ],
+    },
   },
   {
     slug: "largest-sensor-distance",
@@ -213,6 +276,37 @@ Bisect version: O(m log m + n log m) — sort the sensors once, then a log per t
 - Sort-and-sweep only works in 1-D. In 2-D, nearest neighbor becomes grid buckets or a k-d tree — say it before the interviewer asks.
 - Towers with **different** ranges stop being a max-of-mins and become interval covering — see the surveillance-footage problem.
 - The "binary-search the answer" variant ("is radius r enough?") is the fixed-radius sweep inside a search over r, O(n log range).`,
+    judge: {
+      starterCode: `/**
+ * Largest distance from any target to its closest sensor.
+ * Neither list is sorted. Return 0 when either list is empty.
+ */
+function largestSensorDistance(targets, sensors) {
+  // Your code here
+  return 0;
+}
+
+/** Phase 3: fewest towers of range r (covering [x - r, x + r]) that cover every crossing. */
+function minTowersToCover(crossings, r) {
+  return 0;
+}
+`,
+      entry: "__judgeSensors",
+      driverCode: `function __judgeSensors(kind, a, b) {
+  return kind === "largest" ? largestSensorDistance(a, b) : minTowersToCover(a, b);
+}`,
+      tests: [
+        { name: "Prompt example", input: ["largest", [1, 5, 11], [4, 12]], expected: 3 },
+        { name: "One sensor in the middle", input: ["largest", [1, 2, 3], [2]], expected: 1 },
+        { name: "Target exactly on a sensor", input: ["largest", [4], [4, 10]], expected: 0 },
+        { name: "Unsorted inputs", input: ["largest", [11, 1, 5], [12, 4]], expected: 3 },
+        { name: "No targets", input: ["largest", [], [1, 2]], expected: 0 },
+        { name: "Negative positions", input: ["largest", [-10, 0, 10], [-3]], expected: 13 },
+        { name: "Fixed range, two towers", input: ["count", [1, 2, 3, 10], 1], expected: 2 },
+        { name: "Range zero means one tower per distinct crossing", input: ["count", [5, 5, 7], 0], expected: 2 },
+        { name: "One tower covers everyone", input: ["count", [1, 4, 7], 3], expected: 1 },
+      ],
+    },
   },
   {
     slug: "surveillance-footage",
@@ -312,5 +406,64 @@ Everything is O(n log n) from the sort with O(1) extra (O(k) for the chosen list
 - State the greedy invariant before coding: "everything in [0, covered] is covered by the clips chosen so far."
 - Clips with a **cost** break the greedy — it becomes \`dp[t] = min cost to cover [0, t]\`, O(n·T). Needing **k-fold** coverage → sweep with a heap of active clip ends.
 - Streaming clips: you can't commit until you've seen every clip starting ≤ \`covered\`, so buffer by start time — that's the honest "it's a live stream" answer.`,
+    judge: {
+      starterCode: `/** Fewest clips whose union covers [0, T], or -1 when impossible. */
+function minClips(clips, T) {
+  // Your code here
+  return -1;
+}
+
+/** Phase 2: the chosen clips themselves (any minimal set), or null when impossible. */
+function minClipsWithChoice(clips, T) {
+  return null;
+}
+
+/** Phase 3: every [start, end] sub-interval of [0, T] that no clip covers, in order. */
+function uncoveredGaps(clips, T) {
+  return [];
+}
+`,
+      entry: "__judgeFootage",
+      // Many minimal clip sets exist, so "choice" is validated: every clip
+      // must come from the input, and the set must cover [0, T].
+      driverCode: `function __judgeFootage(kind, clips, T) {
+  if (kind === "count") return minClips(clips, T);
+  if (kind === "gaps") return uncoveredGaps(clips, T);
+  const known = new Set(clips.map((c) => c.join(",")));
+  const chosen = minClipsWithChoice(clips, T);
+  if (chosen === null || chosen === undefined) return "impossible";
+  if (!Array.isArray(chosen)) return "not a list";
+  for (const c of chosen) {
+    if (!Array.isArray(c) || c.length !== 2 || !known.has(c.join(","))) return "unknown clip";
+  }
+  let covered = 0;
+  for (const [s, e] of [...chosen].sort((x, y) => x[0] - y[0])) {
+    if (s <= covered) covered = Math.max(covered, e);
+  }
+  return { clips: chosen.length, covers: covered >= T };
+}`,
+      tests: [
+        {
+          name: "Classic count",
+          input: ["count", [[0, 2], [4, 6], [8, 10], [1, 9], [1, 5], [5, 9]], 10],
+          expected: 3,
+        },
+        { name: "A hole makes it impossible", input: ["count", [[0, 3], [5, 9]], 10], expected: -1 },
+        { name: "One clip covers everything", input: ["count", [[0, 10]], 10], expected: 1 },
+        {
+          name: "Reach matters more than order",
+          input: ["count", [[0, 1], [1, 2], [0, 4], [4, 5], [2, 5], [5, 6]], 6],
+          expected: 3,
+        },
+        {
+          name: "Which clips",
+          input: ["choice", [[0, 2], [4, 6], [8, 10], [1, 9], [1, 5], [5, 9]], 10],
+          expected: { clips: 3, covers: true },
+        },
+        { name: "Which clips, when impossible", input: ["choice", [[0, 3], [5, 9]], 10], expected: "impossible" },
+        { name: "Gaps at both ends and the middle", input: ["gaps", [[1, 2], [5, 7]], 10], expected: [[0, 1], [2, 5], [7, 10]] },
+        { name: "No gaps", input: ["gaps", [[0, 4], [3, 10]], 10], expected: [] },
+      ],
+    },
   },
 ];

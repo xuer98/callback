@@ -123,6 +123,59 @@ All O(n); \`replace_all\` is O(n·m) worst case — mention KMP for O(n + m) and
 - State the overlap rule before coding — \`"aaa"\` → \`"xa"\` under non-overlapping left-to-right is the case the interviewer will test.
 - Edge cases to volunteer: pattern longer than the text, a match ending exactly at the last character, digits in the RLE source (needs an escape scheme — ask).
 - The in-place version's invariant — the write pointer never passes the read pointer — is worth one spoken sentence; it's why counts of 1 dropping a digit is safe.`,
+    judge: {
+      starterCode: `/**
+ * Replace every non-overlapping, left-to-right occurrence of pattern with
+ * replacement — no String.prototype helpers (no replace/indexOf/split).
+ */
+function replaceAll(s, pattern, replacement) {
+  // Your code here
+  return s;
+}
+
+/** Phase 2: "aaabcc" -> "a3b1c2" */
+function rleEncode(s) {
+  return "";
+}
+
+/** Phase 2: "a3b1c12" -> "aaab" followed by twelve c's (counts can be multi-digit). */
+function rleDecode(s) {
+  return "";
+}
+
+/**
+ * Phase 3: rewrite chars in place as char + count (count omitted when 1),
+ * using O(1) extra space. Return the new length.
+ */
+function compressInPlace(chars) {
+  return chars.length;
+}
+`,
+      entry: "__judgeStrings",
+      driverCode: `function __judgeStrings(kind, a, b, c) {
+  if (kind === "replace") return replaceAll(a, b, c);
+  if (kind === "encode") return rleEncode(a);
+  if (kind === "decode") return rleDecode(a);
+  const chars = [...a];
+  const n = compressInPlace(chars);
+  return [n, chars.slice(0, n)];
+}`,
+      tests: [
+        { name: "Prompt example", input: ["replace", "amaaba", "aa", "x"], expected: "amxba" },
+        { name: "Non-overlapping, left to right", input: ["replace", "aaa", "aa", "x"], expected: "xa" },
+        { name: "Match at the very end", input: ["replace", "baa", "aa", "yz"], expected: "byz" },
+        { name: "Pattern longer than the text", input: ["replace", "aa", "aaa", "x"], expected: "aa" },
+        { name: "Empty pattern changes nothing", input: ["replace", "abc", "", "x"], expected: "abc" },
+        { name: "Encode runs", input: ["encode", "aaabcc"], expected: "a3b1c2" },
+        { name: "Decode multi-digit counts", input: ["decode", "a3b1c12"], expected: "aaabcccccccccccc" },
+        { name: "Compress in place", input: ["compress", ["a", "a", "b", "b", "b", "c"]], expected: [5, ["a", "2", "b", "3", "c"]] },
+        {
+          name: "Compress a long run",
+          input: ["compress", ["z", "z", "z", "z", "z", "z", "z", "z", "z", "z", "z", "z"]],
+          expected: [3, ["z", "1", "2"]],
+        },
+      ],
+    },
   },
   {
     slug: "drone-zone-sensor",
@@ -182,5 +235,119 @@ class DroneZoneSensor:
 - Upserting by object id is a de-duplication decision; name the alternative (append-only detection log) and why you didn't pick it.
 - Failure handling is the real follow-up: transport down → buffer and retry with backoff, and decide at-least-once vs exactly-once delivery (idempotent upserts on the receiver make at-least-once safe).
 - Two producer threads → a lock around the maps or a queue per producer; single-threaded until stated otherwise, but say the assumption.`,
+    judge: {
+      starterCode: `class DroneZoneSensor {
+  /** @param transport anything with a send(payload) method */
+  constructor(transport) {
+    // Your state here
+  }
+
+  /** Record (or update) one detected object in a zone; attrs is a plain object. */
+  sense(zone, objectId, attrs) {
+    // Your code here
+  }
+
+  /** @returns {object[]} every detection in the zone, each shaped {id, ...attrs} */
+  retrieve(zone) {
+    return [];
+  }
+
+  /**
+   * Send every zone changed since the last send — or just \`zone\` when given —
+   * as transport.send({zone, objects}). @returns {number} zones sent
+   */
+  send(zone = null) {
+    return 0;
+  }
+}
+`,
+      entry: "__runOperations",
+      // The judge injects a transport that records payloads; "log" returns
+      // them. Object lists are sorted by id so storage order never matters.
+      driverCode: `function __runOperations(operations, args) {
+  const log = [];
+  const transport = { send: (payload) => log.push(payload) };
+  const byId = (list) => [...list].sort((x, y) => String(x.id).localeCompare(String(y.id)));
+  let drone = null;
+  const out = [];
+  for (let i = 0; i < operations.length; i++) {
+    const op = operations[i];
+    const a = args[i];
+    if (op === "DroneZoneSensor") {
+      drone = new DroneZoneSensor(transport);
+      out.push(null);
+    } else if (op === "sense") {
+      drone.sense(a[0], a[1], a[2]);
+      out.push(null);
+    } else if (op === "retrieve") {
+      out.push(byId(drone.retrieve(a[0])));
+    } else if (op === "send") {
+      out.push(drone.send(a[0] ?? null));
+    } else {
+      out.push(log.map((p) => ({ zone: p.zone, objects: byId(p.objects) })));
+    }
+  }
+  return out;
+}`,
+      tests: [
+        {
+          name: "A re-detection is an update, not a duplicate",
+          input: [
+            ["DroneZoneSensor", "sense", "sense", "retrieve"],
+            [[], ["z1", "obj1", { kind: "truck" }], ["z1", "obj1", { kind: "tank" }], ["z1"]],
+          ],
+          expected: [null, null, null, [{ id: "obj1", kind: "tank" }]],
+        },
+        {
+          name: "Unknown zone is empty",
+          input: [["DroneZoneSensor", "retrieve"], [[], ["nowhere"]]],
+          expected: [null, []],
+        },
+        {
+          name: "Send ships only changed zones, once",
+          input: [
+            ["DroneZoneSensor", "sense", "sense", "send", "send", "log"],
+            [[], ["z1", "a", { kind: "x" }], ["z2", "b", { kind: "y" }], [null], [null], []],
+          ],
+          expected: [
+            null, null, null, 2, 0,
+            [
+              { zone: "z1", objects: [{ id: "a", kind: "x" }] },
+              { zone: "z2", objects: [{ id: "b", kind: "y" }] },
+            ],
+          ],
+        },
+        {
+          name: "A new detection re-dirties its zone",
+          input: [
+            ["DroneZoneSensor", "sense", "send", "sense", "send", "log"],
+            [[], ["z1", "a", { kind: "x" }], [null], ["z1", "c", { kind: "w" }], [null], []],
+          ],
+          expected: [
+            null, null, 1, null, 1,
+            [
+              { zone: "z1", objects: [{ id: "a", kind: "x" }] },
+              { zone: "z1", objects: [{ id: "a", kind: "x" }, { id: "c", kind: "w" }] },
+            ],
+          ],
+        },
+        {
+          name: "Send one zone explicitly",
+          input: [
+            ["DroneZoneSensor", "sense", "sense", "send", "log"],
+            [[], ["z1", "a", { kind: "x" }], ["z2", "b", { kind: "y" }], ["z2"], []],
+          ],
+          expected: [null, null, null, 1, [{ zone: "z2", objects: [{ id: "b", kind: "y" }] }]],
+        },
+        {
+          name: "Retrieve returns every detection in the zone",
+          input: [
+            ["DroneZoneSensor", "sense", "sense", "retrieve"],
+            [[], ["z", "q", { kind: "radar" }], ["z", "b", { kind: "bird" }], ["z"]],
+          ],
+          expected: [null, null, null, [{ id: "b", kind: "bird" }, { id: "q", kind: "radar" }]],
+        },
+      ],
+    },
   },
 ];

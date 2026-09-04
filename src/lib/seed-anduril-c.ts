@@ -100,6 +100,33 @@ Output-bound: O(K · L) for K result strings of length L, plus the final sort. S
 - The grammar comment **is** the deliverable: it shows the follow-up was a design change you anticipated, not a rewrite.
 - Sets give deduplication for free (\`{a,{a}}\` collapses); sorting once at the end beats keeping everything ordered mid-parse.
 - If the interviewer bans recursion, each rule converts mechanically to an explicit stack — say so rather than doing it.`,
+    judge: {
+      starterCode: `/** Flat groups only: "{a,b}c{d,e}f" -> every string it produces, sorted. */
+function braceExpansion(s) {
+  // Your code here
+  return [];
+}
+
+/** Phase 2: groups nest and commas union whole sub-expressions. Sorted, deduplicated. */
+function braceExpansionNested(expression) {
+  return [];
+}
+`,
+      entry: "__judgeBraces",
+      driverCode: `function __judgeBraces(kind, s) {
+  return kind === "flat" ? braceExpansion(s) : braceExpansionNested(s);
+}`,
+      tests: [
+        { name: "Two groups", input: ["flat", "{a,b}c{d,e}f"], expected: ["acdf", "acef", "bcdf", "bcef"] },
+        { name: "No groups", input: ["flat", "abcd"], expected: ["abcd"] },
+        { name: "Options come out sorted", input: ["flat", "{c,a}x"], expected: ["ax", "cx"] },
+        { name: "Duplicate options collapse", input: ["flat", "{a,a}b"], expected: ["ab"] },
+        { name: "Nested", input: ["nested", "{a,b}{c,{d,e}}"], expected: ["ac", "ad", "ae", "bc", "bd", "be"] },
+        { name: "Union with duplicates", input: ["nested", "{{a,z},a{b,c},{ab,z}}"], expected: ["a", "ab", "ac", "z"] },
+        { name: "Plain string through the nested parser", input: ["nested", "abc"], expected: ["abc"] },
+        { name: "Nested product", input: ["nested", "a{b,c}{d,e}"], expected: ["abd", "abe", "acd", "ace"] },
+      ],
+    },
   },
   {
     slug: "transactional-kv-store",
@@ -196,5 +223,109 @@ class TransactionalKV:
 - Name the alternative: a stack of **overlay dicts** where \`get\` walks from the top — O(depth) reads, O(1) rollback, O(writes) commit. The undo log flips those costs toward reads, which is usually what a store wants.
 - The MISSING sentinel matters: "key didn't exist" and "key was empty-string" must roll back differently.
 - \`count(value)\` follow-up → maintain a \`Counter\` updated through the same undo log. "Commit all" → loop \`commit\` until the stack empties. Durability → append-only write-ahead log, the same idea aimed at disk.`,
+    judge: {
+      starterCode: `class TransactionalKV {
+  constructor() {
+    // Your state here
+  }
+
+  /** @returns {string|null} the current value, or null */
+  get(key) {
+    return null;
+  }
+
+  set(key, value) {
+    // Your code here
+  }
+
+  delete(key) {
+    // Your code here
+  }
+
+  /** Open a (possibly nested) transaction. */
+  begin() {
+    // Your code here
+  }
+
+  /** @returns {boolean} false when no transaction is open */
+  commit() {
+    return false;
+  }
+
+  /** @returns {boolean} false when no transaction is open */
+  rollback() {
+    return false;
+  }
+}
+`,
+      entry: "__runOperations",
+      driverCode: `function __runOperations(operations, args) {
+  let kv = null;
+  const out = [];
+  for (let i = 0; i < operations.length; i++) {
+    if (operations[i] === "TransactionalKV") {
+      kv = new TransactionalKV();
+      out.push(null);
+    } else {
+      out.push(kv[operations[i]](...args[i]) ?? null);
+    }
+  }
+  return out;
+}`,
+      tests: [
+        {
+          name: "Prompt example",
+          input: [
+            ["TransactionalKV", "set", "begin", "set", "get", "begin", "delete", "get", "rollback", "get", "commit", "get"],
+            [[], ["a", "1"], [], ["a", "2"], ["a"], [], ["a"], ["a"], [], ["a"], [], ["a"]],
+          ],
+          expected: [null, null, null, null, "2", null, null, null, true, "2", true, "2"],
+        },
+        {
+          name: "No open transaction",
+          input: [["TransactionalKV", "commit", "rollback", "get"], [[], [], [], ["x"]]],
+          expected: [null, false, false, null],
+        },
+        {
+          name: "Outer rollback undoes a committed inner",
+          input: [
+            ["TransactionalKV", "begin", "set", "begin", "set", "commit", "get", "rollback", "get"],
+            [[], [], ["b", "1"], [], ["b", "2"], [], ["b"], [], ["b"]],
+          ],
+          expected: [null, null, null, null, null, true, "2", true, null],
+        },
+        {
+          name: "Rollback restores a deleted key",
+          input: [["TransactionalKV", "set", "begin", "delete", "rollback", "get"], [[], ["k", "v"], [], ["k"], [], ["k"]]],
+          expected: [null, null, null, null, true, "v"],
+        },
+        {
+          name: "Rollback of repeated writes restores the original",
+          input: [
+            ["TransactionalKV", "set", "begin", "set", "set", "rollback", "get"],
+            [[], ["k", "0"], [], ["k", "1"], ["k", "2"], [], ["k"]],
+          ],
+          expected: [null, null, null, null, null, true, "0"],
+        },
+        {
+          name: "A top-level commit is permanent",
+          input: [["TransactionalKV", "begin", "set", "commit", "rollback", "get"], [[], [], ["k", "1"], [], [], ["k"]]],
+          expected: [null, null, null, true, false, "1"],
+        },
+        {
+          name: "Deleting a missing key is harmless",
+          input: [["TransactionalKV", "delete", "get", "begin", "delete", "rollback", "get"], [[], ["k"], ["k"], [], ["k"], [], ["k"]]],
+          expected: [null, null, null, null, null, true, null],
+        },
+        {
+          name: "Reads see uncommitted writes at every depth",
+          input: [
+            ["TransactionalKV", "begin", "set", "begin", "get", "set", "get", "rollback", "get", "rollback", "get"],
+            [[], [], ["k", "1"], [], ["k"], ["k", "2"], ["k"], [], ["k"], [], ["k"]],
+          ],
+          expected: [null, null, null, null, "1", null, "2", true, "1", true, null],
+        },
+      ],
+    },
   },
 ];

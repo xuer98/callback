@@ -126,6 +126,51 @@ BFS O(R·C); Dijkstra O(RC log RC); A* is bounded by BFS and usually far under i
 - Negative costs break Dijkstra → Bellman-Ford (rare in practice; name it and move on).
 - Continuous space with polygon obstacles → visibility graph + Dijkstra, O(V² log V). Mention, don't implement.
 - Scale answers: tile the map, hierarchical pathfinding, and D*-Lite for incremental re-planning when the world changes mid-flight.`,
+    judge: {
+      starterCode: `/** Phases 1-2: straight-line distance between two points of any dimension. */
+function euclid(p, q) {
+  // Your code here
+  return 0;
+}
+
+/**
+ * Phase 3: grid of 0 (free) / 1 (blocked); src and dst are [row, col].
+ * Steps along the shortest path (8-directional when diagonal is true), or -1.
+ */
+function shortestPathGrid(grid, src, dst, diagonal = false) {
+  return -1;
+}
+
+/** Phase 4: the same answer as BFS, found with an admissible heuristic. */
+function astarGrid(grid, src, dst) {
+  return -1;
+}
+
+/** Phase 5: cost[r][c] is the cost to enter a cell, -1 = obstacle. Cheapest path cost, or -1. */
+function dijkstraGrid(cost, src, dst) {
+  return -1;
+}
+`,
+      entry: "__judgePaths",
+      driverCode: `function __judgePaths(kind, a, b, c, d) {
+  if (kind === "euclid") return euclid(a, b);
+  if (kind === "grid") return shortestPathGrid(a, b, c, Boolean(d));
+  if (kind === "astar") return astarGrid(a, b, c);
+  return dijkstraGrid(a, b, c);
+}`,
+      tests: [
+        { name: "Flat plane", input: ["euclid", [0, 0], [3, 4]], expected: 5 },
+        { name: "In space", input: ["euclid", [1, 2, 2], [0, 0, 0]], expected: 3 },
+        { name: "Open grid", input: ["grid", [[0, 0], [0, 0]], [0, 0], [1, 1], false], expected: 2 },
+        { name: "Diagonal steps", input: ["grid", [[0, 0], [0, 0]], [0, 0], [1, 1], true], expected: 1 },
+        { name: "Walled off", input: ["grid", [[0, 1], [1, 0]], [0, 0], [1, 1], false], expected: -1 },
+        { name: "Around a wall", input: ["grid", [[0, 1, 0], [0, 1, 0], [0, 0, 0]], [0, 0], [0, 2], false], expected: 6 },
+        { name: "Start on an obstacle", input: ["grid", [[1, 0]], [0, 0], [0, 1], false], expected: -1 },
+        { name: "A* agrees with BFS", input: ["astar", [[0, 1, 0], [0, 1, 0], [0, 0, 0]], [0, 0], [0, 2]], expected: 6 },
+        { name: "Terrain: the detour is cheaper", input: ["dijkstra", [[0, 9, 1], [1, 9, 1], [1, 1, 1]], [0, 0], [0, 2]], expected: 6 },
+        { name: "Terrain: straight through", input: ["dijkstra", [[0, 2, 1]], [0, 0], [0, 2]], expected: 3 },
+      ],
+    },
   },
   {
     slug: "sensor-network-cycles",
@@ -240,6 +285,52 @@ Kahn and DFS: O(V + E). Union-Find: O(E · α(V)) — effectively linear — and
 - String ids → put a \`dict\` id-mapper in front of the DSU; don't rewrite it.
 - "Which link do we remove to break the cycle?" is Redundant Connection: the first edge whose \`union\` returns False.
 - Deleting edges over time is the hard direction — offline reverse-union (process deletions backwards as unions) is the phrase to say; link-cut trees are the mention-only escalation.`,
+    judge: {
+      starterCode: `/** Directed edges [u, v] over sensors 0..n-1: is there a cycle? */
+function hasCycleDirected(n, edges) {
+  // Your code here
+  return false;
+}
+
+/** Directed: a processing order that respects every edge, or [] when there's a cycle. */
+function topoOrder(n, edges) {
+  return [];
+}
+
+/** Undirected: [hasCycle, componentCount]. */
+function cycleAndComponents(n, edges) {
+  return [false, 0];
+}
+`,
+      entry: "__judgeNetwork",
+      // Topological orders aren't unique, so "topo" cases are validated:
+      // a permutation of 0..n-1 with every edge pointing forward.
+      driverCode: `function __judgeNetwork(kind, n, edges) {
+  if (kind === "cycle") return hasCycleDirected(n, edges);
+  if (kind === "components") return cycleAndComponents(n, edges);
+  const order = topoOrder(n, edges);
+  if (!Array.isArray(order)) return "not a list";
+  if (order.length === 0) return "empty";
+  const sorted = [...order].sort((a, b) => a - b);
+  if (sorted.length !== n || sorted.some((v, i) => v !== i)) return "not a permutation";
+  const pos = new Map(order.map((v, i) => [v, i]));
+  for (const [u, v] of edges) {
+    if (pos.get(u) > pos.get(v)) return "violates edge " + u + "->" + v;
+  }
+  return "valid-order";
+}`,
+      tests: [
+        { name: "Directed two-cycle", input: ["cycle", 2, [[0, 1], [1, 0]]], expected: true },
+        { name: "Directed chain", input: ["cycle", 3, [[0, 1], [1, 2]]], expected: false },
+        { name: "Self-loop", input: ["cycle", 1, [[0, 0]]], expected: true },
+        { name: "Order of a chain", input: ["topo", 3, [[0, 1], [1, 2]]], expected: "valid-order" },
+        { name: "Order with a fork and a join", input: ["topo", 4, [[0, 1], [0, 2], [1, 3], [2, 3]]], expected: "valid-order" },
+        { name: "No order when cyclic", input: ["topo", 2, [[0, 1], [1, 0]]], expected: "empty" },
+        { name: "Triangle plus isolated sensors", input: ["components", 5, [[0, 1], [1, 2], [2, 0]]], expected: [true, 3] },
+        { name: "Two links, no cycle", input: ["components", 4, [[0, 1], [2, 3]]], expected: [false, 2] },
+        { name: "A duplicate link is a cycle", input: ["components", 2, [[0, 1], [1, 0]]], expected: [true, 1] },
+      ],
+    },
   },
   {
     slug: "rod-cutting-profit",
@@ -327,5 +418,52 @@ O(n · min(n, len(prices))) time and O(n) space; the piece-limited version is O(
 - Name the shape — "unbounded knapsack, weight = piece length, value = price" — before writing code; the senior signal is recognizing it, not deriving it.
 - Top-down with \`@lru_cache\` is the same recurrence; write whichever is fastest for you, mention the other.
 - "Input is massive" here means the table: it rolls to O(n) because \`best[length]\` only reads earlier entries; memoize only reachable states in the top-down form.`,
+    judge: {
+      starterCode: `/** [revenue, pieceLengths] for the best way to cut a rod of length n (prices[i] sells length i + 1). */
+function rodCutting(prices, n) {
+  // Your code here
+  return [0, []];
+}
+
+/** Phase 2: every cut costs cutCost; selling the rod whole makes zero cuts. */
+function rodCuttingWithCost(prices, n, cutCost) {
+  return 0;
+}
+
+/** Phase 3: at most maxPieces pieces. */
+function rodCuttingLimited(prices, n, maxPieces) {
+  return 0;
+}
+`,
+      entry: "__judgeRod",
+      // The cut list isn't unique (2 + 6 or 6 + 2), so it's validated: the
+      // pieces must sum to n and price out to the claimed revenue.
+      driverCode: `function __judgeRod(kind, prices, n, extra) {
+  if (kind === "cost") return rodCuttingWithCost(prices, n, extra);
+  if (kind === "limited") return rodCuttingLimited(prices, n, extra);
+  const result = rodCutting(prices, n);
+  if (!Array.isArray(result) || result.length !== 2) return "expected [revenue, cuts]";
+  const [revenue, cuts] = result;
+  if (!Array.isArray(cuts)) return "cuts is not a list";
+  let total = 0, length = 0;
+  for (const piece of cuts) {
+    if (!Number.isInteger(piece) || piece < 1 || piece > prices.length) return "bad piece " + piece;
+    total += prices[piece - 1];
+    length += piece;
+  }
+  return { revenue, cutsValid: length === n && total === revenue };
+}`,
+      tests: [
+        { name: "Classic table", input: ["cut", [1, 5, 8, 9, 10, 17, 17, 20], 8], expected: { revenue: 22, cutsValid: true } },
+        { name: "Nothing to cut", input: ["cut", [1, 5, 8, 9, 10, 17, 17, 20], 0], expected: { revenue: 0, cutsValid: true } },
+        { name: "Price table shorter than the rod", input: ["cut", [2, 5], 5], expected: { revenue: 12, cutsValid: true } },
+        { name: "Whole rod is best", input: ["cut", [1, 2, 3, 4, 50], 5], expected: { revenue: 50, cutsValid: true } },
+        { name: "Cuts too expensive to make", input: ["cost", [1, 5, 8, 9, 10, 17, 17, 20], 8, 100], expected: 20 },
+        { name: "Free cuts match the base answer", input: ["cost", [1, 5, 8, 9, 10, 17, 17, 20], 8, 0], expected: 22 },
+        { name: "A cut cost changes the answer", input: ["cost", [1, 5, 8, 9, 10, 17, 17, 20], 8, 1], expected: 21 },
+        { name: "At most one piece", input: ["limited", [1, 5, 8, 9, 10, 17, 17, 20], 8, 1], expected: 20 },
+        { name: "Two pieces suffice", input: ["limited", [1, 5, 8, 9, 10, 17, 17, 20], 8, 2], expected: 22 },
+      ],
+    },
   },
 ];
