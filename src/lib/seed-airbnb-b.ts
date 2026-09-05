@@ -40,8 +40,17 @@ Are files and directories different things, or is every node the same shape? Doe
 
 A tree of identical nodes (\`{children: Map, value}\`) hanging off an anonymous root. One private \`#walk(path)\` follows the segments (empty ones dropped, so \`"/a/"\` is \`"a"\`) and returns the node or \`null\`; every public method is a thin layer on it. \`create\` walks to the parent and refuses when it's missing — that's the "without \`-p\`" semantics — and returns \`false\` for an existing name rather than clobbering it.
 
-\`\`\`js
-// In-memory file system: create(path) / get(path) / set(path, value) / list(path)
+## Complexity
+
+Every operation is O(depth) for the walk; \`list\` adds O(k log k) for the sort. Space is one node per created path.
+
+## Worth saying out loud
+
+- Ask whether files and directories differ before you model them — one node shape with an optional value covers both and keeps every method tiny.
+- \`#walk\` already has a \`create\` option: that's \`mkdir -p\` for free if the interviewer relaxes the parent rule, and it's how \`set\` could auto-create.
+- Follow-ups fall out of the tree: \`delete\` removes a child from its parent's Map (recursive for free); \`move\` is delete plus re-attach; quotas track bytes on write; TTL stores \`expiresAt\` and checks on read; versioning keeps an array of \`{value, ts}\` per node.`,
+    judge: {
+      solutionCode: `// In-memory file system: create(path) / get(path) / set(path, value) / list(path)
 // Paths look like "a/b/c". Tree of nodes; each node may hold a value and children.
 class FileSystem {
   #root = { children: new Map(), value: undefined };
@@ -87,18 +96,7 @@ class FileSystem {
     return node ? [...node.children.keys()].sort() : [];
   }
 }
-\`\`\`
-
-## Complexity
-
-Every operation is O(depth) for the walk; \`list\` adds O(k log k) for the sort. Space is one node per created path.
-
-## Worth saying out loud
-
-- Ask whether files and directories differ before you model them — one node shape with an optional value covers both and keeps every method tiny.
-- \`#walk\` already has a \`create\` option: that's \`mkdir -p\` for free if the interviewer relaxes the parent rule, and it's how \`set\` could auto-create.
-- Follow-ups fall out of the tree: \`delete\` removes a child from its parent's Map (recursive for free); \`move\` is delete plus re-attach; quotas track bytes on write; TTL stores \`expiresAt\` and checks on read; versioning keeps an array of \`{value, ts}\` per node.`,
-    judge: {
+`,
       starterCode: `class FileSystem {
   constructor() {
     // Your state here — a tree of nodes keyed by path segment
@@ -225,8 +223,17 @@ Does water prefer left over right when both are lower? What if the lowest reacha
 
 Direct simulation is the intended solution at this size: for each unit, walk left while the next column isn't higher, tracking the lowest column seen; if it's strictly lower than \`k\`, the unit lands there. Otherwise do the same to the right; otherwise it stays at \`k\`. The terrain printer iterates height levels from the top down, emitting ground, water, or air per column — the "write the printer first" ordering is the interviewer handing you a debugging tool.
 
-\`\`\`js
-// Pour Water (LeetCode 755, Airbnb-tagged)
+## Complexity
+
+O(volume · n) for the pour — each unit may scan the whole row — and O(n · maxHeight) for the picture.
+
+## Worth saying out loud
+
+- The walk condition is "not higher" (\`<=\`), but the landing condition is "strictly lower" (\`<\`) — flat ground is traversable, not a destination. Say that distinction; it's where most bugs live.
+- Left-before-right and first-lowest-wins are conventions from the problem statement — confirm them before coding.
+- The printer is a test harness in disguise: run it after every unit while debugging.`,
+    judge: {
+      solutionCode: `// Pour Water (LeetCode 755, Airbnb-tagged)
 // heights[i] = terrain height; drop \`volume\` units at index k, one unit at a time.
 // Each unit tries to move LEFT to a strictly lower final resting spot, then RIGHT, else stays.
 function pourWater(heights, volume, k) {
@@ -256,18 +263,7 @@ function printTerrain(heights, water) {
   }
   return rows.join('\\n');
 }
-\`\`\`
-
-## Complexity
-
-O(volume · n) for the pour — each unit may scan the whole row — and O(n · maxHeight) for the picture.
-
-## Worth saying out loud
-
-- The walk condition is "not higher" (\`<=\`), but the landing condition is "strictly lower" (\`<\`) — flat ground is traversable, not a destination. Say that distinction; it's where most bugs live.
-- Left-before-right and first-lowest-wins are conventions from the problem statement — confirm them before coding.
-- The printer is a test harness in disguise: run it after every unit while debugging.`,
-    judge: {
+`,
       starterCode: `/** Rows from the top down (height max(water)), joined by "\\n": "#" ground, "~" water, " " air. */
 function printTerrain(heights, water) {
   return "";

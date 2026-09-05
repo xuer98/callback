@@ -19,7 +19,6 @@ import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions } from "@/lib/editor-completions";
 import { formatDocument } from "@/lib/editor-format";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
-import { RichText } from "./markdown";
 import { PaneTab, SplitPane } from "./resizable";
 import { useProgress } from "./progress";
 import {
@@ -488,116 +487,5 @@ export function UiWorkspace({
         </section>
       }
     />
-  );
-}
-
-const WORTH_SAYING = "\n## Worth saying out loud";
-
-/**
- * The Solution tab for UI problems: the approach prose, then the complete
- * reference files — switchable by framework and by file, like the editor —
- * then the interview-signal notes.
- */
-export function UiSolution({
-  ui,
-  prose,
-}: {
-  ui: UiWorkspaceSpec;
-  prose?: string;
-}) {
-  const solved = uiTemplates(ui).filter(
-    (t) => t.solution !== undefined && t.solution.length > 0,
-  );
-  const [framework, setFramework] = useState<UiFramework>(
-    solved[0]?.framework ?? ui.framework,
-  );
-  const template = solved.find((t) => t.framework === framework) ?? solved[0];
-  const [fileName, setFileName] = useState(
-    template?.solution?.[0]?.name ?? "",
-  );
-  const file =
-    template?.solution?.find((f) => f.name === fileName) ??
-    template?.solution?.[0];
-
-  const pickFramework = (fw: UiFramework) => {
-    setFramework(fw);
-    setFileName(
-      solved.find((t) => t.framework === fw)?.solution?.[0]?.name ?? "",
-    );
-  };
-
-  // Show the notes after the code they talk about.
-  const split = prose?.indexOf(WORTH_SAYING) ?? -1;
-  const before = split === -1 ? prose : prose!.slice(0, split);
-  const after = split === -1 ? undefined : prose!.slice(split + 1);
-
-  return (
-    <div className="space-y-5">
-      {before && (
-        <RichText text={before} className="text-sm leading-6 text-zinc-300" />
-      )}
-      {template && file && (
-        <section className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[15px] font-semibold text-zinc-100">
-              Reference files
-            </h2>
-            {solved.length > 1 && (
-              <div className="flex gap-1.5">
-                {solved.map((t) => (
-                  <ChipButton
-                    key={t.framework}
-                    active={t.framework === framework}
-                    onClick={() => pickFramework(t.framework)}
-                  >
-                    {UI_FRAMEWORK_LABELS[t.framework]}
-                  </ChipButton>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {template.solution!.map((f) => (
-              <ChipButton
-                key={f.name}
-                active={f.name === file.name}
-                onClick={() => setFileName(f.name)}
-              >
-                {f.name}
-              </ChipButton>
-            ))}
-          </div>
-          <pre className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 font-mono text-xs leading-6 text-zinc-200">
-            {file.contents}
-          </pre>
-        </section>
-      )}
-      {after && (
-        <RichText text={after} className="text-sm leading-6 text-zinc-300" />
-      )}
-    </div>
-  );
-}
-
-function ChipButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-md px-2.5 py-1 font-mono text-xs transition-colors ${
-        active
-          ? "bg-zinc-800 text-zinc-100"
-          : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

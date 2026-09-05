@@ -158,6 +158,8 @@ export interface JudgeLanguage {
   entry: string;
   /** Optional harness appended after the user's code. */
   driverCode?: string;
+  /** Complete reference implementation shown on the Solution tab. */
+  solutionCode?: string;
 }
 
 /** One sample case; values must be JSON-serializable and have a unique correct answer. */
@@ -181,6 +183,8 @@ export interface Judge {
    * problems where the entry function drives a sequence of operations.
    */
   driverCode?: string;
+  /** Complete JavaScript reference implementation shown on the Solution tab. */
+  solutionCode?: string;
   /**
    * Per-language starter/entry/driver. JavaScript lives in the fields above
    * (it predates multi-language support); every other language lands here.
@@ -204,6 +208,7 @@ export function judgeFor(
       starterCode: judge.starterCode,
       entry: judge.entry,
       driverCode: judge.driverCode,
+      solutionCode: judge.solutionCode,
     };
   }
   return judge[language];

@@ -55,8 +55,19 @@ Fire on a no-op set? Callback argument order? Should \`on\` return an unsubscrib
 
 Two \`Map\`s — attributes (\`key → {value, deleted}\`) and listeners (\`eventKey → Set<cb>\`). Every event spelling is normalized once, in one static helper, and attribute events are namespaced (\`attr:name\`) so a key literally called \`"change"\` or \`"unset"\` can never collide with the global events. Writes compare with \`Object.is\` and fire nothing on a no-op; removal flips a tombstone and reports \`newValue\` as \`undefined\`. Dispatch iterates a copy of the listener set and isolates each call in try/catch.
 
-\`\`\`js
-// StoreData — a Backbone.Model-style key/value store with change listeners.
+## Complexity
+
+Every operation is O(1) apart from dispatch, which is O(listeners on that event). Tombstones cost O(removed keys) until compacted.
+
+## Worth saying out loud
+
+- Why \`Object.is\` and not \`===\`: \`NaN\` equals itself and \`+0\`/\`-0\` differ — the same bail-out rule React's \`useState\` uses.
+- \`on\` returning an unsubscribe is the leak fix: components call it on unmount (\`useEffect\` cleanup).
+- Batch follow-up: \`set({a: 1, b: 2})\` loops \`Object.entries\` → \`add\`; a \`silent\` flag plus \`changedAttributes()\` emits one \`'change'\` at the end.
+- \`previous(key)\` is one more field on the record; a wildcard \`'change:*'\` is a \`startsWith\` check in \`#fire\`.
+- Name the pattern: observer / pub-sub — Backbone models, Redux \`subscribe\`, \`EventTarget\`, \`useSyncExternalStore\`.`,
+    judge: {
+      solutionCode: `// StoreData — a Backbone.Model-style key/value store with change listeners.
 // Events accepted by on(): 'change:name' | 'name' (same thing), 'change' (any key), 'unset'.
 // Listener signature: (oldValue, newValue, key)
 class StoreData {
@@ -144,20 +155,7 @@ class StoreData {
     }
   }
 }
-\`\`\`
-
-## Complexity
-
-Every operation is O(1) apart from dispatch, which is O(listeners on that event). Tombstones cost O(removed keys) until compacted.
-
-## Worth saying out loud
-
-- Why \`Object.is\` and not \`===\`: \`NaN\` equals itself and \`+0\`/\`-0\` differ — the same bail-out rule React's \`useState\` uses.
-- \`on\` returning an unsubscribe is the leak fix: components call it on unmount (\`useEffect\` cleanup).
-- Batch follow-up: \`set({a: 1, b: 2})\` loops \`Object.entries\` → \`add\`; a \`silent\` flag plus \`changedAttributes()\` emits one \`'change'\` at the end.
-- \`previous(key)\` is one more field on the record; a wildcard \`'change:*'\` is a \`startsWith\` check in \`#fire\`.
-- Name the pattern: observer / pub-sub — Backbone models, Redux \`subscribe\`, \`EventTarget\`, \`useSyncExternalStore\`.`,
-    judge: {
+`,
       starterCode: `class StoreData {
   constructor() {
     // Your state here
@@ -362,8 +360,15 @@ Spec-level (thenable adoption, microtask timing) or "works for the common case"?
 
 A state machine (\`pending → fulfilled | rejected\`, one-way), a handler queue, and **every callback in a microtask** (\`queueMicrotask\`) so ordering matches native promises. \`then\` always returns a *new* promise whose fate is decided by the callback's return value; the resolution procedure unwraps thenables — including other \`MyPromise\`s — before settling.
 
-\`\`\`js
-// MyPromise — Promises/A+-shaped implementation: states, then-chaining,
+## Worth saying out loud
+
+- Why microtasks and not \`setTimeout\`: native promises use the microtask queue — they run before the next macrotask and before a render. \`setTimeout(0)\` would reorder relative to real promises.
+- \`resolve(anotherPromise)\` must *adopt* its state, not fulfill with the promise object — that's the thenable branch of \`#resolve\`.
+- Promises can't be cancelled; **cancel the work** (\`AbortController\`, \`clearTimeout\`) and reject with an \`AbortError\`. In React the effect cleanup calls \`controller.abort()\`.
+- \`allSettled\` / \`race\` / \`any\` reuse \`all\`'s skeleton: never reject and collect \`{status, value|reason}\`; settle with the first to finish; reject only when all reject (\`AggregateError\`).
+- Unhandled rejections: natively tracked by whether a rejected promise gained a handler by the end of the microtask checkpoint — a flag set in \`then\`, checked after settling.`,
+    judge: {
+      solutionCode: `// MyPromise — Promises/A+-shaped implementation: states, then-chaining,
 // thenable adoption, async (microtask) callbacks, catch/finally, resolve/reject/all.
 class MyPromise {
   #state = 'pending';   // 'pending' | 'fulfilled' | 'rejected'
@@ -475,16 +480,7 @@ class AbortablePromise extends MyPromise {
     };
   }
 }
-\`\`\`
-
-## Worth saying out loud
-
-- Why microtasks and not \`setTimeout\`: native promises use the microtask queue — they run before the next macrotask and before a render. \`setTimeout(0)\` would reorder relative to real promises.
-- \`resolve(anotherPromise)\` must *adopt* its state, not fulfill with the promise object — that's the thenable branch of \`#resolve\`.
-- Promises can't be cancelled; **cancel the work** (\`AbortController\`, \`clearTimeout\`) and reject with an \`AbortError\`. In React the effect cleanup calls \`controller.abort()\`.
-- \`allSettled\` / \`race\` / \`any\` reuse \`all\`'s skeleton: never reject and collect \`{status, value|reason}\`; settle with the first to finish; reject only when all reject (\`AggregateError\`).
-- Unhandled rejections: natively tracked by whether a rejected promise gained a handler by the end of the microtask checkpoint — a flag set in \`then\`, checked after settling.`,
-    judge: {
+`,
       starterCode: `class MyPromise {
   constructor(executor) {
     // Your state here: 'pending' | 'fulfilled' | 'rejected', the value, queued handlers
@@ -665,8 +661,15 @@ Leading or trailing edge? Should \`flush\` fire when nothing is pending? Where w
 
 All three are closures over timer state. Debounce re-arms one timer on every call and fires with the last arguments once the calls stop; the controls version also keeps the pending \`args\`/\`this\` so \`flush\` can run them early and \`cancel\` can drop them. Throttle remembers when it last fired: a call after the window fires immediately, a call inside the window arms a single trailing timer for the remainder and keeps overwriting the saved latest arguments.
 
-\`\`\`js
-// Debounce: run fn only after calls have stopped for \`wait\` ms (trailing edge).
+## Worth saying out loud
+
+- Say where you'd use each unprompted: **debounce waits for silence** (typeahead, resize, autosave); **throttle guarantees a rate** (scroll position, drag, analytics).
+- Why \`function\`, not an arrow, for the returned wrapper: it forwards the caller's \`this\` (a class method, an \`addEventListener\` target); an arrow would freeze \`this\` to the definition site.
+- Leading-edge option: if no timer is pending on the first call, invoke immediately, then arm the timer and skip the trailing call unless new args arrived.
+- In React: debounce the *value* (\`useDebouncedValue\`) or \`useMemo(() => debounce(fn, 300), [])\` — never create the debounced function inline in render (a new closure every render debounces nothing); clear timers in effect cleanup.
+- For visual updates, a \`requestAnimationFrame\` throttle coalesces to one call per frame instead of a time window.`,
+    judge: {
+      solutionCode: `// Debounce: run fn only after calls have stopped for \`wait\` ms (trailing edge).
 function debounce(fn, wait) {
   let timer = null;
   return function debounced(...args) {      // function, not arrow: keep caller's \`this\`
@@ -740,16 +743,7 @@ function throttle(fn, wait) {
     }
   };
 }
-\`\`\`
-
-## Worth saying out loud
-
-- Say where you'd use each unprompted: **debounce waits for silence** (typeahead, resize, autosave); **throttle guarantees a rate** (scroll position, drag, analytics).
-- Why \`function\`, not an arrow, for the returned wrapper: it forwards the caller's \`this\` (a class method, an \`addEventListener\` target); an arrow would freeze \`this\` to the definition site.
-- Leading-edge option: if no timer is pending on the first call, invoke immediately, then arm the timer and skip the trailing call unless new args arrived.
-- In React: debounce the *value* (\`useDebouncedValue\`) or \`useMemo(() => debounce(fn, 300), [])\` — never create the debounced function inline in render (a new closure every render debounces nothing); clear timers in effect cleanup.
-- For visual updates, a \`requestAnimationFrame\` throttle coalesces to one call per frame instead of a time window.`,
-    judge: {
+`,
       starterCode: `/** Trailing-edge debounce with .cancel() and .flush(). */
 function debounceWithControls(fn, wait) {
   // Your code here
@@ -880,8 +874,13 @@ Validate on every keystroke or on blur? Trim before checking? Does \`required\` 
 
 Rules are factories that return validators \`(value) => message | null\`, so a schema is just data: an ordered list of validators per field. \`validate\` runs each field's list in order and stops at the first message — one error per field, which is what a user can act on. Everything else (the accessible display) sits on top of this pure function.
 
-\`\`\`js
-// Input validation: declarative rules → { fieldName: firstErrorMessage }.
+## Worth saying out loud
+
+- The accessible display is the part people forget: \`aria-invalid="true"\` on the input, the message in an element referenced by \`aria-describedby\`, validate on **blur** first and on change only after the first error, and move focus to the first invalid field on submit.
+- Keep native \`required\`/\`pattern\` as progressive enhancement, but don't rely on them — native messages aren't styleable and differ per browser.
+- Name the pattern: strategy — swap behavior by passing functions. Async rules (username taken?) return a promise; run them last and only when the sync rules pass.`,
+    judge: {
+      solutionCode: `// Input validation: declarative rules → { fieldName: firstErrorMessage }.
 // Rules run in order; the first failing rule is the message shown (one error per field, not five).
 const rules = {
   required: (msg = 'Required') => (v) => (String(v ?? '').trim() === '' ? msg : null),
@@ -911,14 +910,7 @@ const listingSchema = {
   email: [rules.required(), rules.email()],
   guests: [rules.required(), rules.range(1, 16)],
 };
-\`\`\`
-
-## Worth saying out loud
-
-- The accessible display is the part people forget: \`aria-invalid="true"\` on the input, the message in an element referenced by \`aria-describedby\`, validate on **blur** first and on change only after the first error, and move focus to the first invalid field on submit.
-- Keep native \`required\`/\`pattern\` as progressive enhancement, but don't rely on them — native messages aren't styleable and differ per browser.
-- Name the pattern: strategy — swap behavior by passing functions. Async rules (username taken?) return a promise; run them last and only when the sync rules pass.`,
-    judge: {
+`,
       starterCode: `// Validators return an error message, or null when the value passes.
 const rules = {
   required: (msg = "Required") => (value) => null,

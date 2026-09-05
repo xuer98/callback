@@ -6,11 +6,14 @@ import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
 import { RichText } from "@/components/markdown";
 import { ProblemPanes } from "@/components/problem-panes";
-import { UiSolution, UiWorkspace } from "@/components/ui-workspace";
+import { JudgeSolution, UiSolution } from "@/components/solution-panel";
+import { UiWorkspace } from "@/components/ui-workspace";
 import { Workspace } from "@/components/workspace";
 import { getCompany, getProblem, listProblems } from "@/lib/data";
 import {
   CATEGORY_LABELS,
+  judgeFor,
+  LANGUAGES,
   uiTemplates,
   type Company,
   type Problem,
@@ -90,6 +93,8 @@ export default async function ProblemPage({
           hasHints={problem.hints.length > 0}
           hasSolution={
             problem.solution !== undefined ||
+            (judge !== undefined &&
+              LANGUAGES.some((l) => judgeFor(judge, l)?.solutionCode)) ||
             (problem.ui !== undefined &&
               uiTemplates(problem.ui).some((t) => t.solution !== undefined))
           }
@@ -102,7 +107,9 @@ export default async function ProblemPage({
           }
           hints={<Hints problem={problem} bare />}
           solution={
-            problem.ui ? (
+            judge ? (
+              <JudgeSolution judge={judge} prose={problem.solution} />
+            ) : problem.ui ? (
               <UiSolution ui={problem.ui} prose={problem.solution} />
             ) : (
               problem.solution !== undefined && (
