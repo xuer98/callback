@@ -1,6 +1,6 @@
 "use client";
 
-import { uiFileKind, type UiWorkspace } from "./types";
+import { uiFileKind, type UiTemplate } from "./types";
 
 // Builds the sandboxed document the UI workspace renders into its preview
 // iframe. Script files are transpiled with sucrase (JSX + TypeScript) in the
@@ -22,7 +22,7 @@ export interface PreviewLog {
 export const PREVIEW_MESSAGE_SOURCE = "callback-preview";
 
 interface Payload {
-  framework: UiWorkspace["framework"];
+  framework: UiTemplate["framework"];
   css: string[];
   html: string;
   /** Module id → transpiled CommonJS source. */
@@ -51,7 +51,7 @@ function fetchRuntime(): Promise<string> {
 }
 
 export async function buildPreview(
-  ui: UiWorkspace,
+  ui: UiTemplate,
   contents: Record<string, string>,
 ): Promise<PreviewBuild> {
   const { transform } = await import("sucrase");

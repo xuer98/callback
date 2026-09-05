@@ -57,15 +57,58 @@ export interface UiFile {
   contents: string;
 }
 
+export type UiFramework = "react" | "vanilla";
+
+export const UI_FRAMEWORK_LABELS: Record<UiFramework, string> = {
+  react: "React",
+  vanilla: "HTML/CSS/JS",
+};
+
+/**
+ * One way to build a UI question: the starter files for a framework plus,
+ * optionally, the complete reference files the Solution tab shows. "react"
+ * mounts the default export of the entry component; "vanilla" mounts
+ * index.html and runs each script file.
+ */
+export interface UiTemplate {
+  framework: UiFramework;
+  files: UiFile[];
+  /** Complete reference files — a paste-over-the-starter solution. */
+  solution?: UiFile[];
+}
+
 /**
  * A frontend question solved by building an actual interface: the editor
  * shows one tab per file and renders the result live in a sandboxed iframe.
- * "react" mounts the default export of the entry component; "vanilla" mounts
- * index.html and runs each script file.
+ * The top-level template is the default; `alternate` is the same exercise in
+ * the other framework, switchable from the workspace.
  */
-export interface UiWorkspace {
-  framework: "react" | "vanilla";
-  files: UiFile[];
+export interface UiWorkspace extends UiTemplate {
+  alternate?: UiTemplate;
+}
+
+/** The templates a UI problem can be solved in, default first. */
+export function uiTemplates(ui: UiWorkspace): UiTemplate[] {
+  const primary: UiTemplate = {
+    framework: ui.framework,
+    files: ui.files,
+    solution: ui.solution,
+  };
+  return ui.alternate ? [primary, ui.alternate] : [primary];
+}
+
+/**
+ * The saved-document slot for one file of one template. The default template
+ * keeps the historical "ui:<file>" form so existing drafts survive; the
+ * alternate is namespaced by framework so shared names (styles.css) can't
+ * collide.
+ */
+export function uiSlot(
+  ui: UiWorkspace,
+  framework: UiFramework,
+  name: string,
+): string {
+  return framework === ui.framework ? `ui:${name}` : `ui:${framework}:${name}`;
 }
 
 export type UiFileKind = "script" | "css" | "html";

@@ -6,10 +6,15 @@ import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
 import { RichText } from "@/components/markdown";
 import { ProblemPanes } from "@/components/problem-panes";
-import { UiWorkspace } from "@/components/ui-workspace";
+import { UiSolution, UiWorkspace } from "@/components/ui-workspace";
 import { Workspace } from "@/components/workspace";
 import { getCompany, getProblem, listProblems } from "@/lib/data";
-import { CATEGORY_LABELS, type Company, type Problem } from "@/lib/types";
+import {
+  CATEGORY_LABELS,
+  uiTemplates,
+  type Company,
+  type Problem,
+} from "@/lib/types";
 
 export const revalidate = 300;
 
@@ -83,7 +88,11 @@ export default async function ProblemPage({
         <ProblemPanes
           key={problem.slug}
           hasHints={problem.hints.length > 0}
-          hasSolution={problem.solution !== undefined}
+          hasSolution={
+            problem.solution !== undefined ||
+            (problem.ui !== undefined &&
+              uiTemplates(problem.ui).some((t) => t.solution !== undefined))
+          }
           description={
             <>
               {header}
@@ -93,11 +102,15 @@ export default async function ProblemPage({
           }
           hints={<Hints problem={problem} bare />}
           solution={
-            problem.solution !== undefined && (
-              <RichText
-                text={problem.solution}
-                className="text-sm leading-6 text-zinc-300"
-              />
+            problem.ui ? (
+              <UiSolution ui={problem.ui} prose={problem.solution} />
+            ) : (
+              problem.solution !== undefined && (
+                <RichText
+                  text={problem.solution}
+                  className="text-sm leading-6 text-zinc-300"
+                />
+              )
             )
           }
           workspace={workspace}

@@ -19,6 +19,7 @@ import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions } from "@/lib/editor-completions";
 import { formatDocument } from "@/lib/editor-format";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
+import { RichText } from "./markdown";
 import { PaneTab, SplitPane } from "./resizable";
 import { useProgress } from "./progress";
 import {
@@ -34,12 +35,24 @@ import {
   writeSavedAt,
   writeStored,
 } from "@/lib/workspace-sync";
-import { uiFileKind, type UiWorkspace as UiWorkspaceSpec } from "@/lib/types";
+import {
+  UI_FRAMEWORK_LABELS,
+  uiFileKind,
+  uiSlot,
+  uiTemplates,
+  type UiFramework,
+  type UiTemplate,
+  type UiWorkspace as UiWorkspaceSpec,
+} from "@/lib/types";
 
 // The frontend-question workspace: one editor tab per starter file and a live
 // preview beside a captured console. Edits rebuild the preview on a debounce;
 // the sandboxed iframe reloads from scratch each time, so component state in
 // the user's app resets on every run — same trade GreatFrontend makes.
+//
+// A problem may ship the same exercise as a React template and an HTML/CSS/JS
+// one; the framework select swaps the file set, and each template keeps its
+// own drafts.
 
 const REBUILD_DEBOUNCE_MS = 800;
 const MAX_LOGS = 300;
@@ -65,8 +78,6 @@ function extensionsFor(name: string) {
   ];
 }
 
-const slotFor = (name: string) => `ui:${name}`;
-
 const subscribeNoop = () => () => {};
 
 export function UiWorkspace({
@@ -84,22 +95,47 @@ export function UiWorkspace({
     () => false,
   );
 
-  const starterFor = useCallback(
-    (name: string) => ui.files.find((f) => f.name === name)?.contents ?? "",
-    [ui],
+  const templates = uiTemplates(ui);
+  const frameworkKey = `callback:ui-framework:${slug}`;
+  const [framework, setFramework] = useState<UiFramework>(() => {
+    const stored = readStored(frameworkKey) as UiFramework | null;
+    return stored && templates.some((t) => t.framework === stored)
+      ? stored
+      : ui.framework;
+  });
+  const template =
+    templates.find((t) => t.framework === framework) ?? templates[0];
+  // Async continuations (preview rebuilds, account pulls) read the template
+  // the editor is actually showing.
+  const templateRef = useRef(template);
+  useEffect(() => {
+    templateRef.current = template;
+  }, [template]);
+
+  const slotFor = useCallback(
+    (name: string, fw: UiFramework = framework) => uiSlot(ui, fw, name),
+    [ui, framework],
+  );
+  /** The template's files, with any saved draft taking precedence. */
+  const loadFiles = useCallback(
+    (t: UiTemplate) =>
+      Object.fromEntries(
+        t.files.map((file) => [
+          file.name,
+          readStored(storageKeyFor(slug, uiSlot(ui, t.framework, file.name))) ??
+            file.contents,
+        ]),
+      ),
+    [slug, ui],
   );
 
   const [files, setFiles] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      ui.files.map((file) => [
-        file.name,
-        readStored(storageKeyFor(slug, slotFor(file.name))) ?? file.contents,
-      ]),
-    ),
+    loadFiles(template),
   );
-  const [active, setActive] = useState(ui.files[0]?.name ?? "");
+  const [active, setActive] = useState(template.files[0]?.name ?? "");
   // Remount the editor whenever contents are set from outside (file switch,
-  // reset, account pull) — same workaround as the judged workspace.
+  // framework switch, reset, account pull) — same workaround as the judged
+  // workspace.
   const [editorEpoch, setEditorEpoch] = useState(0);
   const [srcdoc, setSrcdoc] = useState<string | null>(null);
   const [previewEpoch, setPreviewEpoch] = useState(0);
@@ -118,7 +154,7 @@ export function UiWorkspace({
   // -- preview ---------------------------------------------------------------
 
   const rebuild = useCallback(async () => {
-    const result = await buildPreview(ui, filesRef.current);
+    const result = await buildPreview(templateRef.current, filesRef.current);
     setLogs([]);
     if (result.ok) {
       setBuildError(null);
@@ -128,7 +164,7 @@ export function UiWorkspace({
       // Keep the last good preview on screen under the error strip.
       setBuildError(`${result.file}: ${result.message}`);
     }
-  }, [ui]);
+  }, []);
 
   const rebuildTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleRebuild = useCallback(() => {
@@ -170,18 +206,19 @@ export function UiWorkspace({
 
   const { queueSave, flushSave, dropSolution } = useSolutionSync({
     slug,
-    slots: ui.files.map((file) => slotFor(file.name)),
+    slots: templates.flatMap((t) =>
+      t.files.map((file) => uiSlot(ui, t.framework, file.name)),
+    ),
     enabled: signedIn,
     onPulled: (slots) => {
-      setFiles((prev) => {
-        const next = { ...prev };
-        for (const slot of slots) {
-          const name = slot.slice("ui:".length);
-          next[name] =
-            readStored(storageKeyFor(slug, slot)) ?? starterFor(name);
-        }
-        return next;
-      });
+      // Drafts for the other template landed in storage and will load on
+      // switch; only the visible template needs re-reading now.
+      const current = templateRef.current;
+      const visible = new Set(
+        current.files.map((file) => uiSlot(ui, current.framework, file.name)),
+      );
+      if (!slots.some((slot) => visible.has(slot))) return;
+      setFiles(loadFiles(current));
       setEditorEpoch((epoch) => epoch + 1);
       scheduleRebuild();
     },
@@ -196,7 +233,7 @@ export function UiWorkspace({
       if (signedIn) queueSave(slotFor(active), value);
       scheduleRebuild();
     },
-    [slug, active, signedIn, queueSave, scheduleRebuild],
+    [slug, active, signedIn, queueSave, scheduleRebuild, slotFor],
   );
 
   const switchFile = (name: string) => {
@@ -205,17 +242,31 @@ export function UiWorkspace({
     setEditorEpoch((epoch) => epoch + 1);
   };
 
-  const reset = () => {
-    setFiles(Object.fromEntries(ui.files.map((f) => [f.name, f.contents])));
+  const switchFramework = (fw: UiFramework) => {
+    const next = templates.find((t) => t.framework === fw);
+    if (!next || fw === framework) return;
+    setFramework(fw);
+    writeStored(frameworkKey, fw);
+    templateRef.current = next;
+    setFiles(loadFiles(next));
+    setActive(next.files[0]?.name ?? "");
     setEditorEpoch((epoch) => epoch + 1);
-    for (const file of ui.files) {
+    setLogs([]);
+    if (rebuildTimer.current) clearTimeout(rebuildTimer.current);
+    // State updates land next render; rebuild reads the refs, so defer.
+    setTimeout(() => void rebuild(), 0);
+  };
+
+  const reset = () => {
+    setFiles(Object.fromEntries(template.files.map((f) => [f.name, f.contents])));
+    setEditorEpoch((epoch) => epoch + 1);
+    for (const file of template.files) {
       const key = storageKeyFor(slug, slotFor(file.name));
       removeStored(key);
       removeStored(`${key}:savedAt`);
       if (signedIn) dropSolution(slotFor(file.name));
     }
     if (rebuildTimer.current) clearTimeout(rebuildTimer.current);
-    // State updates land next render; rebuild reads filesRef, so defer.
     setTimeout(() => void rebuild(), 0);
   };
 
@@ -274,7 +325,7 @@ export function UiWorkspace({
         <section className="flex min-h-[380px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
           <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-1">
             <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-              {ui.files.map((file) => (
+              {template.files.map((file) => (
                 <button
                   key={file.name}
                   onClick={() => switchFile(file.name)}
@@ -296,7 +347,39 @@ export function UiWorkspace({
                 {note ?? ""}
               </span>
             </div>
-            <div className="flex gap-2 py-1">
+            <div className="flex items-center gap-2 py-1">
+              {templates.length > 1 && (
+                <label className="relative">
+                  <span className="sr-only">Framework</span>
+                  <select
+                    value={framework}
+                    onChange={(e) =>
+                      switchFramework(e.target.value as UiFramework)
+                    }
+                    className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1 pl-2.5 pr-7 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white focus:outline-none focus:ring-indigo-500"
+                  >
+                    {templates.map((t) => (
+                      <option key={t.framework} value={t.framework}>
+                        {UI_FRAMEWORK_LABELS[t.framework]}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 12 12"
+                    className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-500"
+                  >
+                    <path
+                      d="M3 4.5 6 8l3-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </label>
+              )}
               <button
                 onClick={reset}
                 className="rounded-md border border-zinc-800 px-3 py-1 text-xs text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-200"
@@ -315,7 +398,7 @@ export function UiWorkspace({
           <div className="relative min-h-0 flex-1 overflow-hidden text-[13px]">
             <CodeMirror
               ref={editorRef}
-              key={`${active}:${editorEpoch}`}
+              key={`${framework}:${active}:${editorEpoch}`}
               value={files[active] ?? ""}
               onChange={onChange}
               theme={oneDark}
@@ -405,5 +488,116 @@ export function UiWorkspace({
         </section>
       }
     />
+  );
+}
+
+const WORTH_SAYING = "\n## Worth saying out loud";
+
+/**
+ * The Solution tab for UI problems: the approach prose, then the complete
+ * reference files — switchable by framework and by file, like the editor —
+ * then the interview-signal notes.
+ */
+export function UiSolution({
+  ui,
+  prose,
+}: {
+  ui: UiWorkspaceSpec;
+  prose?: string;
+}) {
+  const solved = uiTemplates(ui).filter(
+    (t) => t.solution !== undefined && t.solution.length > 0,
+  );
+  const [framework, setFramework] = useState<UiFramework>(
+    solved[0]?.framework ?? ui.framework,
+  );
+  const template = solved.find((t) => t.framework === framework) ?? solved[0];
+  const [fileName, setFileName] = useState(
+    template?.solution?.[0]?.name ?? "",
+  );
+  const file =
+    template?.solution?.find((f) => f.name === fileName) ??
+    template?.solution?.[0];
+
+  const pickFramework = (fw: UiFramework) => {
+    setFramework(fw);
+    setFileName(
+      solved.find((t) => t.framework === fw)?.solution?.[0]?.name ?? "",
+    );
+  };
+
+  // Show the notes after the code they talk about.
+  const split = prose?.indexOf(WORTH_SAYING) ?? -1;
+  const before = split === -1 ? prose : prose!.slice(0, split);
+  const after = split === -1 ? undefined : prose!.slice(split + 1);
+
+  return (
+    <div className="space-y-5">
+      {before && (
+        <RichText text={before} className="text-sm leading-6 text-zinc-300" />
+      )}
+      {template && file && (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-[15px] font-semibold text-zinc-100">
+              Reference files
+            </h2>
+            {solved.length > 1 && (
+              <div className="flex gap-1.5">
+                {solved.map((t) => (
+                  <ChipButton
+                    key={t.framework}
+                    active={t.framework === framework}
+                    onClick={() => pickFramework(t.framework)}
+                  >
+                    {UI_FRAMEWORK_LABELS[t.framework]}
+                  </ChipButton>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {template.solution!.map((f) => (
+              <ChipButton
+                key={f.name}
+                active={f.name === file.name}
+                onClick={() => setFileName(f.name)}
+              >
+                {f.name}
+              </ChipButton>
+            ))}
+          </div>
+          <pre className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 font-mono text-xs leading-6 text-zinc-200">
+            {file.contents}
+          </pre>
+        </section>
+      )}
+      {after && (
+        <RichText text={after} className="text-sm leading-6 text-zinc-300" />
+      )}
+    </div>
+  );
+}
+
+function ChipButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md px-2.5 py-1 font-mono text-xs transition-colors ${
+        active
+          ? "bg-zinc-800 text-zinc-100"
+          : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

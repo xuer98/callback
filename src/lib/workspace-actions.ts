@@ -29,8 +29,9 @@ async function problemIdBySlug(slug: string): Promise<number | null> {
 }
 
 /**
- * A saved document's key: a language for the judged editor, "ui:<file>" for
- * a UI-workspace file, or "design" for a system-design write-up. UI keys are
+ * A saved document's key: a language for the judged editor, "ui:<file>" (or
+ * "ui:<framework>:<file>" for the alternate template) for a UI-workspace
+ * file, or "design" for a system-design write-up. UI keys are
  * checked against the problem's own file list and "design" against the
  * category, so the table can't accumulate rows that don't belong.
  */
@@ -48,8 +49,17 @@ async function validSlot(slug: string, slot: string): Promise<boolean> {
     where: eq(schema.problems.slug, slug),
     columns: { ui: true },
   });
-  const name = slot.slice("ui:".length);
-  return row?.ui?.files.some((file) => file.name === name) ?? false;
+  if (!row?.ui) return false;
+  // "ui:<file>" is the default template; "ui:<framework>:<file>" the alternate.
+  const rest = slot.slice("ui:".length);
+  const sep = rest.indexOf(":");
+  if (sep === -1) return row.ui.files.some((file) => file.name === rest);
+  const alternate = row.ui.alternate;
+  return (
+    alternate !== undefined &&
+    alternate.framework === rest.slice(0, sep) &&
+    alternate.files.some((file) => file.name === rest.slice(sep + 1))
+  );
 }
 
 /**
