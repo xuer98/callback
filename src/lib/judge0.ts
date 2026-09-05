@@ -368,6 +368,7 @@ try {
   process.exit(0);
 }
 
+(async () => {
 const verdicts = [];
 for (let i = 0; i < TESTS.length; i++) {
   const test = TESTS[i];
@@ -380,7 +381,7 @@ for (let i = 0; i < TESTS.length; i++) {
     expected: display(test.expected),
   };
   try {
-    const got = entryFn(...JSON.parse(JSON.stringify(test.input)));
+    const got = await entryFn(...JSON.parse(JSON.stringify(test.input)));
     verdicts.push({
       ...base,
       pass: deepEqual(got, test.expected),
@@ -404,5 +405,6 @@ emit({
   status: verdicts.every((v) => v.pass) ? "pass" : "fail",
   verdicts,
 });
+})();
 `;
 }

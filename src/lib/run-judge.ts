@@ -91,7 +91,7 @@ function deepEqual(a, b) {
   return true;
 }
 
-self.onmessage = (event) => {
+self.onmessage = async (event) => {
   const { code, driverCode, entry, tests } = event.data;
 
   let logs = [];
@@ -131,7 +131,9 @@ self.onmessage = (event) => {
       expected: display(test.expected),
     };
     try {
-      const got = entryFn(...structuredClone(test.input));
+      // Awaited so a driver may be async — fake-timer or microtask-ordering
+      // scenarios settle before the verdict is taken.
+      const got = await entryFn(...structuredClone(test.input));
       verdicts.push({
         ...base,
         pass: deepEqual(got, test.expected),

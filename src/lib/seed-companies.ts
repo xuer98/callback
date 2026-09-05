@@ -126,12 +126,13 @@ export const companies: Company[] = ([] = [
     slug: "airbnb",
     name: "Airbnb",
     blurb:
-      "Loops with unusual weight on collaboration: a pairing-style coding round, an architecture round, and a dedicated core-values interview.",
+      "Practical, not LeetCode: frontend screens are build-this-widget or implement-this-class prompts in a live editor, and the interviewer keeps adding requirements until time runs out. Clarifying questions, a stated plan, and self-tested code are scored explicitly, alongside a pairing-style onsite and dedicated core-values interviews.",
     process: [
       "Recruiter screen",
-      "Technical phone screen",
-      "Onsite: pairing-style coding round",
-      "Architecture round",
+      "Technical screen: 45 min on Zoom + CodeSignal with a Web Engineering interviewer — React or vanilla JS, one prompt with incremental feature adds",
+      "Sometimes a second technical screen, DSA-flavored",
+      "Onsite: pairing-style coding round in the same grow-the-prompt style",
+      "Architecture round (frontend system design — a chat app, a typeahead widget)",
       "Two core-values interviews",
     ],
   },
