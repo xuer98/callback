@@ -84,7 +84,7 @@ export default async function ProblemPage({
     return (
       <div
         data-workspace
-        className="mx-auto flex w-full max-w-[1600px] flex-col px-2 py-2 lg:h-full lg:px-3"
+        className="mx-auto flex w-full max-w-[1600px] flex-col px-2 py-2 lg:h-full"
       >
         {/* Keyed by slug so pane and editor state can't leak between
             problems on client-side navigation. */}
