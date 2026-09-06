@@ -5,25 +5,20 @@ import { PaneTab, SplitPane } from "./resizable";
 
 // The judged-problem layout: a tabbed description pane beside the workspace,
 // with a draggable divider between them. The tab contents are server-rendered
-// and passed in, so the prompt stays static HTML.
+// and passed in, so the prompt stays static HTML. Hints live inside the
+// description (collapsed) rather than behind their own tab.
 export function ProblemPanes({
   description,
-  hints,
   solution,
   workspace,
-  hasHints,
   hasSolution,
 }: {
   description: React.ReactNode;
-  hints: React.ReactNode;
   solution: React.ReactNode;
   workspace: React.ReactNode;
-  hasHints: boolean;
   hasSolution: boolean;
 }) {
-  const [tab, setTab] = useState<"description" | "hints" | "solution">(
-    "description",
-  );
+  const [tab, setTab] = useState<"description" | "solution">("description");
 
   return (
     <SplitPane
@@ -46,11 +41,6 @@ export function ProblemPanes({
             >
               Description
             </PaneTab>
-            {hasHints && (
-              <PaneTab active={tab === "hints"} onClick={() => setTab("hints")}>
-                Hints
-              </PaneTab>
-            )}
             {hasSolution && (
               <PaneTab
                 active={tab === "solution"}
@@ -61,11 +51,7 @@ export function ProblemPanes({
             )}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-            {tab === "description"
-              ? description
-              : tab === "hints"
-                ? hints
-                : solution}
+            {tab === "description" ? description : solution}
           </div>
         </section>
       }

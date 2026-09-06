@@ -90,7 +90,6 @@ export default async function ProblemPage({
             problems on client-side navigation. */}
         <ProblemPanes
           key={problem.slug}
-          hasHints={problem.hints.length > 0}
           hasSolution={
             problem.solution !== undefined ||
             (judge !== undefined &&
@@ -102,10 +101,10 @@ export default async function ProblemPage({
             <>
               {header}
               <Prompt problem={problem} />
+              <Hints problem={problem} />
               <AskedAt problem={problem} />
             </>
           }
-          hints={<Hints problem={problem} bare />}
           solution={
             judge ? (
               <JudgeSolution judge={judge} prose={problem.solution} />
@@ -148,18 +147,13 @@ function Prompt({ problem }: { problem: Problem }) {
   );
 }
 
-function Hints({
-  problem,
-  bare = false,
-}: {
-  problem: Problem;
-  bare?: boolean;
-}) {
+/** Collapsed by default, so the description can carry them without spoiling. */
+function Hints({ problem }: { problem: Problem }) {
   if (problem.hints.length === 0) return null;
   return (
-    <section className={bare ? "" : "mt-10"}>
-      {!bare && <h2 className="text-sm font-semibold text-zinc-100">Hints</h2>}
-      <div className={bare ? "space-y-2" : "mt-3 space-y-2"}>
+    <section className="mt-10">
+      <h2 className="text-sm font-semibold text-zinc-100">Hints</h2>
+      <div className="mt-3 space-y-2">
         {problem.hints.map((hint, i) => (
           <details
             key={i}
