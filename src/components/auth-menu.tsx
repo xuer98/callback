@@ -41,7 +41,7 @@ export function AuthMenu() {
     return (
       <Link
         href="/signin"
-        className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-900"
+        className="whitespace-nowrap rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-900"
       >
         Sign in
       </Link>
