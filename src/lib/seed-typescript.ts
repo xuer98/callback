@@ -1248,4 +1248,363 @@ function printTerrain(heights: number[], water: number[]): string {
 }
 `,
   },
+
+  // -- Airbnb bank, string / async wildcards --------------------------------
+  "boxed-sentence": {
+    entry: "__judgeBox",
+    starterCode: `/** Greedy word wrap: never split a word; a line never starts with punctuation. */
+function wrapWords(sentence: string, width: number): string[] {
+  // Your code here
+  return [sentence];
+}
+
+/** One sentence in a box, wrapped at width. */
+function renderBox(sentence: string, width: number): string {
+  return "";
+}
+
+interface Block {
+  text: string;
+  width: number;
+}
+
+/** Bonus: several sentences, each with its own wrap width, in one aligned box. */
+function renderMultiBox(blocks: Block[]): string {
+  return "";
+}
+`,
+    solutionCode: `// Word wrap → boxed sentence (phone screen, Aug 2026; FE onsite 2016 as "text justification")
+// Greedy: append words while they fit; never split a word; a line never starts with punctuation.
+const LEADING_PUNCT = /^[.,;:!?]/;
+
+function wrapWords(sentence: string, width: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of sentence.split(/\\s+/).filter(Boolean)) {
+    if (line === '') line = word;
+    else if (line.length + 1 + word.length <= width || LEADING_PUNCT.test(word)) line += \` \${word}\`;
+    else { lines.push(line); line = word; }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// Part 1/2: one sentence in a box, wrapped at \`width\`.
+function renderBox(sentence: string, width: number): string {
+  const rule = \`+\${'-'.repeat(width + 2)}+\`;
+  const body = wrapWords(sentence, width).map((l) => \`| \${l.padEnd(width)} |\`);
+  return [rule, ...body, rule].join('\\n');
+}
+
+interface Block {
+  text: string;
+  width: number;
+}
+
+// Part 3 (bonus): several sentences, each with its OWN wrap width, inside one aligned outer box.
+function renderMultiBox(blocks: Block[]): string {
+  const inner = Math.max(...blocks.map((b) => b.width));
+  const rule = \`+\${'-'.repeat(inner + 2)}+\`;
+  const out = [rule];
+  blocks.forEach((b, i) => {
+    if (i > 0) out.push(\`| \${'-'.repeat(inner)} |\`);              // separator between sentences
+    wrapWords(b.text, b.width).forEach((l) => out.push(\`| \${l.padEnd(inner)} |\`));
+  });
+  out.push(rule);
+  return out.join('\\n');
+}
+`,
+  },
+  "parse-query-string": {
+    entry: "parseQuery",
+    starterCode: `type Scalar = string | true;
+type QueryValue = Scalar | Scalar[];
+
+/**
+ * "?a=b&c=d" -> { a: "b", c: "d" }. A bare key is true; a repeated key becomes
+ * an array; percent-decode after splitting; drop the #fragment; no "?" -> {}.
+ */
+function parseQuery(url: string): Record<string, QueryValue> {
+  // Your code here
+  return {};
+}
+`,
+    solutionCode: `type Scalar = string | true;
+type QueryValue = Scalar | Scalar[];
+
+// URL query-string parser (phone screen, Aug 2026)
+// ?a=b&c=d → {a:'b', c:'d'}; bare key → true; repeated key → array; percent-decoding after splitting.
+const decode = (s: string): string => {
+  try { return decodeURIComponent(s.replace(/\\+/g, ' ')); } catch { return s; }
+};
+
+function parseQuery(url: string): Record<string, QueryValue> {
+  const q = url.indexOf('?');
+  if (q === -1) return {};
+  const query = url.slice(q + 1).split('#')[0];                       // drop the fragment
+  const out: Record<string, QueryValue> = {};
+  for (const part of query.split('&')) {
+    if (!part) continue;                                              // trailing "&" / "&&" are no-ops
+    const eq = part.indexOf('=');
+    const key = decode(eq === -1 ? part : part.slice(0, eq));         // decode AFTER splitting on & and =
+    const value: Scalar = eq === -1 ? true : decode(part.slice(eq + 1));
+    const existing = out[key];
+    if (existing === undefined) out[key] = value;
+    else if (Array.isArray(existing)) existing.push(value);
+    else out[key] = [existing, value];
+  }
+  return out;
+}
+`,
+  },
+  "review-token-tagging": {
+    entry: "tagTokens",
+    starterCode: `/**
+ * Wrap each case-insensitive occurrence of a token as [label]{original text}.
+ * Multi-word tokens match across a space; the longest match wins at an offset.
+ */
+function tagTokens(review: string, tokens: Record<string, string>): string {
+  // Your code here
+  return review;
+}
+`,
+    solutionCode: `// Review token tagging (senior phone screen, Aug 2026)
+// Wrap each case-insensitive occurrence of a token as [label]{original text}; multi-word tokens
+// match across whitespace; longest match wins at a given offset. Trie over lowercased tokens.
+interface TrieNode {
+  children: Map<string, TrieNode>;
+  label?: string;                                                   // set on a token's last character
+}
+
+function tagTokens(review: string, tokens: Record<string, string>): string {
+  const root: TrieNode = { children: new Map() };
+  for (const [token, label] of Object.entries(tokens)) {
+    let node = root;
+    for (const ch of token.toLowerCase()) {
+      let next = node.children.get(ch);
+      if (!next) {
+        next = { children: new Map() };
+        node.children.set(ch, next);
+      }
+      node = next;
+    }
+    node.label = label;
+  }
+
+  const lower = review.toLowerCase();
+  let out = '';
+  let i = 0;
+  while (i < lower.length) {
+    let node = root;
+    let best: { end: number; label: string } | null = null;
+    for (let j = i; j < lower.length; j++) {
+      const next = node.children.get(lower[j]);
+      if (!next) break;
+      node = next;
+      if (node.label !== undefined) best = { end: j + 1, label: node.label };   // keep going → longest match
+    }
+    if (best) { out += \`[\${best.label}]{\${review.slice(i, best.end)}}\`; i = best.end; }
+    else { out += review[i]; i++; }
+  }
+  return out;
+}
+`,
+  },
+  "retry-wrapper": {
+    entry: "__runRetryScenario",
+    starterCode: `/** A backoff strategy: the delay in ms before the retry after attempt (0-based). */
+type Backoff = (attempt: number) => number;
+
+const backoff = {
+  fixed: (ms: number): Backoff => () => ms,
+  linear: (ms: number): Backoff => (attempt) => 0,
+  exponential: (base: number, cap = 30_000): Backoff => (attempt) => 0,
+  /** Jitter spreads synchronized retries: delay * [0.5, 1.5). */
+  exponentialJitter: (base: number, cap = 30_000, random: () => number = Math.random): Backoff => (attempt) => 0,
+};
+
+interface RetryOptions {
+  maxAttempts?: number;
+  backoff?: Backoff;
+  isRetryable?: (err: unknown) => boolean;
+  onAttempt?: (attempt: number) => void;
+  onFailure?: (err: unknown, attempt: number) => void;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+class Retryer {
+  constructor(options: RetryOptions = {}) {
+    // Your state here
+  }
+
+  /** Run fn(attempt) until it resolves; rethrow the last (or a non-retryable) error. Honors signal.throwIfAborted(). */
+  async run<T>(fn: (attempt: number) => Promise<T> | T, options: { signal?: { throwIfAborted?: () => void } } = {}): Promise<T> {
+    return fn(0);
+  }
+
+  /** Decorator form: retryer.wrap(fetchJson) returns a retrying version. */
+  wrap<A extends unknown[], T>(fn: (...args: A) => Promise<T> | T): (...args: A) => Promise<T> {
+    return (...args) => this.run(() => fn(...args));
+  }
+}
+`,
+    solutionCode: `// Retryer (onsite "AI coding" round, Aug 2026 — Claude Code available; you still own the code).
+// Composes three pluggable pieces: backoff strategy, retryable-error filter, hooks.
+type Backoff = (attempt: number) => number;
+
+const backoff = {
+  fixed: (ms: number): Backoff => () => ms,
+  linear: (ms: number): Backoff => (attempt) => ms * (attempt + 1),
+  exponential: (base: number, cap = 30_000): Backoff => (attempt) => Math.min(cap, base * 2 ** attempt),
+  // jitter prevents synchronized retry storms: delay * [0.5, 1.5)
+  exponentialJitter: (base: number, cap = 30_000, random: () => number = Math.random): Backoff =>
+    (attempt) => Math.min(cap, base * 2 ** attempt) * (0.5 + random()),
+};
+
+interface RetryOptions {
+  maxAttempts?: number;
+  backoff?: Backoff;
+  isRetryable?: (err: unknown) => boolean;                 // e.g. (err) => err.status >= 500
+  onAttempt?: (attempt: number) => void;                   // hooks: logging / metrics
+  onFailure?: (err: unknown, attempt: number) => void;
+  sleep?: (ms: number) => Promise<void>;
+}
+
+/** The subset of AbortSignal the retryer needs — a plain object works too. */
+interface Abortable {
+  throwIfAborted?: () => void;
+}
+
+class Retryer {
+  readonly maxAttempts: number;
+  readonly delayFor: Backoff;
+  readonly isRetryable: (err: unknown) => boolean;
+  readonly onAttempt: (attempt: number) => void;
+  readonly onFailure: (err: unknown, attempt: number) => void;
+  readonly sleep: (ms: number) => Promise<void>;
+
+  constructor({
+    maxAttempts = 3,
+    backoff: delayFor = backoff.exponentialJitter(200),
+    isRetryable = () => true,
+    onAttempt = () => {},
+    onFailure = () => {},
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  }: RetryOptions = {}) {
+    this.maxAttempts = maxAttempts;
+    this.delayFor = delayFor;
+    this.isRetryable = isRetryable;
+    this.onAttempt = onAttempt;
+    this.onFailure = onFailure;
+    this.sleep = sleep;
+  }
+
+  async run<T>(fn: (attempt: number) => Promise<T> | T, { signal }: { signal?: Abortable } = {}): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      signal?.throwIfAborted?.();
+      this.onAttempt(attempt);
+      try {
+        return await fn(attempt);                     // await INSIDE try so async rejections are caught
+      } catch (err) {
+        const last = attempt === this.maxAttempts - 1;
+        this.onFailure(err, attempt);
+        if (last || !this.isRetryable(err)) throw err; // re-raise the last / non-retryable error
+        await this.sleep(this.delayFor(attempt));
+      }
+    }
+  }
+
+  // Decorator form: const safeFetch = retryer.wrap(fetchJson)
+  wrap<A extends unknown[], T>(fn: (...args: A) => Promise<T> | T): (...args: A) => Promise<T> {
+    return (...args) => this.run(() => fn(...args));
+  }
+}
+`,
+  },
+  "fifo-order-allocator": {
+    entry: "__runOperations",
+    starterCode: `interface Lot {
+  lotId: string;
+  quantity: number;
+  receivedAt: number;
+}
+
+interface Allocation {
+  lotId: string;
+  quantity: number;
+}
+
+class StockAllocator {
+  constructor() {
+    // Your state here
+  }
+
+  /** Add a lot of stock. Lots are consumed oldest receivedAt first; ties in the order received. */
+  receive(lotId: string, quantity: number, receivedAt: number): void {}
+
+  /** Fill an order from the oldest stock. All-or-nothing: null (and no change) when stock is short. */
+  allocate(orderId: string, quantity: number): Allocation[] | null {
+    return null;
+  }
+
+  /** Total units still in stock. */
+  available(): number {
+    return 0;
+  }
+
+  /** Remaining lots in consumption order. */
+  lots(): Lot[] {
+    return [];
+  }
+}
+`,
+    solutionCode: `interface Lot {
+  lotId: string;
+  quantity: number;
+  receivedAt: number;
+}
+
+interface Allocation {
+  lotId: string;
+  quantity: number;
+}
+
+// FIFO stock allocation: consume the oldest lot first, partially if needed,
+// and hand back which lots an order drew from. All-or-nothing on shortage.
+class StockAllocator {
+  #lots: (Lot & { seq: number })[] = [];   // kept sorted: receivedAt asc, then arrival order
+  #seq = 0;
+
+  receive(lotId: string, quantity: number, receivedAt: number): void {
+    if (quantity <= 0) return;
+    this.#lots.push({ lotId, quantity, receivedAt, seq: this.#seq++ });
+    this.#lots.sort((a, b) => a.receivedAt - b.receivedAt || a.seq - b.seq);
+  }
+
+  available(): number {
+    return this.#lots.reduce((sum, lot) => sum + lot.quantity, 0);
+  }
+
+  lots(): Lot[] {
+    return this.#lots.map(({ lotId, quantity, receivedAt }) => ({ lotId, quantity, receivedAt }));
+  }
+
+  allocate(orderId: string, quantity: number): Allocation[] | null {
+    if (quantity <= 0) return [];
+    if (this.available() < quantity) return null;    // all-or-nothing: leave the stock untouched
+    const allocations: Allocation[] = [];
+    let remaining = quantity;
+    while (remaining > 0) {
+      const lot = this.#lots[0];                       // the oldest lot is always at the front
+      const take = Math.min(lot.quantity, remaining);
+      allocations.push({ lotId: lot.lotId, quantity: take });
+      lot.quantity -= take;
+      remaining -= take;
+      if (lot.quantity === 0) this.#lots.shift();
+    }
+    return allocations;
+  }
+}
+`,
+  },
 };
