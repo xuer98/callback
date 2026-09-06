@@ -19,7 +19,7 @@ import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions, pythonCompletions } from "@/lib/editor-completions";
-import { formatDocument } from "@/lib/editor-format";
+import { formatDocument, formatKindForLanguage } from "@/lib/editor-format";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
 import {
@@ -223,10 +223,10 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   };
 
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const flash = (text: string) => {
+  const flash = (text: string, ms = 1600) => {
     setNote(text);
     if (noteTimer.current) clearTimeout(noteTimer.current);
-    noteTimer.current = setTimeout(() => setNote(null), 1600);
+    noteTimer.current = setTimeout(() => setNote(null), ms);
   };
   useEffect(() => () => {
     if (noteTimer.current) clearTimeout(noteTimer.current);
@@ -376,9 +376,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
 
   const format = () => {
     const view = editorRef.current?.view;
-    if (!view) return;
-    formatDocument(view);
-    flash("Formatted");
+    if (view) formatDocument(view, formatKindForLanguage(language), flash);
   };
 
   const runFromKeyboard = () => {
