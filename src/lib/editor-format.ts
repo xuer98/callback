@@ -13,7 +13,8 @@ export type FormatKind =
   "javascript" | "typescript" | "css" | "html" | "indent";
 
 type FormatOutcome =
-  { ok: true; mode: "pretty" | "indent" } | { ok: false; message: string };
+  | { ok: true; mode: "pretty" | "indent"; changed: boolean }
+  | { ok: false; reason: string };
 
 export function formatKindForLanguage(language: Language): FormatKind {
   return language === "javascript" || language === "typescript"
@@ -29,6 +30,8 @@ export function formatKindForFile(name: string): FormatKind {
   return "javascript";
 }
 
+type Notify = (text: string, ms: number) => void;
+
 /**
  * Pretty-print or re-indent the whole document in a single transaction that
  * one undo reverses, keeping the cursor on the same character, then report
@@ -40,27 +43,65 @@ export function formatKindForFile(name: string): FormatKind {
 export function formatDocument(
   view: EditorView,
   kind: FormatKind,
-  notify: (text: string, ms: number) => void,
+  notify: Notify,
 ): void {
-  if (busy.has(view)) return;
-  busy.add(view);
-  void runFormat(view, kind)
-    .then((outcome) => {
-      if (!outcome.ok) return notify(outcome.message, 4000);
-      notify(outcome.mode === "pretty" ? "Formatted" : "Re-indented", 1600);
-    })
-    .finally(() => busy.delete(view));
+  void formatOnce(view, kind).then((outcome) => {
+    if (!outcome) return;
+    if (!outcome.ok) return notify(`Can't format — ${outcome.reason}`, 4000);
+    notify(outcome.mode === "pretty" ? "Formatted" : "Re-indented", 1600);
+  });
+}
+
+/**
+ * Format on save: pretty-print, then hand whatever the document holds to
+ * `persist`. A syntax error saves the code as written rather than blocking
+ * the save, and the note says which of the two happened.
+ */
+export function saveFormatted(
+  view: EditorView,
+  kind: FormatKind,
+  notify: Notify,
+  persist: (code: string) => void,
+): void {
+  void formatOnce(view, kind).then((outcome) => {
+    persist(view.state.doc.toString());
+    if (outcome && !outcome.ok) {
+      return notify(`Saved without formatting — ${outcome.reason}`, 4000);
+    }
+    if (!outcome?.changed) return notify("Saved", 1600);
+    notify(
+      outcome.mode === "pretty"
+        ? "Formatted and saved"
+        : "Re-indented and saved",
+      1600,
+    );
+  });
 }
 
 const busy = new WeakSet<EditorView>();
+
+/** One format per view at a time; a request during another resolves null. */
+async function formatOnce(
+  view: EditorView,
+  kind: FormatKind,
+): Promise<FormatOutcome | null> {
+  if (busy.has(view)) return null;
+  busy.add(view);
+  try {
+    return await runFormat(view, kind);
+  } finally {
+    busy.delete(view);
+  }
+}
 
 async function runFormat(
   view: EditorView,
   kind: FormatKind,
 ): Promise<FormatOutcome> {
   if (kind === "indent") {
+    const before = view.state.doc;
     reindent(view);
-    return { ok: true, mode: "indent" };
+    return { ok: true, mode: "indent", changed: !view.state.doc.eq(before) };
   }
 
   const { state } = view;
@@ -79,15 +120,16 @@ async function runFormat(
       useTabs: state.facet(indentUnit).startsWith("\t"),
     }));
   } catch (err) {
-    return { ok: false, message: reportSyntaxError(view, err) };
+    return { ok: false, reason: reportSyntaxError(view, err) };
   }
 
   // The awaits gave the user time to type (or switch languages, which
   // remounts the editor); never paste stale output over their edits.
   if (!view.dom.isConnected || !view.state.doc.eq(state.doc)) {
-    return { ok: false, message: "Edited while formatting — try again" };
+    return { ok: false, reason: "edited while formatting, try again" };
   }
-  if (formatted !== source) {
+  const changed = formatted !== source;
+  if (changed) {
     view.dispatch({
       changes: { from: 0, to: state.doc.length, insert: formatted },
       selection: {
@@ -97,7 +139,7 @@ async function runFormat(
     });
   }
   view.focus();
-  return { ok: true, mode: "pretty" };
+  return { ok: true, mode: "pretty", changed };
 }
 
 type Printer = { parser: string; plugins: Plugin[] };
@@ -146,7 +188,7 @@ async function loadPrinter(
 /**
  * Prettier's parse errors carry a `loc` and a message that already ends in
  * "(line:column)". Park the cursor on the offending spot so the note has
- * something to point at, and keep the note to one line.
+ * something to point at, and return a one-line reason for it.
  */
 function reportSyntaxError(view: EditorView, err: unknown): string {
   const error = err as {
@@ -169,11 +211,9 @@ function reportSyntaxError(view: EditorView, err: unknown): string {
     });
     view.focus();
   }
-  const message =
-    typeof error.message === "string" && error.message.trim()
-      ? error.message.split("\n")[0].trim()
-      : "syntax error";
-  return `Can't format — ${message}`;
+  return typeof error.message === "string" && error.message.trim()
+    ? error.message.split("\n")[0].trim()
+    : "syntax error";
 }
 
 function indentWidth(text: string): number {

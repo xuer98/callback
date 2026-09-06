@@ -17,7 +17,11 @@ import { indentWithTab } from "@codemirror/commands";
 import { indentUnit } from "@codemirror/language";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions } from "@/lib/editor-completions";
-import { formatDocument, formatKindForFile } from "@/lib/editor-format";
+import {
+  formatDocument,
+  formatKindForFile,
+  saveFormatted,
+} from "@/lib/editor-format";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
 import { useProgress } from "./progress";
@@ -279,12 +283,17 @@ export function UiWorkspace({
     if (noteTimer.current) clearTimeout(noteTimer.current);
   }, []);
 
+  // Format on save; a file Prettier can't parse is saved as written.
   const save = () => {
-    const key = storageKeyFor(slug, slotFor(active));
-    writeStored(key, files[active] ?? "");
-    writeSavedAt(key, Date.now());
-    if (signedIn) flushSave(slotFor(active), files[active] ?? "");
-    flash("Saved");
+    const view = editorRef.current?.view;
+    const slot = slotFor(active);
+    if (!view) return;
+    saveFormatted(view, formatKindForFile(active), flash, (code) => {
+      const key = storageKeyFor(slug, slot);
+      writeStored(key, code);
+      writeSavedAt(key, Date.now());
+      if (signedIn) flushSave(slot, code);
+    });
   };
 
   const format = () => {
