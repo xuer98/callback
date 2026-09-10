@@ -193,12 +193,13 @@ export const companies: Company[] = ([] = [
     slug: "apple",
     name: "Apple",
     blurb:
-      "Deeply team-specific loops — questions follow the domain of the team you interview with, and debugging instincts and low-level detail carry real weight.",
+      "Deeply team-specific loops with no standard script — the screen is half résumé interrogation, and the coding half favours “implement this class, then extend it” over puzzles, with a requirement added the moment the first version works. Optimal on the first pass, narration throughout, and the memory bound volunteered on anything involving “millions”.",
     process: [
-      "Recruiter screen",
-      "Hiring-manager conversation",
-      "Technical phone screen",
-      "Onsite: four to six team-specific rounds",
+      "Recruiter screen — ask which shape the technical screen takes: algorithmic, practical/domain, or design",
+      "Hiring-manager call: résumé deep-dive (baseline, instrument, confounder for every number), often with a coding question of its own",
+      "Technical phone screen: 45–60 min on CoderPad over WebEx, roughly half résumé and half one problem; some are voice-only design",
+      "A second technical screen is normal",
+      "Onsite: four to six team-specific rounds — coding, design/OOD, résumé deep-dive, behavioural",
       "Cross-functional round with a partner team",
     ],
   },

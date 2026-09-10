@@ -38,6 +38,7 @@ async function inBatches<T>(
   }
 }
 import { pythonJudges } from "../lib/seed-python";
+import { applePythonJudges } from "../lib/seed-python-apple";
 import { typescriptJudges } from "../lib/seed-typescript";
 import { javaJudges } from "../lib/seed-java";
 import { cppJudges } from "../lib/seed-cpp";
@@ -83,7 +84,7 @@ async function main() {
         judge: problem.judge
           ? {
               ...problem.judge,
-              python: pythonJudges[problem.slug],
+              python: pythonJudges[problem.slug] ?? applePythonJudges[problem.slug],
               typescript: typescriptJudges[problem.slug],
               java: javaJudges[problem.slug],
               cpp: cppJudges[problem.slug],

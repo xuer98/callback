@@ -4,6 +4,18 @@ import { airbnbProblemsC } from "./seed-airbnb-c";
 import { airbnbProblemsD } from "./seed-airbnb-d";
 import { airbnbProblemsE } from "./seed-airbnb-e";
 import { airbnbProblemsF } from "./seed-airbnb-f";
+import { appleProblemsA } from "./seed-apple-a";
+import { appleProblemsB } from "./seed-apple-b";
+import { appleProblemsC } from "./seed-apple-c";
+import { appleProblemsD } from "./seed-apple-d";
+import { appleProblemsE } from "./seed-apple-e";
+import { appleProblemsF } from "./seed-apple-f";
+import { appleProblemsG } from "./seed-apple-g";
+import { appleProblemsH } from "./seed-apple-h";
+import { appleProblemsI } from "./seed-apple-i";
+import { appleProblemsJ } from "./seed-apple-j";
+import { appleProblemsK } from "./seed-apple-k";
+import { appleDesignProblems } from "./seed-apple-design";
 import { andurilProblemsA } from "./seed-anduril-a";
 import { andurilProblemsB } from "./seed-anduril-b";
 import { andurilProblemsC } from "./seed-anduril-c";
@@ -87,7 +99,8 @@ function pairSum(numbers, target) {
     title: "Merge Overlapping Intervals",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["google", "meta"],
+    // Apple: a 2026 phone screen asked merge then insert-interval (offer).
+    companies: ["google", "meta", "apple"],
     summary: "Sort, then sweep — the pattern behind a dozen calendar problems.",
     prompt:
       "Given a list of intervals [start, end], merge all overlapping intervals and return the result sorted by start time.\n\nFollow-up: how would you handle a stream of intervals that arrive out of order?",
@@ -122,7 +135,8 @@ function mergeIntervals(intervals) {
     title: "Design an LRU Cache",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["amazon", "meta"],
+    // Apple: the most-reported Apple design problem (onsite, repeatedly).
+    companies: ["amazon", "meta", "apple"],
     summary: "Hash map plus doubly linked list, all operations O(1).",
     prompt:
       "Design a data structure for a least-recently-used (LRU) cache with a fixed capacity. Implement get(key) and put(key, value), both in O(1) average time. When the cache is full, put evicts the least recently used entry.\n\nBe ready to discuss thread safety, and what changes for an LFU variant.",
@@ -1771,7 +1785,8 @@ function flagSpamNumbers(callLog, reports, minReports) {
     title: "Sparse Matrix Storage, Addition, and Multiplication",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["pinterest"],
+    // Apple: a 2026 SWE phone screen — multiply, then how to store it.
+    companies: ["pinterest", "apple"],
     summary: "Storage proportional to nonzeros — and the cancellation trap.",
     prompt: `Matrices in Pinterest's recommender pipelines are enormous but almost entirely zeros. Design a SparseMatrix class whose storage is proportional to the number of nonzero entries, supporting:
 
@@ -2629,7 +2644,8 @@ function debounce(fn, wait) {
     difficulty: "medium",
     // Pinterest: reported for its design round (Exponent ~July 2026,
     // PracHub ×3, incl. a multi-region variant).
-    companies: ["stripe", "amazon", "pinterest"],
+    // Apple: recurs across Apple sources; asked verbatim as a screen's third problem.
+    companies: ["stripe", "amazon", "pinterest", "apple"],
     summary: "Token bucket, sliding window, and where the counters live.",
     prompt:
       "Design a rate limiter for a public API that enforces per-client limits such as 100 requests per minute. Cover the algorithm choice (fixed window, sliding window, token bucket), where counters live in a multi-node deployment, failure modes when the counter store is down, and what response a throttled client should receive.",
@@ -2673,7 +2689,8 @@ function debounce(fn, wait) {
     title: "Design a News Feed",
     category: "system-design",
     difficulty: "hard",
-    companies: ["meta"],
+    // Apple: a voice-only Sr. SWE screen — "keep the feed fresh and performant".
+    companies: ["meta", "apple"],
     summary: "Fan-out on write vs. read, ranking, and the celebrity problem.",
     prompt:
       "Design the backend for a social news feed: following, posting, and a personalized timeline. Compare fan-out-on-write and fan-out-on-read, explain how you would handle accounts with millions of followers, and sketch where a ranking service fits in the read path.",
@@ -2719,6 +2736,18 @@ function debounce(fn, wait) {
   ...andurilProblemsB,
   ...andurilProblemsC,
   ...andurilProblemsD,
+  ...appleProblemsA,
+  ...appleProblemsB,
+  ...appleProblemsC,
+  ...appleProblemsD,
+  ...appleProblemsE,
+  ...appleProblemsF,
+  ...appleProblemsG,
+  ...appleProblemsH,
+  ...appleProblemsI,
+  ...appleProblemsJ,
+  ...appleProblemsK,
+  ...appleDesignProblems,
   ...airbnbProblemsA,
   ...airbnbProblemsB,
   ...airbnbProblemsC,
