@@ -16,6 +16,13 @@ import { appleProblemsI } from "./seed-apple-i";
 import { appleProblemsJ } from "./seed-apple-j";
 import { appleProblemsK } from "./seed-apple-k";
 import { appleDesignProblems } from "./seed-apple-design";
+import { appleDesignProblemsB } from "./seed-apple-design-b";
+import { appleDesignProblemsC } from "./seed-apple-design-c";
+import { appleDesignProblemsD } from "./seed-apple-design-d";
+import { appleDesignProblemsE } from "./seed-apple-design-e";
+import { appleDesignProblemsF } from "./seed-apple-design-f";
+import { appleProblemsL } from "./seed-apple-l";
+import { appleProblemsM } from "./seed-apple-m";
 import { andurilProblemsA } from "./seed-anduril-a";
 import { andurilProblemsB } from "./seed-anduril-b";
 import { andurilProblemsC } from "./seed-anduril-c";
@@ -2644,7 +2651,8 @@ function debounce(fn, wait) {
     difficulty: "medium",
     // Pinterest: reported for its design round (Exponent ~July 2026,
     // PracHub ×3, incl. a multi-region variant).
-    // Apple: recurs across Apple sources; asked verbatim as a screen's third problem.
+    // Apple: recurs across Apple sources; asked verbatim as a screen's third
+    // problem, and as a distributed token-bucket design onsite (PracHub, Aug 2026).
     companies: ["stripe", "amazon", "pinterest", "apple"],
     summary: "Token bucket, sliding window, and where the counters live.",
     prompt:
@@ -2667,7 +2675,9 @@ function debounce(fn, wait) {
     title: "Design a URL Shortener",
     category: "system-design",
     difficulty: "medium",
-    companies: ["google"],
+    // Apple: asked together with a Yelp-like platform in one onsite round
+    // (PracHub, Sep 2025).
+    companies: ["google", "apple"],
     summary: "The classic: encoding, storage, and redirects at scale.",
     prompt:
       "Design a URL-shortening service like bit.ly: generating short codes, storing mappings, and redirecting with low latency. Cover capacity estimation, the read/write ratio, hot links, and how you would add per-link analytics without slowing down redirects.",
@@ -2747,7 +2757,14 @@ function debounce(fn, wait) {
   ...appleProblemsI,
   ...appleProblemsJ,
   ...appleProblemsK,
+  ...appleProblemsL,
+  ...appleProblemsM,
   ...appleDesignProblems,
+  ...appleDesignProblemsB,
+  ...appleDesignProblemsC,
+  ...appleDesignProblemsD,
+  ...appleDesignProblemsE,
+  ...appleDesignProblemsF,
   ...airbnbProblemsA,
   ...airbnbProblemsB,
   ...airbnbProblemsC,
