@@ -49,6 +49,36 @@ function readLocalScene(key: string): unknown {
   }
 }
 
+/**
+ * The saved board's live (not deleted) elements and files, or null for an
+ * empty board — what the submit flow exports and the interviewer chat reads.
+ */
+export function readBoardScene(
+  slug: string,
+): { live: unknown[]; files: unknown } | null {
+  const scene = readLocalScene(boardStorageKey(slug)) as {
+    elements?: unknown[];
+    files?: unknown;
+  } | null;
+  const elements = Array.isArray(scene?.elements) ? scene.elements : [];
+  const live = elements.filter(
+    (el) => !(el as { isDeleted?: boolean }).isDeleted,
+  );
+  return live.length === 0 ? null : { live, files: scene?.files ?? null };
+}
+
+/** The board's text labels, one per line, capped at `maxChars`. */
+export function boardTextLabels(slug: string, maxChars: number): string {
+  const scene = readBoardScene(slug);
+  if (!scene) return "";
+  return scene.live
+    .map((el) => (el as { text?: unknown }).text)
+    .filter((t): t is string => typeof t === "string" && t.trim() !== "")
+    .map((t) => t.trim())
+    .join("\n")
+    .slice(0, maxChars);
+}
+
 function elementsJson(scene: unknown): string {
   const elements = (scene as { elements?: unknown[] } | null)?.elements ?? [];
   return JSON.stringify(elements);

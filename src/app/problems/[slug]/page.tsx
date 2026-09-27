@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DesignChat } from "@/components/design-chat";
 import { DesignWorkspace } from "@/components/design-workspace";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
@@ -120,6 +121,11 @@ export default async function ProblemPage({
             )
           }
           workspace={workspace}
+          chat={
+            problem.category === "system-design" ? (
+              <DesignChat slug={problem.slug} />
+            ) : undefined
+          }
         />
       </div>
     );

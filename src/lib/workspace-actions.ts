@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -156,6 +156,71 @@ export async function listDesignFeedback(
     feedback: row.feedback,
     createdAt: row.createdAt.getTime(),
   }));
+}
+
+export interface DesignChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  /** Server timestamp, ms epoch — serializable across the action boundary. */
+  createdAt: number;
+}
+
+/** Mirrors the chat route's per-thread ceiling. */
+const MAX_CHAT_MESSAGES = 80;
+
+/** The signed-in user's interviewer chat for one design problem, oldest first. */
+export async function listDesignChat(
+  problemSlug: unknown,
+): Promise<DesignChatMessage[]> {
+  if (typeof problemSlug !== "string") return [];
+  const userId = await sessionUserId();
+  if (!userId) return [];
+  const problemId = await problemIdBySlug(problemSlug);
+  if (problemId === null) return [];
+
+  const rows = await db
+    .select({
+      id: schema.designChatMessages.id,
+      role: schema.designChatMessages.role,
+      content: schema.designChatMessages.content,
+      createdAt: schema.designChatMessages.createdAt,
+    })
+    .from(schema.designChatMessages)
+    .where(
+      and(
+        eq(schema.designChatMessages.userId, userId),
+        eq(schema.designChatMessages.problemId, problemId),
+      ),
+    )
+    .orderBy(
+      asc(schema.designChatMessages.createdAt),
+      asc(schema.designChatMessages.id),
+    )
+    .limit(MAX_CHAT_MESSAGES);
+  return rows.map((row) => ({
+    id: row.id,
+    role: row.role === "assistant" ? "assistant" : "user",
+    content: row.content,
+    createdAt: row.createdAt.getTime(),
+  }));
+}
+
+/** Wipe the signed-in user's chat for one design problem (Start over). */
+export async function clearDesignChat(problemSlug: unknown): Promise<void> {
+  if (typeof problemSlug !== "string") return;
+  const userId = await sessionUserId();
+  if (!userId) return;
+  const problemId = await problemIdBySlug(problemSlug);
+  if (problemId === null) return;
+  await db
+    .delete(schema.designChatMessages)
+    .where(
+      and(
+        eq(schema.designChatMessages.userId, userId),
+        eq(schema.designChatMessages.problemId, problemId),
+      ),
+    );
 }
 
 export interface AlgoSubmission {

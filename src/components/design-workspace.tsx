@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSyncExternalStore } from "react";
 import { RichText } from "./markdown";
 import { useProgress } from "./progress";
-import { boardStorageKey, Whiteboard } from "./whiteboard";
+import { boardTextLabels, readBoardScene, Whiteboard } from "./whiteboard";
 import {
   listDesignFeedback,
   type DesignFeedback,
@@ -50,31 +50,15 @@ async function blobToBase64(blob: Blob): Promise<string> {
 async function exportBoard(
   slug: string,
 ): Promise<{ image: string | null; diagramText: string }> {
-  let scene: { elements?: unknown[]; files?: unknown } | null = null;
-  try {
-    const raw = readStored(boardStorageKey(slug));
-    scene = raw ? JSON.parse(raw) : null;
-  } catch {
-    scene = null;
-  }
-  const elements = Array.isArray(scene?.elements) ? scene.elements : [];
-  const live = elements.filter(
-    (el) => !(el as { isDeleted?: boolean }).isDeleted,
-  );
-  if (live.length === 0) return { image: null, diagramText: "" };
-
-  const diagramText = live
-    .map((el) => (el as { text?: unknown }).text)
-    .filter((t): t is string => typeof t === "string" && t.trim() !== "")
-    .map((t) => t.trim())
-    .join("\n")
-    .slice(0, MAX_DIAGRAM_TEXT_CHARS);
+  const scene = readBoardScene(slug);
+  if (!scene) return { image: null, diagramText: "" };
+  const diagramText = boardTextLabels(slug, MAX_DIAGRAM_TEXT_CHARS);
 
   const { exportToBlob } = await import("@excalidraw/excalidraw");
   for (const maxWidthOrHeight of [1600, 1000]) {
     const blob = await exportToBlob({
-      elements: live,
-      files: scene?.files ?? null,
+      elements: scene.live,
+      files: scene.files,
       appState: {
         exportBackground: true,
         viewBackgroundColor: "#ffffff",

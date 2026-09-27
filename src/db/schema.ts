@@ -177,6 +177,38 @@ export const designSubmissions = pgTable(
   ],
 );
 
+// One turn of the interviewer chat on a system-design problem: the
+// candidate's message or the streamed reply. Threads are per user and
+// problem, ordered by (created_at, id) since both turns of an exchange land
+// in one transaction. The chat route replays recent turns from here as model
+// context, so the table is the conversation's source of truth. Token counts
+// on assistant rows are kept for cost observability, as on submissions.
+export const designChatMessages = pgTable(
+  "design_chat_messages",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    /** "user" | "assistant" */
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("design_chat_messages_user_problem_idx").on(
+      table.userId,
+      table.problemId,
+      table.createdAt,
+    ),
+  ],
+);
+
 // One graded attempt at a judged problem: the code exactly as submitted,
 // the language it ran in, and the verdict. Run stays ephemeral; Submit
 // archives. Language and status are text, not enums, for the same
