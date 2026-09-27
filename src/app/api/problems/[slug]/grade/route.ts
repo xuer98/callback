@@ -188,7 +188,16 @@ export async function POST(
   }
   content.push({ type: "text", text: submission });
 
-  const client = new Anthropic();
+  // A personal or service-account key that spans workspaces runs in the
+  // workspace each request names; without the header the API rejects it
+  // ("This API key is not scoped to a workspace"). Single-workspace keys
+  // don't need it. See docs: manage-claude/authentication#select-a-workspace
+  const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
+  const client = new Anthropic({
+    defaultHeaders: workspaceId
+      ? { "anthropic-workspace-id": workspaceId }
+      : undefined,
+  });
   const aborter = new AbortController();
   // `stream: true` resolves once response headers arrive, so a request the
   // API rejects outright — bad key, no access to the model, empty credits,
@@ -219,7 +228,9 @@ export async function POST(
         err.status === 401
           ? "the server's ANTHROPIC_API_KEY was rejected"
           : err.status === 404
-            ? `this API key can't use the review model (${MODEL})`
+            ? workspaceId
+              ? "this API key can't use the review model or the configured ANTHROPIC_WORKSPACE_ID"
+              : `this API key can't use the review model (${MODEL})`
             : err.status === 429
               ? "the review backend is rate-limited right now"
               : (err.status ?? 0) >= 500
