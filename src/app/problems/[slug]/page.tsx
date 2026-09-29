@@ -87,6 +87,7 @@ export default async function ProblemPage({
         data-workspace
         className="mx-auto flex w-full max-w-[1600px] flex-col px-2 py-2 lg:h-full"
       >
+        <Breadcrumb problem={problem} className="shrink-0 px-1 pb-2" />
         {/* Keyed by slug so pane and editor state can't leak between
             problems on client-side navigation. */}
         <ProblemPanes
@@ -133,12 +134,58 @@ export default async function ProblemPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
+      <Breadcrumb problem={problem} className="mb-6" />
       {header}
       <Prompt problem={problem} />
       <Hints problem={problem} />
       <Solution problem={problem} />
       <AskedAt problem={problem} />
     </div>
+  );
+}
+
+/**
+ * Where the problem sits: Problems, then its category (the list, filtered
+ * to it), then the problem itself. Built from the problem alone rather than
+ * from the page it was opened from, so the page stays statically generated.
+ */
+function Breadcrumb({
+  problem,
+  className,
+}: {
+  problem: Problem;
+  className: string;
+}) {
+  const trail = [
+    { href: "/problems", label: "Problems" },
+    {
+      href: `/problems?category=${problem.category}`,
+      label: CATEGORY_LABELS[problem.category],
+    },
+  ];
+  return (
+    <nav aria-label="Breadcrumb" className={className}>
+      <ol className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
+        {trail.map((crumb) => (
+          <li key={crumb.href} className="flex shrink-0 items-center gap-1.5">
+            <Link
+              href={crumb.href}
+              className="transition-colors hover:text-zinc-200"
+            >
+              {crumb.label}
+            </Link>
+            <span aria-hidden className="text-zinc-700">
+              /
+            </span>
+          </li>
+        ))}
+        <li className="min-w-0">
+          <span aria-current="page" className="block truncate text-zinc-300">
+            {problem.title}
+          </span>
+        </li>
+      </ol>
+    </nav>
   );
 }
 
