@@ -1,7 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part I: the voting system API. Same sourcing and
-// conventions as seed-apple-a.ts.
+// Apple coding bank, part I: the voting system API. Same conventions as
+// seed-apple-a.ts.
 
 export const appleProblemsI: Problem[] = [
   {
@@ -11,11 +11,9 @@ export const appleProblemsI: Problem[] = [
     difficulty: "medium",
     companies: ["apple"],
     summary:
-      "Idempotent writes, a separate read model, and an audit log — the JD asks for all three by name.",
+      "Idempotent writes, a separate read model, and an audit log — all three in one small service.",
     prompt: [
-      "> \"Design the APIs for a voting system.\"",
-      "",
-      "The second half of an Apple Senior Software Engineer screen that opened with the access-log metrics problem — parse-and-measure, then design-the-surface. Answer in code: a `VotingService` whose methods stand in for the endpoints and return HTTP-style status objects.",
+      "Design the APIs for a voting system, answering in code: a `VotingService` whose methods stand in for the endpoints and return HTTP-style status objects.",
       "",
       "- `createPoll(pollId, options)` → `POST /polls`. `{ status: 201, options }` with the options sorted; `{ status: 409 }` if the poll exists; `{ status: 422 }` if the options are empty or repeat.",
       "- `castVote(pollId, voter, option)` → `PUT /polls/{id}/votes/{voter}` — a **PUT**, so a retried request cannot double-count. `{ status: 404 }` for an unknown poll, `{ status: 409 }` if it is closed, `{ status: 422 }` for an unknown option, `{ status: 201, result: \"recorded\" }` for a voter's first vote, `{ status: 200, result: \"unchanged\" }` for the same vote again, `{ status: 200, result: \"changed\" }` when the voter switches.",
@@ -30,10 +28,6 @@ export const appleProblemsI: Problem[] = [
       "svc.castVote(\"p1\", \"v1\", \"b\")         ->  { status: 200, result: \"changed\" }",
       "svc.results(\"p1\")                     ->  { status: 200, results: [[\"b\", 1]] }",
       "```",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Can a voter change their vote, or only cast once? Do results need to be exact and immediate, or is eventual consistency acceptable? Who may close a poll? How is the audit trail consumed — replay, debugging, compliance?",
     ].join("\n"),
     hints: [
       "Key the vote store by (pollId, voter). A cast looks up the previous option: none means recorded, the same means unchanged, different means changed — decrement the old tally and increment the new one so the read model stays consistent.",
@@ -42,7 +36,7 @@ export const appleProblemsI: Problem[] = [
     solution: [
       "## Approach",
       "",
-      "Three sentences, in this order, cover what the job description explicitly asks for. One: the vote write is idempotent, so it is `PUT /polls/{id}/votes/{voter}` rather than a POST, and a retried request cannot double-count — the dedupe key is `(poll, voter)`. Two: the tally is a separate read model, updated on every write, so reads never contend with writes or rescan. Three: every mutation appends to an audit log, because a tally you cannot replay is a tally you cannot defend. The reference keeps polls, a `(poll, voter) → option` map, a per-poll tally and the audit list; `castVote` classifies the request by the previous vote and moves one count between options when a voter changes their mind.",
+      "Three sentences, in this order, carry the design. One: the vote write is idempotent, so it is `PUT /polls/{id}/votes/{voter}` rather than a POST, and a retried request cannot double-count — the dedupe key is `(poll, voter)`. Two: the tally is a separate read model, updated on every write, so reads never contend with writes or rescan. Three: every mutation appends to an audit log, because a tally you cannot replay is a tally you cannot defend. The reference keeps polls, a `(poll, voter) → option` map, a per-poll tally and the audit list; `castVote` classifies the request by the previous vote and moves one count between options when a voter changes their mind.",
       "",
       "## Complexity",
       "",

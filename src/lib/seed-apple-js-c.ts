@@ -1,57 +1,40 @@
 import type { Problem } from "./types";
 import { virtualClock } from "./seed-apple-js-clock";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), part C: the
-// promise-states round that asked for "a slightly more advanced
-// promise-based solution" next, and inheritance written without `class`.
-// TypeScript variants live in seed-typescript-apple.ts.
+// Apple front-end bank, part C: creating and consuming a promise, and
+// inheritance written without \`class\`. promiseAll and withTimeout are in
+// seed-apple-js-j.ts. TypeScript variants live in seed-typescript-apple.ts.
 
 export const appleJsProblemsC: Problem[] = [
   {
-    slug: "promise-basics-and-helpers",
-    title: "Promise Basics, Then promiseAll and withTimeout",
+    slug: "promise-basics",
+    title: "Create and Consume a Promise",
     category: "frontend",
-    difficulty: "medium",
+    difficulty: "easy",
     companies: ["apple"],
-    summary:
-      "A promise that settles after a second, consumed both ways, then the harder ask: `promiseAll` and `withTimeout` from scratch.",
+    summary: "A promise that settles after a second, rejecting with an Error — then consumed with await and try/catch.",
     prompt: [
-      "A senior round opened with \"what are the states of a promise?\", then asked for code that uses one. The candidate wrote a function that settles after a second and consumed it two ways. Then the interviewer asked for a slightly more advanced promise-based solution, and the candidate could not produce one. This question covers both halves.",
-      "",
-      "## Part 1: the warm-up",
+      "Write a function that returns a promise, and code that uses it.",
       "",
       "- `fetchData(success = true)` returns a promise that settles **1,000 ms** after the call. It resolves with `\"Data fetched successfully!\"`, or rejects with `new Error(\"Failed to fetch data.\")` when `success` is false.",
       "- `getData(success)` awaits `fetchData(success)` inside `try`/`catch`. It returns the value, or the error's `message` when it fails, so the grader can read what a `console.log` would have printed.",
       "",
-      "Be ready to explain the states out loud: pending, then fulfilled or rejected, and settled is final. Every handler runs later, as a microtask, never synchronously.",
-      "",
-      "## Part 2: the harder ask",
-      "",
-      "- `promiseAll(iterable)` behaves like `Promise.all` without calling it. `Promise.all`, `allSettled`, `race` and `any` are switched off while it runs. It resolves with the results in input order, accepts plain values beside promises, resolves an empty input at once, and rejects with the first rejection.",
-      "- `withTimeout(promise, ms)` settles like `promise` if that happens within `ms`. Otherwise it rejects with `new Error(\"Timed out after <ms> ms\")`. When `promise` settles first, clear the timer. The grader counts timers left running.",
-      "",
       "Everything runs on a virtual clock, so the grader sees exactly when each promise settles.",
-      "",
-      "*Reported in: a senior front-end round (Medium, Aug 2025). Retries with backoff are in [Retry Wrapper](/problems/retry-wrapper), and a concurrency limit is in [mapAsync and mapAsyncLimit](/problems/map-async-limit).*",
     ].join("\n"),
     hints: [
       "`fetchData` is a `new Promise` whose executor starts a 1,000 ms `setTimeout` and calls `resolve` or `reject` inside it. Reject with an `Error`, not a string, so callers get a stack and a `message`.",
-      "`promiseAll` stores each result by index and counts down. Pushing results in completion order is the classic bug, and the empty input must resolve immediately because nothing will ever count down.",
-      "Wrap each item in `Promise.resolve(item)` so plain values sit beside promises. For `withTimeout`, race the promise against a timer's promise, and clear the timer in `finally`.",
+      "`getData` is `try { return await fetchData(success); } catch (err) { return err.message; }` — the same consumption as `.then(...).catch(...)`.",
     ],
     solution: [
       "## Approach",
       "",
       "`fetchData` is the canonical executor: the timer is the async work, and the callback decides between `resolve` and `reject`. `getData` shows the same consumption as `.then(...).catch(...)`, written with `await`.",
       "",
-      "`promiseAll` wraps the iterable in an array, allocates the results by length, and counts down as each item fulfills. The first rejection rejects the outer promise; later settlements are ignored, because a promise settles only once. `withTimeout` races the input against a promise that rejects when the timer fires, and clears the timer in `finally` so a fast result leaves nothing running.",
-      "",
       "## Worth saying out loud",
       "",
-      "- **Settled is final.** A second `resolve` or `reject` is ignored, which is why `promiseAll` needs no \"already failed\" flag.",
-      "- `Promise.resolve(item)` lets plain values sit beside promises, and adopts other thenables.",
-      "- `withTimeout` stops waiting, but it does not stop the work. Real cancellation passes an `AbortSignal` down, as `fetch` accepts one.",
-      "- Other answers to \"something more advanced\": `retry` with exponential backoff, `promiseAllSettled`, a promise pool with a concurrency limit, and `promiseAny` with an `AggregateError`.",
+      "- **The states:** pending, then fulfilled or rejected — and settled is final. A second `resolve` or `reject` is ignored.",
+      "- Every handler runs later, as a microtask, never synchronously — even on an already-settled promise.",
+      "- Reject with `Error` objects, not strings: callers get a stack and a `message`, and `instanceof Error` checks work.",
     ].join("\n"),
     judge: {
       starterCode: `/**
@@ -66,18 +49,6 @@ function fetchData(success = true) {
 /** Await fetchData(success); return the value, or the error's message. */
 async function getData(success) {
   // Your code here
-}
-
-/** Like Promise.all, without calling it. */
-function promiseAll(iterable) {
-  // Your code here
-  return Promise.resolve([]);
-}
-
-/** Settle like promise within ms, else reject with new Error("Timed out after <ms> ms"). */
-function withTimeout(promise, ms) {
-  // Your code here
-  return promise;
 }
 `,
       solutionCode: `function fetchData(success = true) {
@@ -96,65 +67,12 @@ async function getData(success) {
     return err.message;
   }
 }
-
-function promiseAll(iterable) {
-  return new Promise((resolve, reject) => {
-    const items = [...iterable];
-    const results = new Array(items.length);
-    let pending = items.length;
-    if (pending === 0) {
-      resolve(results); // nothing will ever count down
-      return;
-    }
-    items.forEach((item, i) => {
-      Promise.resolve(item).then((value) => {
-        results[i] = value; // by index, never in completion order
-        pending -= 1;
-        if (pending === 0) resolve(results);
-      }, reject);
-    });
-  });
-}
-
-function withTimeout(promise, ms) {
-  let timer;
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error("Timed out after " + ms + " ms")), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
 `,
-      entry: "__judgePromises",
+      entry: "__judgeBasics",
       driverCode: `${virtualClock}
 
-async function __judgePromises(kind, a, b) {
+async function __judgeBasics(kind, a) {
   var clock = __virtualClock();
-  function settleAfter(spec) {
-    if ("plain" in spec) return spec.plain;
-    return new Promise(function (resolve, reject) {
-      setTimeout(function () {
-        if ("fail" in spec) reject(new Error(spec.fail));
-        else resolve(spec.value);
-      }, spec.ms);
-    });
-  }
-  var combinators = ["all", "allSettled", "race", "any"];
-  function withoutCombinators(run) {
-    var saved = {};
-    combinators.forEach(function (name) {
-      saved[name] = Promise[name];
-      Promise[name] = function () {
-        throw new Error("Write it yourself: Promise." + name + " is off limits here");
-      };
-    });
-    try {
-      return run();
-    } finally {
-      combinators.forEach(function (name) {
-        Promise[name] = saved[name];
-      });
-    }
-  }
   try {
     var out;
     if (kind === "fetchData") {
@@ -174,19 +92,6 @@ async function __judgePromises(kind, a, b) {
       out.before = before;
     } else if (kind === "getData") {
       out = await clock.run(function () { return getData(a); });
-    } else if (kind === "all" || kind === "allIterable") {
-      out = await clock.run(function () {
-        return withoutCombinators(function () {
-          var values = a.map(settleAfter);
-          if (kind === "all") return promiseAll(values);
-          return promiseAll((function* () {
-            for (var i = 0; i < values.length; i++) yield values[i];
-          })());
-        });
-      });
-    } else if (kind === "timeout") {
-      out = await clock.run(function () { return withTimeout(settleAfter(a), b); });
-      out.pendingTimers = clock.pending();
     } else {
       throw new Error("unknown case " + kind);
     }
@@ -202,13 +107,6 @@ async function __judgePromises(kind, a, b) {
         { name: "success defaults to true", input: ["fetchDataDefault"], expected: { value: "Data fetched successfully!", at: 1000 } },
         { name: "getData returns the value", input: ["getData", true], expected: { value: "Data fetched successfully!", at: 1000 } },
         { name: "getData catches the failure", input: ["getData", false], expected: { value: "Failed to fetch data.", at: 1000 } },
-        { name: "promiseAll keeps input order", input: ["all", [{ ms: 30, value: 1 }, { ms: 10, value: 2 }, { plain: 3 }]], expected: { value: [1, 2, 3], at: 30 } },
-        { name: "promiseAll resolves [] at once", input: ["all", []], expected: { value: [], at: 0 } },
-        { name: "promiseAll rejects with the first rejection", input: ["all", [{ ms: 30, value: 1 }, { ms: 10, fail: "x" }, { ms: 20, fail: "y" }]], expected: { error: "x", at: 10, errorType: "Error" } },
-        { name: "promiseAll takes any iterable", input: ["allIterable", [{ ms: 5, value: "a" }, { plain: "b" }]], expected: { value: ["a", "b"], at: 5 } },
-        { name: "withTimeout passes a fast value through", input: ["timeout", { ms: 50, value: "ok" }, 100], expected: { value: "ok", at: 50, pendingTimers: 0 } },
-        { name: "withTimeout rejects a slow promise", input: ["timeout", { ms: 200, value: "late" }, 100], expected: { error: "Timed out after 100 ms", at: 100, errorType: "Error", pendingTimers: 1 } },
-        { name: "withTimeout passes a rejection through", input: ["timeout", { ms: 20, fail: "boom" }, 100], expected: { error: "boom", at: 20, errorType: "Error", pendingTimers: 0 } },
       ],
     },
   },
@@ -250,8 +148,6 @@ async function __judgePromises(kind, a, b) {
       "- Fields live on instances, and methods live on prototypes, shared by every instance.",
       "- `Square.prototype` inherits from `Polygon.prototype`, `instanceof` works for both, and each prototype's `constructor` points back to its function.",
       "- `Square.prototype` carries no `height` or `width` of its own.",
-      "",
-      "*Reported in: a senior front-end loop (Medium, 2022) and GreatFrontEnd's Apple list.*",
     ].join("\n"),
     hints: [
       "`super(side, side)` becomes `Polygon.call(this, side, side)`: run the parent constructor against the new object.",
@@ -265,7 +161,7 @@ async function __judgePromises(kind, a, b) {
       "",
       "## Worth saying out loud",
       "",
-      "- **Avoid `Square.prototype = new Polygon()`**, the form the candidate's own published answer used. It runs the parent constructor with no arguments and leaves stray `height` and `width` properties, set to `undefined`, on the prototype.",
+      "- **Avoid `Square.prototype = new Polygon()`**, a common published answer. It runs the parent constructor with no arguments and leaves stray `height` and `width` properties, set to `undefined`, on the prototype.",
       "- `Object.setPrototypeOf(Square, Polygon)` also links the constructors, which `extends` does for static methods.",
       "- `class` adds guarantees the function version lacks. Calling a class without `new` throws, class bodies are strict, and methods are non-enumerable.",
       "- Prefer composition when behaviors vary independently. Inheritance ties the child to the parent's implementation.",

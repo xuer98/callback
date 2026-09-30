@@ -350,16 +350,21 @@ Talk through where the state lives and why the disabled state should be derived 
 - Typing a task and pressing **Add** (or Enter) appends it to the list and clears the input.
 - Submitting an empty or whitespace-only input does nothing.
 - Each task has a delete button that removes exactly that task.
-- New tasks get a stable identity — deleting the second of three identical tasks must not confuse React about which row went away.
-
-## Follow-up
-
-Where would completion toggles and an "N items left" counter fit? What changes if tasks must survive a reload?`,
+- New tasks get a stable identity — deleting the second of three identical tasks must not confuse React about which row went away.`,
     hints: [
       "Model tasks as objects with an id (`crypto.randomUUID()` or a counter in a ref), not bare strings — the id is your `key` and your delete handle.",
       "Make the input controlled and handle `onSubmit` on the form, calling `preventDefault()` — that gives you Enter for free.",
       "Delete with `setTasks(tasks.filter((t) => t.id !== id))` — never `splice` state in place.",
     ],
+    solution: `## Approach
+
+One array of task objects in state, each with a stable id that serves as both the React \`key\` and the delete handle. The input is controlled, and the form's \`onSubmit\` (with \`preventDefault()\`) handles both the button and Enter; a trimmed empty value returns early. Adding and deleting replace the array — spread in a new task, \`filter\` one out — so React sees new state every time.
+
+## Worth saying out loud
+
+- Why not index keys: deleting the second of three identical tasks would shift every later row's key, and React would reuse the wrong DOM and state.
+- Completion toggles are a \`done\` field on each task, flipped with a \`map\` that returns a new object for the toggled one; "N items left" is derived with \`filter(...).length\` during render, never stored.
+- Surviving a reload means initializing state lazily from \`localStorage\` (\`useState(() => load())\`) and writing it back in an effect keyed on the tasks — or a server, once more than one device is involved.`,
     ui: todoUi,
   },
   {
@@ -376,15 +381,19 @@ Where would completion toggles and an "N items left" counter fit? What changes i
 - Exactly one panel is visible at a time.
 - Clicking a tab shows its panel and moves the active styling.
 - The first tab is selected on load.
-- Set \`aria-selected\` on the active tab, since the markup already uses tab roles.
-
-## Follow-up
-
-What would keyboard support look like (arrow keys between tabs)? When would you render all panels and hide the inactive ones instead of unmounting them?`,
+- Set \`aria-selected\` on the active tab, since the markup already uses tab roles.`,
     hints: [
       "A single `activeId` (or index) in state is the entire model — active styling and the visible panel both derive from it.",
       "Apply the class conditionally: `className={tab.id === activeId ? 'active' : ''}` — and put `aria-selected` on the same condition.",
     ],
+    solution: `## Approach
+
+A single \`activeId\` in state, initialized to the first tab, is the whole model. Each tab button sets it on click; the active class and \`aria-selected\` both derive from \`tab.id === activeId\`, and only the matching panel renders.
+
+## Worth saying out loud
+
+- Keyboard support follows the WAI-ARIA tabs pattern: only the active tab is in the Tab order (\`tabIndex\` 0, the rest -1), Left and Right move between tabs and wrap, Home and End jump to the ends, and focus moves with the selection.
+- Rendering every panel and hiding the inactive ones (the \`hidden\` attribute) keeps their state — a half-filled form, a scroll position — and makes switching instant. Unmounting saves memory and work when panels are heavy. Pick per panel.`,
     ui: tabsUi,
   },
   {
@@ -401,16 +410,21 @@ What would keyboard support look like (arrow keys between tabs)? When would you 
 - Clicking a section's title expands or collapses that section.
 - Sections toggle independently: any number can be open at once.
 - All sections start collapsed.
-- Keep \`aria-expanded\` on each title button in sync (the chevron flips off it).
-
-## Follow-up
-
-How would you change the model so only one section can be open at a time — and which of the two models would you ship as a reusable component's default?`,
+- Keep \`aria-expanded\` on each title button in sync (the chevron flips off it).`,
     hints: [
       "Track open sections as a `Set` of ids in one state value; a section is open when the set has its id.",
       "State must be replaced, not mutated: copy with `new Set(open)`, then add or delete, then set the copy.",
       "Collapse by not rendering the body (`open.has(id) && <p>…</p>`) — the aria-expanded attribute belongs on the button either way.",
     ],
+    solution: `## Approach
+
+Keep the open sections as a \`Set\` of ids in one state value, starting empty. A title click copies the set, adds or deletes that id, and stores the copy — state is replaced, never mutated. Each button's \`aria-expanded\` and the body's presence both derive from \`open.has(id)\`.
+
+## Worth saying out loud
+
+- A set of ids instead of one boolean per section keeps the state in one place and scales to any number of sections.
+- "Only one open at a time" changes the model to a single \`openId\` (or \`null\`), and a click on the open section closes it.
+- As a reusable component, default to independent sections — it is what the markup promises when every button toggles — and offer single-open as an option, or let the parent control the open set.`,
     ui: accordionUi,
   },
 ];

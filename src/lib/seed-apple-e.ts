@@ -1,7 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part E: Is Graph Bipartite, the 0/1 grammar tree,
-// and the queue-based rate limiter. Same sourcing and conventions as
+// Apple coding bank, part E: Is Graph Bipartite, the 0/1 grammar tree, and
+// the queue-based sliding-window rate limiter. Same conventions as
 // seed-apple-a.ts.
 
 export const appleProblemsE: Problem[] = [
@@ -20,12 +20,6 @@ export const appleProblemsE: Problem[] = [
       "isBipartite(4, [[0, 1], [1, 2], [2, 3], [3, 0]])  ->  true    // an even cycle",
       "isBipartite(3, [[0, 1], [1, 2], [2, 0]])          ->  false   // an odd cycle",
       "```",
-      "",
-      "Reported in a Java coding round of an Apple full-stack loop, and independently in another Apple screen.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is the graph connected — do I need to start a search from every node? Are there self-loops or duplicate edges? Should I return the two sides as well as the yes/no? Is `n` large enough that recursion depth matters?",
     ].join("\n"),
     hints: [
       "A graph is bipartite exactly when it has no odd-length cycle. Assign colour 1 to a start node and BFS, giving each neighbour the opposite colour; a neighbour that already has the same colour proves an odd cycle.",
@@ -119,12 +113,6 @@ function isBipartite(n, edges) {
       "```",
       "",
       "`l` can be 30, so the level holds half a billion nodes.",
-      "",
-      "This was the second problem in the ICT3 ML-platform phone screen that produced an offer — paired with the memory-bounded ballot counter, so the pair was one practical streaming problem and one pure mathematical one in the same 45 minutes.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is the root level 0 or level 1, and are positions 1-based? How large can `l` be — is building a level out of the question? Do you want the recurrence or the closed form?",
     ].join("\n"),
     hints: [
       "Level l has 2^(l−1) nodes and its left half is level l−1 verbatim; its right half is level l−1 flipped. So if n is in the left half the answer is unchanged, otherwise it is 1 minus the answer for the mirrored position.",
@@ -143,7 +131,7 @@ function isBipartite(n, edges) {
       "",
       "- **Why popcount?** Being able to explain why the trick works is the difference between having memorised it and having derived it.",
       "- **Verify against brute force** for every level up to 11. On an index-arithmetic problem this is the fastest way to prove correctness in the room, and it costs four lines.",
-      "- **Off-by-one watch:** is the root level 0 or level 1? Ask. LeetCode says 1; the reported prompt did not specify.",
+      "- **Off-by-one watch:** is the root level 0 or level 1? Here it is 1 — say which convention you are using before you index anything.",
     ].join("\n"),
     judge: {
       solutionCode: `// Halving: the left half of level l is level l-1, the right half is it flipped.
@@ -182,20 +170,16 @@ function kthGrammar(level, position) {
   },
   {
     slug: "sliding-window-rate-limiter",
-    title: "Rate Limiter: Sliding Window, Then Token Bucket",
+    title: "Sliding-Window Rate Limiter",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],
     summary:
-      "\"Using a queue\" hints at the sliding-window log; the token bucket is what you would actually ship.",
+      "A queue of admitted timestamps per key: evict what aged out, admit while under the limit.",
     prompt: [
-      "> \"Design a rate limiter using a queue, with rate and frequency parameters.\"",
+      "Design a rate limiter using a queue, with a rate and a window. Time is passed in explicitly, so nothing here depends on the clock.",
       "",
-      "Reported verbatim as the third item in a single Apple phone screen, after top-k frequent and an implement-Java-iterators problem. The candidate went blank: they had not prepared design for a phone screen and found the requirements unclear. Time is passed in explicitly, so nothing here depends on the clock.",
-      "",
-      "## Phase 1 — `SlidingWindowLimiter(limit, window)`",
-      "",
-      "`allow(key, now)` admits a request when fewer than `limit` requests for `key` were admitted in the window `(now - window, now]`, and records it. Rejected requests are not recorded. Keys are independent.",
+      "Implement `SlidingWindowLimiter(limit, window)`: `allow(key, now)` admits a request when fewer than `limit` requests for `key` were admitted in the window `(now - window, now]`, and records it. Rejected requests are not recorded. Keys are independent.",
       "",
       "```",
       "limiter = SlidingWindowLimiter(2, 10)",
@@ -204,42 +188,25 @@ function kthGrammar(level, position) {
       "limiter.allow(\"k\", 2)   ->  false   // two already inside (-8, 2]",
       "limiter.allow(\"k\", 10)  ->  true    // the request at 0 has aged out",
       "```",
-      "",
-      "## Phase 2 — `TokenBucket(capacity, rate)`",
-      "",
-      "Each key starts with a full bucket of `capacity` tokens the first time it is seen. Tokens refill continuously at `rate` per unit of time, never exceeding `capacity`. `allow(key, now, cost = 1)` refills the bucket to `now`, then admits and deducts `cost` if at least `cost` tokens are available; a rejected request keeps its (refilled) balance.",
-      "",
-      "```",
-      "bucket = TokenBucket(3, 1)",
-      "bucket.allow(\"k\", 0); bucket.allow(\"k\", 0); bucket.allow(\"k\", 0)   ->  true, true, true",
-      "bucket.allow(\"k\", 0)     ->  false",
-      "bucket.allow(\"k\", 1)     ->  true    // one token refilled",
-      "bucket.allow(\"k\", 100, 2)  ->  true  // back at capacity, cost 2",
-      "```",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is the window inclusive at the old edge? Is `now` monotonic per key? Do rejected requests count against the window? Per key or global? What should a rejected caller be told?",
     ].join("\n"),
     hints: [
-      "Sliding window: keep a queue of admitted timestamps per key. On each call, pop from the front while the oldest timestamp is at or before now − window; admit if the queue is shorter than the limit and push now.",
-      "Token bucket: store (tokens, lastSeen) per key. Refill with min(capacity, tokens + (now − lastSeen) × rate), then compare against the cost. Both structures grow one entry per key — say how you would expire idle keys.",
+      "Keep a queue of admitted timestamps per key. On each call, pop from the front while the oldest timestamp is at or before now − window.",
+      "Admit if the queue is shorter than the limit and push now. The structure grows one entry per key — say how you would expire idle keys.",
     ],
     solution: [
       "## Approach",
       "",
-      "\"Using a queue\" is a hint at the sliding-window log: a deque of admitted timestamps per key, evict anything older than the window, admit if the length is under the limit. Write that, then say the sentence that wins the round: \"this is O(limit) memory per key and it cannot absorb bursts — in production I would ship a token bucket, which is O(1) per key.\" Then write the bucket too; it is eight lines. Each key's state is `(tokens, lastSeen)`; a call refills proportionally to the elapsed time, caps at capacity, and admits when the balance covers the cost.",
+      "\"Using a queue\" points at the sliding-window log: a deque of admitted timestamps per key, evict anything older than the window, admit if the length is under the limit. Then say the sentence that shows judgment: \"this is O(limit) memory per key and it cannot absorb bursts — in production I would ship a [token bucket](/problems/token-bucket-rate-limiter), which is O(1) per key.\"",
       "",
       "## Complexity",
       "",
-      "O(1) amortised per call for both. Sliding window: O(limit) memory per key. Token bucket: O(1) per key.",
+      "O(1) amortised per call; O(limit) memory per key.",
       "",
       "## Worth saying out loud",
       "",
-      "- **Make it distributed?** State moves to Redis as `(tokens, lastSeen)`, and the read-modify-write must be atomic — a Lua script or `INCR` with a TTL, not GET-then-SET. If you say \"otherwise two nodes both see one token left and both admit\", you have named the actual bug.",
       "- **Fixed window instead?** Cheapest, but allows 2× the limit across a boundary. That concrete failure is the reason sliding windows exist.",
       "- **What do you return when you reject?** HTTP 429 with `Retry-After`. Answering in HTTP rather than booleans reads as someone who has shipped one.",
-      "- **Memory leak:** both structures grow a dict entry per key forever. Say it, and fix it with a TTL or an LRU.",
+      "- **Memory leak:** the structure grows a dict entry per key forever. Say it, and fix it with a TTL or an LRU.",
     ].join("\n"),
     judge: {
       solutionCode: `// Sliding-window log: exactly limit admissions per window, O(limit) memory per key.
@@ -264,26 +231,6 @@ class SlidingWindowLimiter {
     return false;
   }
 }
-
-// Token bucket: bursts up to capacity, refills at rate per unit time, O(1) per key.
-class TokenBucket {
-  constructor(capacity, rate) {
-    this.capacity = capacity;
-    this.rate = rate;
-    this.state = new Map(); // key -> [tokens, lastSeen]
-  }
-
-  allow(key, now, cost = 1) {
-    const [had, last] = this.state.get(key) ?? [this.capacity, now];
-    const tokens = Math.min(this.capacity, had + (now - last) * this.rate);
-    if (tokens >= cost) {
-      this.state.set(key, [tokens - cost, now]);
-      return true;
-    }
-    this.state.set(key, [tokens, now]);
-    return false;
-  }
-}
 `,
       starterCode: `class SlidingWindowLimiter {
   /** At most \`limit\` admissions per key within any (now - window, now]. */
@@ -297,41 +244,24 @@ class TokenBucket {
     return false;
   }
 }
-
-class TokenBucket {
-  /** Buckets start full; tokens refill at \`rate\` per unit time up to \`capacity\`. */
-  constructor(capacity, rate) {
-    this.capacity = capacity;
-    this.rate = rate;
-  }
-
-  /** @returns {boolean} whether \`cost\` tokens were available (and deducted) */
-  allow(key, now, cost = 1) {
-    return false;
-  }
-}
 `,
       entry: "__runOperations",
       driverCode: `function __runOperations(operations, args) {
   let limiter = null;
   const out = [];
   for (let i = 0; i < operations.length; i++) {
-    const op = operations[i];
-    if (op === "SlidingWindowLimiter") {
+    if (operations[i] === "SlidingWindowLimiter") {
       limiter = new SlidingWindowLimiter(...args[i]);
       out.push(null);
-    } else if (op === "TokenBucket") {
-      limiter = new TokenBucket(...args[i]);
-      out.push(null);
     } else {
-      out.push(limiter[op](...args[i]));
+      out.push(limiter[operations[i]](...args[i]));
     }
   }
   return out;
 }`,
       tests: [
         {
-          name: "Sliding window: prompt example",
+          name: "Prompt example",
           input: [
             ["SlidingWindowLimiter", "allow", "allow", "allow", "allow", "allow", "allow"],
             [[2, 10], ["k", 0], ["k", 1], ["k", 2], ["k", 10], ["k", 11], ["k", 12]],
@@ -339,7 +269,7 @@ class TokenBucket {
           expected: [null, true, true, false, true, true, false],
         },
         {
-          name: "Sliding window: keys are independent",
+          name: "Keys are independent",
           input: [
             ["SlidingWindowLimiter", "allow", "allow", "allow", "allow"],
             [[1, 5], ["a", 0], ["a", 1], ["b", 1], ["a", 5]],
@@ -347,33 +277,12 @@ class TokenBucket {
           expected: [null, true, false, true, true],
         },
         {
-          name: "Sliding window: rejected requests are not recorded",
+          name: "Rejected requests are not recorded",
           input: [
             ["SlidingWindowLimiter", "allow", "allow", "allow", "allow", "allow"],
             [[1, 10], ["k", 0], ["k", 3], ["k", 6], ["k", 9], ["k", 10]],
           ],
           expected: [null, true, false, false, false, true],
-        },
-        {
-          name: "Token bucket: prompt example",
-          input: [
-            ["TokenBucket", "allow", "allow", "allow", "allow", "allow", "allow", "allow", "allow", "allow", "allow"],
-            [[3, 1], ["k", 0], ["k", 0], ["k", 0], ["k", 0], ["k", 1], ["k", 1.5], ["k", 2], ["k", 100], ["k", 100, 2], ["k", 100]],
-          ],
-          expected: [null, true, true, true, false, true, false, true, true, true, false],
-        },
-        {
-          name: "Token bucket: a cost above capacity never passes",
-          input: [["TokenBucket", "allow", "allow"], [[3, 1], ["k", 0, 5], ["k", 1000, 5]]],
-          expected: [null, false, false],
-        },
-        {
-          name: "Token bucket: keys start full independently",
-          input: [
-            ["TokenBucket", "allow", "allow", "allow", "allow"],
-            [[1, 0.5], ["a", 0], ["a", 1], ["b", 1], ["a", 2]],
-          ],
-          expected: [null, true, false, true, true],
         },
       ],
     },

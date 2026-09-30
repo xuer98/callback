@@ -100,10 +100,10 @@ function justify(words: string[], maxWidth: number): string[] {
 `,
   },
   "round-numeric-strings": {
-    entry: "__dispatch",
+    entry: "roundNumericString",
     starterCode: `/**
- * Part 1: round one numeric string to the nearest integer, rounding
- * half away from zero. No leading zeros in the result, and never "-0".
+ * Round one numeric string to the nearest integer, rounding half away
+ * from zero. No leading zeros in the result, and never "-0".
  * Values can exceed any built-in numeric type — stay in string land.
  * @param s - e.g. "3.45", "-2.5", "999.5"
  */
@@ -111,19 +111,7 @@ function roundNumericString(s: string): string {
   // Your code here
   return s;
 }
-
-/**
- * Part 2: round every value in a comma-separated list.
- * @param csv - e.g. "2.5,-2.5,9.99"
- */
-function roundAll(csv: string): string {
-  // Your code here
-  return csv;
-}
 `,
-    driverCode: `function __dispatch(kind, value) {
-  return kind === "csv" ? roundAll(value) : roundNumericString(value);
-}`,
   },
   "violation-log-analyzer": {
     entry: "__runOperations",
@@ -209,7 +197,7 @@ function collectReachablePins(
 `,
   },
   "stream-line-reader": {
-    entry: "__dispatch",
+    entry: "__readLines",
     starterCode: `class LineReader {
   /** @param readChunk - returns "" once the stream ends */
   constructor(readChunk: () => string) {
@@ -221,20 +209,10 @@ function collectReachablePins(
     return null;
   }
 }
-
-/**
- * Part 2: lines are "payer,payee,amount" (amount is an integer).
- * @returns minimum number of transactions to settle all balances
- */
-function settleFromStream(readChunk: () => string): number {
-  // Your code here (use your LineReader)
-  return 0;
-}
 `,
-    driverCode: `function __dispatch(kind, chunks, cap) {
+    driverCode: `function __readLines(chunks, cap) {
   let i = 0;
   const readChunk = () => (i < chunks.length ? chunks[i++] : "");
-  if (kind === "settle") return settleFromStream(readChunk);
   const reader = new LineReader(readChunk);
   const out = [];
   for (let n = 0; n < cap; n++) {
@@ -817,11 +795,6 @@ class MyPromise<T> {
     return new MyPromise<U[]>(() => {});
   }
 }
-
-/** Bonus: executor(resolve, reject, onAbort); abort() runs the cleanup and rejects with an AbortError. */
-class AbortablePromise<T> extends MyPromise<T> {
-  abort(): void {}
-}
 `,
     solutionCode: `type Resolve<T> = (value: T | PromiseLike<T>) => void;
 type Reject = (reason?: unknown) => void;
@@ -933,31 +906,10 @@ class MyPromise<T> {
     });
   }
 }
-
-// Bonus follow-up: an abortable promise. Native promises are not cancellable —
-// cancellation lives in the *work* (AbortController), and the promise just rejects.
-class AbortablePromise<T> extends MyPromise<T> {
-  abort: (reason?: Error) => void;
-
-  constructor(
-    executor: (resolve: Resolve<T>, reject: Reject, onAbort: (cleanup: () => void) => void) => void,
-  ) {
-    let rejectRef: Reject = () => {};
-    let cleanup: () => void = () => {};
-    super((resolve, reject) => {
-      rejectRef = reject;
-      executor(resolve, reject, (onAbort) => { cleanup = onAbort; });
-    });
-    this.abort = (reason = Object.assign(new Error('Aborted'), { name: 'AbortError' })) => {
-      cleanup();           // e.g. clearTimeout / controller.abort()
-      rejectRef(reason);   // no-op if already settled
-    };
-  }
-}
 `,
   },
-  "debounce-cancel-flush-throttle": {
-    entry: "__runTimingScenario",
+  "debounce-cancel-flush": {
+    entry: "__runDebounceScenario",
     starterCode: `type Debounced<A extends unknown[]> = ((this: unknown, ...args: A) => void) & {
   cancel(): void;
   flush(): void;
@@ -976,32 +928,13 @@ function debounceWithControls<A extends unknown[]>(
   debounced.flush = () => {};
   return debounced;
 }
-
-/** Leading call, then at most one call per wait ms, with a trailing call carrying the latest args. */
-function throttle<A extends unknown[]>(fn: (this: unknown, ...args: A) => void, wait: number) {
-  return function throttled(this: unknown, ...args: A): void {
-    fn.apply(this, args);
-  };
-}
 `,
-    solutionCode: `// Debounce: run fn only after calls have stopped for \`wait\` ms (trailing edge).
-function debounce<A extends unknown[]>(fn: (this: unknown, ...args: A) => void, wait: number) {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  return function debounced(this: unknown, ...args: A): void {   // function, not arrow: keep caller's \`this\`
-    if (timer !== null) clearTimeout(timer);
-    timer = setTimeout(() => {
-      timer = null;
-      fn.apply(this, args);
-    }, wait);
-  };
-}
-
-type Debounced<A extends unknown[]> = ((this: unknown, ...args: A) => void) & {
+    solutionCode: `type Debounced<A extends unknown[]> = ((this: unknown, ...args: A) => void) & {
   cancel(): void;
   flush(): void;
 };
 
-// Debounce II: adds cancel() (drop the pending call) and flush() (run it now).
+// Trailing-edge debounce with cancel() (drop the pending call) and flush() (run it now).
 function debounceWithControls<A extends unknown[]>(
   fn: (this: unknown, ...args: A) => void,
   wait: number,
@@ -1019,7 +952,7 @@ function debounceWithControls<A extends unknown[]>(
     fn.apply(ctx, args);
   };
 
-  const debounced = function (this: unknown, ...args: A) {
+  const debounced = function (this: unknown, ...args: A) {   // function, not arrow: keep caller's \`this\`
     pendingArgs = args;
     pendingThis = this;
     if (timer !== null) clearTimeout(timer);
@@ -1041,32 +974,6 @@ function debounceWithControls<A extends unknown[]>(
   };
 
   return debounced;
-}
-
-// Throttle: run at most once per \`wait\` ms (leading call + trailing call with latest args).
-function throttle<A extends unknown[]>(fn: (this: unknown, ...args: A) => void, wait: number) {
-  let last = 0;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let lastArgs: A | undefined;
-  let lastThis: unknown;
-  return function throttled(this: unknown, ...args: A): void {
-    const now = Date.now();
-    lastArgs = args;
-    lastThis = this;
-    const remaining = wait - (now - last);
-    if (remaining <= 0) {
-      if (timer !== null) clearTimeout(timer);
-      timer = null;
-      last = now;
-      fn.apply(this, args);
-    } else if (timer === null) {
-      timer = setTimeout(() => {
-        last = Date.now();
-        timer = null;
-        fn.apply(lastThis, lastArgs as A);
-      }, remaining);
-    }
-  };
 }
 `,
   },
@@ -1205,18 +1112,13 @@ class FileSystem {
 `,
   },
   "pour-water": {
-    entry: "__judgeWater",
-    starterCode: `/** Rows from the top down (height max(water)), joined by "\\n": "#" ground, "~" water, " " air. */
-function printTerrain(heights: number[], water: number[]): string {
-  return "";
-}
-
-/** Final heights after dropping volume units at index k, one unit at a time. */
+    entry: "pourWater",
+    starterCode: `/** Final heights after dropping volume units at index k, one unit at a time. */
 function pourWater(heights: number[], volume: number, k: number): number[] {
   return heights;
 }
 `,
-    solutionCode: `// Pour Water (LeetCode 755, Airbnb-tagged)
+    solutionCode: `// Pour Water
 // heights[i] = terrain height; drop \`volume\` units at index k, one unit at a time.
 // Each unit tries to move LEFT to a strictly lower final resting spot, then RIGHT, else stays.
 function pourWater(heights: number[], volume: number, k: number): number[] {
@@ -1236,16 +1138,6 @@ function pourWater(heights: number[], volume: number, k: number): number[] {
   }
   return h;
 }
-
-// Follow-up that was reported alongside it: print the terrain + water as ASCII rows.
-function printTerrain(heights: number[], water: number[]): string {
-  const top = Math.max(...water);
-  const rows: string[] = [];
-  for (let level = top; level >= 1; level--) {
-    rows.push(heights.map((ground, i) => (level <= ground ? '#' : level <= water[i] ? '~' : ' ')).join(''));
-  }
-  return rows.join('\\n');
-}
 `,
   },
 
@@ -1262,18 +1154,8 @@ function wrapWords(sentence: string, width: number): string[] {
 function renderBox(sentence: string, width: number): string {
   return "";
 }
-
-interface Block {
-  text: string;
-  width: number;
-}
-
-/** Bonus: several sentences, each with its own wrap width, in one aligned box. */
-function renderMultiBox(blocks: Block[]): string {
-  return "";
-}
 `,
-    solutionCode: `// Word wrap → boxed sentence (phone screen, Aug 2026; FE onsite 2016 as "text justification")
+    solutionCode: `// Word wrap → boxed sentence.
 // Greedy: append words while they fit; never split a word; a line never starts with punctuation.
 const LEADING_PUNCT = /^[.,;:!?]/;
 
@@ -1289,29 +1171,11 @@ function wrapWords(sentence: string, width: number): string[] {
   return lines;
 }
 
-// Part 1/2: one sentence in a box, wrapped at \`width\`.
+// One sentence in a box, wrapped at \`width\`.
 function renderBox(sentence: string, width: number): string {
   const rule = \`+\${'-'.repeat(width + 2)}+\`;
   const body = wrapWords(sentence, width).map((l) => \`| \${l.padEnd(width)} |\`);
   return [rule, ...body, rule].join('\\n');
-}
-
-interface Block {
-  text: string;
-  width: number;
-}
-
-// Part 3 (bonus): several sentences, each with its OWN wrap width, inside one aligned outer box.
-function renderMultiBox(blocks: Block[]): string {
-  const inner = Math.max(...blocks.map((b) => b.width));
-  const rule = \`+\${'-'.repeat(inner + 2)}+\`;
-  const out = [rule];
-  blocks.forEach((b, i) => {
-    if (i > 0) out.push(\`| \${'-'.repeat(inner)} |\`);              // separator between sentences
-    wrapWords(b.text, b.width).forEach((l) => out.push(\`| \${l.padEnd(inner)} |\`));
-  });
-  out.push(rule);
-  return out.join('\\n');
 }
 `,
   },
@@ -1332,7 +1196,7 @@ function parseQuery(url: string): Record<string, QueryValue> {
     solutionCode: `type Scalar = string | true;
 type QueryValue = Scalar | Scalar[];
 
-// URL query-string parser (phone screen, Aug 2026)
+// URL query-string parser
 // ?a=b&c=d → {a:'b', c:'d'}; bare key → true; repeated key → array; percent-decoding after splitting.
 const decode = (s: string): string => {
   try { return decodeURIComponent(s.replace(/\\+/g, ' ')); } catch { return s; }
@@ -1368,7 +1232,7 @@ function tagTokens(review: string, tokens: Record<string, string>): string {
   return review;
 }
 `,
-    solutionCode: `// Review token tagging (senior phone screen, Aug 2026)
+    solutionCode: `// Review token tagging
 // Wrap each case-insensitive occurrence of a token as [label]{original text}; multi-word tokens
 // match across whitespace; longest match wins at a given offset. Trie over lowercased tokens.
 interface TrieNode {
@@ -1448,7 +1312,7 @@ class Retryer {
   }
 }
 `,
-    solutionCode: `// Retryer (onsite "AI coding" round, Aug 2026 — Claude Code available; you still own the code).
+    solutionCode: `// Retryer: run an async function with retries, backoff, and hooks.
 // Composes three pluggable pieces: backoff strategy, retryable-error filter, hooks.
 type Backoff = (attempt: number) => number;
 

@@ -7,7 +7,7 @@ import type { JudgeLanguage } from "./types";
 
 export const applePythonJudgesB: Record<string, JudgeLanguage> = {
   "socket-message-reader": {
-    entry: "__judge_reader",
+    entry: "__judge_framed",
     starterCode: `class MessageReader:
     def __init__(self, sock, max_size=1 << 20):
         """sock.recv(k) returns at most k bytes; b"" means EOF."""
@@ -17,16 +17,6 @@ export const applePythonJudgesB: Record<string, JudgeLanguage> = {
     def read_message(self):
         """One payload (bytes) per call; None at a clean EOF;
         raise on a truncated or oversized message."""
-        # Your code here
-        return None
-
-
-class LineReader:
-    def __init__(self, sock):
-        self.sock = sock
-
-    def read_line(self):
-        """The next line as str (UTF-8) without its newline; None once exhausted."""
         # Your code here
         return None
 `,
@@ -68,44 +58,18 @@ class MessageReader(_BufferedSocket):
         payload = bytes(self._buf[4:4 + size])
         del self._buf[:4 + size]
         return payload
-
-
-class LineReader(_BufferedSocket):
-    def __init__(self, sock):
-        super().__init__(sock)
-        self._scanned = 0  # bytes already searched for a newline
-
-    def read_line(self):
-        while True:
-            at = self._buf.find(b"\\n", self._scanned)
-            if at != -1:
-                line = bytes(self._buf[:at])
-                del self._buf[:at + 1]
-                self._scanned = 0
-                return line.decode("utf-8")
-            self._scanned = len(self._buf)
-            if not self._fill():
-                self._scanned = 0
-                if not self._buf:
-                    return None
-                line = bytes(self._buf)  # final unterminated line
-                self._buf.clear()
-                return line.decode("utf-8")
 `,
-    driverCode: `def __judge_reader(kind, pieces, cuts, calls, options=None):
+    driverCode: `def __judge_framed(pieces, cuts, calls, options=None):
     options = options or {}
 
     def expand(piece):
         return piece[0] * piece[1] if isinstance(piece, list) else piece
 
-    if kind == "framed":
-        stream = bytearray()
-        for piece in pieces:
-            body = expand(piece).encode("latin-1")
-            stream += len(body).to_bytes(4, "big") + body
-        data = bytes(stream)
-    else:
-        data = "".join(expand(piece) for piece in pieces).encode("utf-8")
+    stream = bytearray()
+    for piece in pieces:
+        body = expand(piece).encode("latin-1")
+        stream += len(body).to_bytes(4, "big") + body
+    data = bytes(stream)
     if options.get("truncate"):
         data = data[: len(data) - options["truncate"]]
     bounds = [c for c in cuts if 0 < c < len(data)] + [len(data)]
@@ -126,11 +90,7 @@ class LineReader(_BufferedSocket):
             self.pos = end
             return out
 
-    sock = FakeSocket()
-    if kind == "framed":
-        reader = MessageReader(sock, options.get("maxSize", 1 << 20))
-    else:
-        reader = LineReader(sock)
+    reader = MessageReader(FakeSocket(), options.get("maxSize", 1 << 20))
 
     def show(text):
         return "len:%d:%s:%s" % (len(text), text[:4], text[-4:]) if len(text) > 32 else text
@@ -138,13 +98,8 @@ class LineReader(_BufferedSocket):
     out = []
     for _ in range(calls):
         try:
-            value = reader.read_message() if kind == "framed" else reader.read_line()
-            if value is None:
-                out.append(None)
-            elif kind == "framed":
-                out.append(show(bytes(value).decode("latin-1")))
-            else:
-                out.append(show(str(value)))
+            value = reader.read_message()
+            out.append(None if value is None else show(bytes(value).decode("latin-1")))
         except Exception:
             out.append("error")
             break

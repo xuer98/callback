@@ -1,8 +1,8 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), UI part F: a
-// six-digit verification-code input with Submit and Reset (GreatFrontEnd's
-// Apple list). React is the default template and HTML/CSS/JS the alternate;
+// Apple front-end bank, UI part F: a six-digit verification-code input with
+// Submit and Reset. React is the default template and HTML/CSS/JS the
+// alternate;
 // the verification endpoint is a local stand-in, since the preview has no
 // network.
 
@@ -419,7 +419,7 @@ export const appleUiProblemsF: Problem[] = [
     summary:
       "Six one-digit fields that feel like one: advance on entry, Backspace back, paste the whole code, lock while verifying.",
     prompt: [
-      "Build a verification-code input: six single-digit fields with Submit and Reset. The interviewer's probes are the requirements. The default template is React, and an HTML/CSS/JS template is the alternate.",
+      "Build a verification-code input: six single-digit fields with Submit and Reset. The default template is React, and an HTML/CSS/JS template is the alternate.",
       "",
       "## Requirements",
       "",
@@ -431,8 +431,6 @@ export const appleUiProblemsF: Problem[] = [
       "- **While the request is in flight, everything is disabled.** Show the result: a success message, or the error, with the fields editable again.",
       "- Reset clears everything and puts focus back on the first field.",
       "- Label each field, such as \"Digit 1 of 6\", and use `inputMode=\"numeric\"`, plus `autocomplete=\"one-time-code\"` on the first field.",
-      "",
-      "*Listed under Apple by GreatFrontEnd, with no date or role.*",
     ].join("\n"),
     hints: [
       "Keep the six digits as one array in state, and the input elements in a ref array so you can call `.focus()` on a neighbor.",

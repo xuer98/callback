@@ -1,10 +1,9 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Airbnb frontend tech-screen bank, part D: the widgets candidates report
-// building in React — a typeahead with keyboard navigation, a carousel with a
-// per-slide countdown, and Connect Four. Each ships as a React template (the
-// default, matching the reports) and an HTML/CSS/JS one; both carry complete
-// reference files for the Solution tab. Starters render against in-file
+// Airbnb frontend bank, part D: React widgets — a typeahead with keyboard
+// navigation, a carousel with a per-slide countdown, and Connect Four. Each
+// ships as a React template (the default) and an HTML/CSS/JS one; both carry
+// complete reference files for the Solution tab. Starters render against in-file
 // fixtures — the preview sandbox has no network.
 
 // -- typeahead ----------------------------------------------------------------
@@ -1022,8 +1021,8 @@ export const airbnbProblemsD: Problem[] = [
     title: "Typeahead with Keyboard Navigation",
     category: "frontend",
     difficulty: "hard",
-    // Apple: an autocomplete search bar "as on apple.com" and a search bar
-    // from scratch are both reported UI builds in the Apple JavaScript guide.
+    // Apple: the Apple JavaScript guide lists an autocomplete search bar and
+    // a search bar built from scratch among its UI builds.
     companies: ["airbnb", "apple"],
     summary:
       "Debounce the query, abort the stale request, cache by query, wrap the arrow keys, wire the combobox.",
@@ -1037,15 +1036,7 @@ export const airbnbProblemsD: Problem[] = [
 - Arrow keys move the highlight and **wrap around**; Enter selects the highlighted item; Escape closes the list; clicking an item selects it.
 - Selecting an item fills the input and calls \`onSelect(item)\`.
 - ARIA combobox wiring: \`role="combobox"\`, \`aria-expanded\`, \`aria-activedescendant\`, and a \`role="listbox"\` of \`role="option"\`s.
-- Show loading, empty, and error states.
-
-## Follow-up
-
-Highlight the matched substring. Announce the result count to screen readers. Virtualize very long lists.
-
-## Worth asking out loud
-
-Endpoint or mock? Debounce interval and minimum characters? Select on Enter only, or also on click? Close on blur?`,
+- Show loading, empty, and error states.`,
     hints: [
       "Debounce the value, not the handler: in React a `useDebouncedValue(query, delay)` hook whose effect sets the debounced value in a timeout and clears it in cleanup; in vanilla a `debounce(fn, wait)` around the search.",
       "Fetch with an AbortController per request and abort the previous one when a new query arrives — in React the effect cleanup is that single line; in vanilla keep the controller in a closure variable.",
@@ -1059,7 +1050,7 @@ Five things the interviewer is looking for: debounce the query, abort stale requ
 
 - The race, in one breath: "User types \`ap\` then \`apr\`. If the \`ap\` response lands last it would overwrite the \`apr\` list. Aborting the previous controller means the stale response is never applied. If the API can't be aborted, keep a request id and ignore responses whose id isn't the latest."
 - \`mousedown\` + \`preventDefault\` on options is the fix for "clicking a suggestion closes the list before the click registers" — blur fires first otherwise.
-- Follow-ups: wrap the matched substring in \`<mark>\`; an \`aria-live="polite"\` span with "N results"; virtualize or cap at 10 for huge lists.`,
+- Polish beyond the requirements: wrap the matched substring in \`<mark>\`; announce "N results" in an \`aria-live="polite"\` span; virtualize or cap at 10 for huge lists.`,
     ui: typeaheadUi,
   },
   {
@@ -1070,7 +1061,7 @@ Five things the interviewer is looking for: debounce the query, abort stale requ
     companies: ["airbnb"],
     summary:
       "One interval per slide, one batched update per advance — and the double-advance trap.",
-    prompt: `Build an image carousel where **each slide has its own duration**, and which halts at the final slide. The follow-up the interviewer adds: display a **countdown** and auto-advance when it hits zero. (FEIH's note on this loop: "\`useEffect\` and \`setInterval\` are critical.") The slides are colored panels in the starter, since the preview has no network. Available as a React template and an HTML/CSS/JS one.
+    prompt: `Build an image carousel where **each slide has its own duration**, a **countdown** shows the time left on the current slide, and the carousel halts at the final slide. The slides are colored panels in the starter, since the preview has no network. Available as a React template and an HTML/CSS/JS one.
 
 ## Requirements
 
@@ -1078,15 +1069,7 @@ Five things the interviewer is looking for: debounce the query, abort stale requ
 - Show "next in Ns" counting down once per second; it resets to the new slide's duration on every change.
 - Previous/Next buttons work and reset the countdown; Previous is disabled on the first slide, Next on the last.
 - Pause on hover and on focus; a Play/Pause button too.
-- No leaked timers when the slide changes or the component unmounts, and **never advance twice** when the countdown reaches zero.
-
-## Follow-up
-
-Timer drift (a 1s interval isn't exactly 1s). Loop instead of halt. Swipe. Preload the next image. Pause when the tab is hidden. Respect \`prefers-reduced-motion\`.
-
-## Worth asking out loud
-
-Halt or loop at the end? Pause on hover? Should manual navigation reset the countdown? Is the countdown visible or just the progress?`,
+- No leaked timers when the slide changes or the component unmounts, and **never advance twice** when the countdown reaches zero.`,
     hints: [
       "Two pieces of state — index and remaining — and a single `goTo(i)` that sets both together, so React batches them into one render. Separate effects that each set one of them are how you get the double-advance bug.",
       "The interval effect depends on `[index, paused, isLast]` and returns `clearInterval` — each slide gets a fresh timer, and none leak. In vanilla, one `arm()` function clears the old interval before starting the next.",
@@ -1120,15 +1103,7 @@ The trap: when the countdown hits 0 you change \`index\` *and* reset \`remaining
 - Detect a win — horizontal, vertical, or either diagonal — and announce it; no more moves after a win.
 - Detect a draw when the board fills.
 - Reset starts a new game.
-- Update the board **immutably** (React state must be replaced, not mutated).
-
-## Follow-up
-
-A drop animation. Undo. An AI opponent. N×M with K in a row.
-
-## Worth asking out loud
-
-Who starts? Highlight the winning four? Should full columns be disabled or just ignored? Is a draw announced?`,
+- Update the board **immutably** (React state must be replaced, not mutated).`,
     hints: [
       "Model the board as a 6×7 array of null | 'red' | 'yellow'. dropPiece scans the column from the bottom row up for the first null and returns a copied board plus the row it landed in — or null when the column is full.",
       "Don't scan the whole board for a win — only the four lines through the last move, counting outward in both directions along each of the 4 direction vectors; a count ≥ 4 is a win.",
@@ -1142,7 +1117,7 @@ Board as a 6×7 array; \`dropPiece\` finds the lowest empty row in a column (gra
 
 - Pure functions first (\`dropPiece\`, \`isWin\`), then a thin view — they're unit-testable with two \`console.assert\`s and the interviewer can watch the logic without the markup.
 - The win check through the last move is O(1) per move; scanning the board is O(rows·cols·directions) and the classic "it works but…" answer.
-- Follow-ups: a drop animation is a \`translateY\` transition from the top row; undo keeps a move stack (recompute or snapshot boards); an AI opponent is minimax with a depth limit or "win, else block, else center-out"; N×M with K in a row is parameters, nothing else changes.`,
+- Extensions: a drop animation is a \`translateY\` transition from the top row; undo keeps a move stack (recompute or snapshot boards); an AI opponent is minimax with a depth limit or "win, else block, else center-out"; N×M with K in a row is parameters, nothing else changes.`,
     ui: connectFourUi,
   },
 ];

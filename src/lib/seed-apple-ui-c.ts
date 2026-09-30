@@ -1,9 +1,8 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), UI part C: a
-// multi-step form with one shared store, from a React round where Redux was
-// expected. The preview offers React alone, so the store is useReducer plus
-// context; the signup endpoint is a local stand-in.
+// Apple front-end bank, UI part C: a multi-step form with one shared store.
+// The preview offers React alone, so the store is useReducer plus context;
+// the signup endpoint is a local stand-in.
 
 const formApi: UiFile = {
   name: "api.js",
@@ -427,7 +426,7 @@ export const appleUiProblemsC: Problem[] = [
     summary:
       "Three steps, one reducer: data survives Back, each step validates before Next, and submitting locks the form.",
     prompt: [
-      "Build a three-step signup form (Account, Profile, Review) that passes data between steps. The interviewer expected Redux. The preview offers React alone, so build the same shape with `useReducer` and context: one store, actions for every change, and steps that read from it instead of holding their own state.",
+      "Build a three-step signup form (Account, Profile, Review) that passes data between steps, structured the way Redux would structure it. The preview offers React alone, so build that shape with `useReducer` and context: one store, actions for every change, and steps that read from it instead of holding their own state.",
       "",
       "The starter works, but each step keeps its own `useState`, so going Back loses what was typed.",
       "",
@@ -438,8 +437,6 @@ export const appleUiProblemsC: Problem[] = [
       "- Next validates the current step first. Errors show under their fields, marked with `aria-invalid` and linked with `aria-describedby`, and editing a field clears its error.",
       "- Show which step is current, both visibly and with `aria-current=\"step\"`.",
       "- Submit calls `submitSignup(values)` from `api.js`. While it is in flight, disable every control. On success, show a welcome message with the name. On failure, show the server's message on the Review step. Any email containing \"taken\" fails.",
-      "",
-      "*Reported in: a front-end loop where a multi-step form passing data between steps was built, and Redux was expected (Apple JavaScript guide, UI builds).*",
     ].join("\n"),
     hints: [
       "Put `step`, `values`, `errors`, `status` and `submitError` in one reducer. Every change is an action, such as `{ type: \"field\", name, value }`, `next`, `back`, `submit`, `submitted` or `failed`.",

@@ -1,9 +1,7 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Airbnb frontend bank, part F: the Transfer List — the third question of a
-// reported 2024 loop (after Debounce and Promise), where the candidate ran out
-// of time. React template (as reported) plus an HTML/CSS/JS one, both with
-// complete reference files.
+// Airbnb frontend bank, part F: the Transfer List. A React template plus an
+// HTML/CSS/JS one, both with complete reference files.
 
 const transferCss: UiFile = {
   name: "styles.css",
@@ -134,7 +132,7 @@ export default function App() {
 const transferReactSolution = `import { useId, useState } from "react";
 
 ${itemsFixture}
-// Transfer List (reported 2024 FE loop): two lists with checkboxes; move checked items across;
+// Transfer List: two lists with checkboxes; move checked items across;
 // "move all" buttons; buttons disabled when nothing applies.
 // items: [{ id, label }]
 export function TransferList({ initialLeft, initialRight = [] }) {
@@ -358,8 +356,8 @@ export const airbnbProblemsF: Problem[] = [
     difficulty: "medium",
     companies: ["airbnb"],
     summary:
-      "Two arrays and one Set of checked ids — the widget a 2024 candidate ran out of time on.",
-    prompt: `Implement a Transfer List — the MUI-style widget: two lists of items with checkboxes, buttons to move the checked items right or left, plus "move all" in each direction. Reported as the third question of a 2024 Airbnb loop (after Debounce and a Promise); the candidate ran out of time here and was rejected, so aim for a **working version in ~15 minutes**, then polish. Available as a React template and an HTML/CSS/JS one.
+      "Two arrays and one Set of checked ids — get a working version fast, then polish.",
+    prompt: `Implement a Transfer List — the MUI-style widget: two lists of items with checkboxes, buttons to move the checked items right or left, plus "move all" in each direction. Aim for a **working version in about 15 minutes**, then polish. Available as a React template and an HTML/CSS/JS one.
 
 ## Requirements
 
@@ -368,15 +366,7 @@ export const airbnbProblemsF: Problem[] = [
 - **≫** / **≪** move everything regardless of checkboxes.
 - Each button is disabled when it would do nothing (nothing checked on that side; that side empty).
 - Each list shows its count in the legend and an "Empty" note when it has no items.
-- Order is preserved within each list.
-
-## Follow-up
-
-A "select all" header checkbox with an indeterminate state. Searching within a list without losing items. Making it controlled (\`value\` / \`onChange\`). 1000+ items. Drag and drop as sugar on top of the accessible buttons.
-
-## Worth asking out loud
-
-Does order matter after moving — keep original order or append? Can items be checked on both sides at once? Does "move all" ignore the checkboxes? Controlled or self-contained?`,
+- Order is preserved within each list.`,
     hints: [
       "State is two arrays plus one Set of checked ids — ids are unique across both sides, so one Set covers both lists. Moving is filter-out-of-one, append-to-the-other, then drop the moved ids from the Set.",
       "Write one move(from, to, ids) and call it four ways: the two arrow buttons pass the checked Set, the two move-all buttons pass a Set of every id on that side.",
@@ -389,8 +379,8 @@ State is \`left\`, \`right\` (arrays of items) plus a single \`Set\` of checked 
 ## Worth saying out loud
 
 - Derive, don't store: counts, empty states, and the four disabled flags all come from the two arrays and the Set — there's nothing to keep in sync.
-- Preserving order on both sides is one clarifying question worth asking; appending keeps the model trivial and matches MUI.
-- "Select all" is a header checkbox whose \`indeterminate\` property is set through a ref; search filters the *visible* items while the source arrays stay intact; 1000+ items means virtualizing each list; drag and drop is sugar — the buttons stay as the accessible path.`,
+- Ask whether order must be preserved on both sides; appending keeps the model trivial and matches MUI.
+- "Select all" is a header checkbox whose \`indeterminate\` property is set through a ref; search filters the *visible* items while the source arrays stay intact; a controlled version lifts \`left\` and \`right\` into props with an \`onChange\`; 1000+ items means virtualizing each list; drag and drop is sugar — the buttons stay as the accessible path.`,
     ui: transferUi,
   },
 ];

@@ -1,11 +1,10 @@
 import type { Problem } from "./types";
 
-// Airbnb frontend tech-screen bank, part A: the JavaScript class and utility
-// prompts candidates report — StoreData, a Promise, debounce with controls,
-// input validation. Sourced from candidate reports (LeetCode Discuss, Blind,
-// Glassdoor, FrontendLead) and the curated company pages built from them.
-// Judged in JavaScript only: the semantics under test (`this`, microtasks,
-// timers) are the language's own.
+// Airbnb frontend bank, part A: JavaScript classes and utilities — StoreData,
+// a Promise, debounce with cancel and flush, input validation. The abortable
+// promise and throttle live in seed-airbnb-g.ts. Judged in JavaScript and
+// TypeScript only: the semantics under test (`this`, microtasks, timers) are
+// the language's own.
 
 export const airbnbProblemsA: Problem[] = [
   {
@@ -16,7 +15,7 @@ export const airbnbProblemsA: Problem[] = [
     companies: ["airbnb"],
     summary:
       "A Backbone.Model-style store: two Maps, one event-key normalizer, listeners that can't break each other.",
-    prompt: `Implement \`StoreData\`, a Backbone.Model-style key/value store with change listeners — reported on a senior frontend phone screen.
+    prompt: `Implement \`StoreData\`, a Backbone.Model-style key/value store with change listeners.
 
 \`\`\`
 store.add(key, value)   // alias: set. Returns the store (chainable).
@@ -41,14 +40,10 @@ store.toJSON()          // plain object of the live keys
 - A set that doesn't change the value (\`Object.is\`) fires nothing.
 - Key listeners fire before global listeners.
 - One throwing listener must not stop the others.
-- Removal is a **soft delete**: \`has\` reports false and \`get\` returns \`undefined\`, but keep the tombstone.
-
-## Worth asking out loud
-
-Fire on a no-op set? Callback argument order? Should \`on\` return an unsubscribe? What if a key is literally named \`"change"\`?`,
+- Removal is a **soft delete**: \`has\` reports false and \`get\` returns \`undefined\`, but keep the tombstone.`,
     hints: [
       "Two Maps: attributes (key → {value, deleted}) and listeners (eventKey → Set of callbacks). Normalize every accepted event spelling to one internal key in a single place.",
-      "Namespace attribute events (`attr:name`) so a key literally called \"change\" can't collide with the global event — that normalization bug is exactly what sank the original poster.",
+      "Namespace attribute events (`attr:name`) so a key literally called \"change\" can't collide with the global event — getting that normalization wrong is the classic bug here.",
       "When firing, iterate over a copy of the Set and wrap each call in try/catch: a listener may unsubscribe another mid-loop, and one that throws must not silence the rest.",
     ],
     solution: `## Approach
@@ -326,7 +321,7 @@ class StoreData {
     companies: ["airbnb"],
     summary:
       "A one-way state machine, a handler queue, and every callback in a microtask.",
-    prompt: `Write a Promise from scratch — "write a simple promise" is a reported Airbnb phone-screen prompt. A Blind poster added chaining and was told it went beyond the ask, so build the core first and grow it in phases.
+    prompt: `Write a Promise from scratch. Get the core right first — settling once, asynchronous callbacks, chaining — then add \`catch\`, \`finally\` and the static helpers.
 
 \`\`\`
 new MyPromise((resolve, reject) => { ... })
@@ -342,15 +337,7 @@ MyPromise.resolve(v) / MyPromise.reject(r) / MyPromise.all(iterable)
 - Callbacks run **asynchronously** — schedule them with \`queueMicrotask\`, never synchronously and never with \`setTimeout\`. The grader stubs both to observe ordering: microtasks must run before timers.
 - \`then\` returns a new promise whose fate is the callback's return value; a returned promise or thenable is **adopted**, not passed through; a throwing callback rejects.
 - Missing handlers pass the value or reason through.
-- \`all\` keeps input order and rejects on the first rejection.
-
-## Bonus — abort()
-
-\`AbortablePromise\` extends it: the executor receives a third argument \`onAbort(cleanup)\`; \`p.abort()\` runs the cleanup and rejects with an \`Error\` whose \`name\` is \`"AbortError"\` (a no-op once settled).
-
-## Worth asking out loud
-
-Spec-level (thenable adoption, microtask timing) or "works for the common case"? Is chaining in scope? What should \`abort()\` do about work already in flight?`,
+- \`all\` keeps input order and rejects on the first rejection.`,
     hints: [
       "State machine: pending → fulfilled | rejected, one way. Guard resolve/reject with a `called` flag so only the first call wins, and wrap the executor in try/catch.",
       "Keep a queue of {onFulfilled, onRejected, resolve, reject} handlers. `then` pushes one and returns the new promise those resolve/reject belong to; settling drains the queue, each in `queueMicrotask`.",
@@ -364,7 +351,7 @@ A state machine (\`pending → fulfilled | rejected\`, one-way), a handler queue
 
 - Why microtasks and not \`setTimeout\`: native promises use the microtask queue — they run before the next macrotask and before a render. \`setTimeout(0)\` would reorder relative to real promises.
 - \`resolve(anotherPromise)\` must *adopt* its state, not fulfill with the promise object — that's the thenable branch of \`#resolve\`.
-- Promises can't be cancelled; **cancel the work** (\`AbortController\`, \`clearTimeout\`) and reject with an \`AbortError\`. In React the effect cleanup calls \`controller.abort()\`.
+- Promises can't be cancelled; **cancel the work** (\`AbortController\`, \`clearTimeout\`) and reject with an \`AbortError\` — [Abortable Promise](/problems/abortable-promise) builds exactly that. In React the effect cleanup calls \`controller.abort()\`.
 - \`allSettled\` / \`race\` / \`any\` reuse \`all\`'s skeleton: never reject and collect \`{status, value|reason}\`; settle with the first to finish; reject only when all reject (\`AggregateError\`).
 - Unhandled rejections: natively tracked by whether a rejected promise gained a handler by the end of the microtask checkpoint — a flag set in \`then\`, checked after settling.`,
     judge: {
@@ -463,23 +450,6 @@ class MyPromise {
     });
   }
 }
-
-// Bonus follow-up: an abortable promise. Native promises are not cancellable —
-// cancellation lives in the *work* (AbortController), and the promise just rejects.
-class AbortablePromise extends MyPromise {
-  constructor(executor) {
-    let rejectRef;
-    let cleanup = () => {};
-    super((resolve, reject) => {
-      rejectRef = reject;
-      executor(resolve, reject, (onAbort) => { cleanup = onAbort; });
-    });
-    this.abort = (reason = Object.assign(new Error('Aborted'), { name: 'AbortError' })) => {
-      cleanup();           // e.g. clearTimeout / controller.abort()
-      rejectRef(reason);   // no-op if already settled
-    };
-  }
-}
 `,
       starterCode: `class MyPromise {
   constructor(executor) {
@@ -510,11 +480,6 @@ class AbortablePromise extends MyPromise {
   static all(iterable) {
     return new MyPromise(() => {});
   }
-}
-
-/** Bonus: executor(resolve, reject, onAbort); abort() runs the cleanup and rejects with an AbortError. */
-class AbortablePromise extends MyPromise {
-  abort() {}
 }
 `,
       entry: "__runPromiseScenario",
@@ -584,14 +549,6 @@ async function __runPromiseScenario(kind) {
     "finally-passes-through": () => {
       MyPromise.resolve(5).finally(() => push("fin")).then((v) => push("v:" + v));
     },
-    "abort": () => {
-      const p = new AbortablePromise((resolve, reject, onAbort) => {
-        const id = setTimeout(() => resolve("late"), 1000);
-        onAbort(() => clearTimeout(id));
-      });
-      p.then((v) => push(v), (e) => push(e.name));
-      p.abort();
-    },
   };
   scenarios[kind]();
   for (let round = 0; round < 50; round++) {
@@ -619,71 +576,55 @@ async function __runPromiseScenario(kind) {
         { name: "all rejects on the first rejection", input: ["all-rejects-fast"], expected: ["fail:no"] },
         { name: "all of nothing resolves to []", input: ["all-empty"], expected: ["len:0"] },
         { name: "finally runs and passes the value through", input: ["finally-passes-through"], expected: ["fin", "v:5"] },
-        { name: "abort() cleans up and rejects with AbortError", input: ["abort"], expected: ["AbortError"] },
       ],
     },
   },
   {
-    slug: "debounce-cancel-flush-throttle",
-    title: "Debounce II and Throttle",
+    slug: "debounce-cancel-flush",
+    title: "Debounce with Cancel and Flush",
     category: "frontend",
     difficulty: "medium",
     // Apple: debounce and throttle top the utility list in the Apple
-    // JavaScript guide (2026), per GreatFrontEnd's Apple guide.
+    // JavaScript guide.
     companies: ["airbnb", "apple"],
     summary:
-      "Debounce waits for silence, throttle guarantees a rate — plus the cancel() and flush() follow-ups.",
-    prompt: `Write \`debounce\` from scratch, then the follow-ups Airbnb adds: \`cancel()\` and \`flush()\`, and a \`throttle\` — and be ready to say where you'd use each.
+      "A trailing-edge debounce whose wrapper can also drop the pending call or run it now.",
+    prompt: `Write a trailing-edge \`debounce\` whose returned function also has two controls:
 
 \`\`\`
 debounceWithControls(fn, wait)  // trailing-edge debounce
   .cancel()                     // drop the pending call
   .flush()                      // run the pending call now (no-op if nothing is pending)
-throttle(fn, wait)              // leading call, then at most one call per wait ms,
-                                // with a trailing call carrying the latest arguments
 \`\`\`
 
-The grader replays timed call scripts on a virtual clock — \`setTimeout\`, \`clearTimeout\`, and \`Date.now\` are stubbed — so build on those, not on \`performance.now\` or promises. Each case's input is the kind, the wait, and a script of \`[ms, action, ...args]\` steps; the expected output lists every fire as \`{at, args}\`.
+The grader replays timed call scripts on a virtual clock — \`setTimeout\`, \`clearTimeout\`, and \`Date.now\` are stubbed — so build on those, not on \`performance.now\` or promises. Each case's input is the wait and a script of \`[ms, action, ...args]\` steps; the expected output lists every fire as \`{at, args}\`.
 
 ## Rules
 
-- Debounce fires once per burst, \`wait\` ms after the **last** call, with that call's arguments.
+- The wrapper fires once per burst, \`wait\` ms after the **last** call, with that call's arguments.
 - \`flush\` runs the pending call immediately and clears the timer; \`cancel\` drops it. Later calls start a fresh cycle either way.
-- Throttle fires **immediately** on the first call; calls inside the window collapse into one trailing fire at the window's end with the **latest** arguments; a call after a quiet window fires immediately again.
-- Return real \`function\`s, not arrows, so a caller's \`this\` is forwarded.
-
-## Worth asking out loud
-
-Leading or trailing edge? Should \`flush\` fire when nothing is pending? Where would you use each? (Debounce: typeahead input, resize, autosave. Throttle: scroll tracking, drag, analytics pings.)`,
+- Return a real \`function\`, not an arrow, so a caller's \`this\` is forwarded.`,
     hints: [
-      "A closure over one timer id is all the state debounce needs; each call clears and re-arms it. For cancel/flush, also remember the pending args and `this` so flush can invoke them.",
-      "Throttle tracks the time of the last fire: if enough time has passed, fire now; otherwise arm a single trailing timer for the remainder and keep overwriting the saved latest args.",
+      "A closure over one timer id is all a plain debounce needs; each call clears and re-arms it. For cancel and flush, also remember the pending args and `this` so flush can invoke them.",
+      "flush acts only while a timer is pending: clear it and invoke the saved call. cancel clears the timer and forgets the saved call, so the next call starts fresh.",
     ],
     solution: `## Approach
 
-All three are closures over timer state. Debounce re-arms one timer on every call and fires with the last arguments once the calls stop; the controls version also keeps the pending \`args\`/\`this\` so \`flush\` can run them early and \`cancel\` can drop them. Throttle remembers when it last fired: a call after the window fires immediately, a call inside the window arms a single trailing timer for the remainder and keeps overwriting the saved latest arguments.
+A closure over one timer id plus the pending call's \`args\` and \`this\`. Every call saves them and re-arms the timer, so \`fn\` runs \`wait\` ms after the last call, with that call's arguments. \`flush\` acts only while a timer is pending — clear it and invoke now; \`cancel\` clears the timer and forgets the saved call. Either way the next call starts a fresh cycle.
+
+## Complexity
+
+O(1) per call, \`flush\` and \`cancel\`; O(1) state.
 
 ## Worth saying out loud
 
-- Say where you'd use each unprompted: **debounce waits for silence** (typeahead, resize, autosave); **throttle guarantees a rate** (scroll position, drag, analytics).
+- Where you'd use it: **debounce waits for silence** — typeahead, resize, autosave. Throttle guarantees a rate instead (see [Implement Throttle](/problems/implement-throttle)).
+- \`flush\` is what an autosave calls on unmount or when the page is hidden, so the last edit is not lost; \`cancel\` is for pending work that no longer matters.
 - Why \`function\`, not an arrow, for the returned wrapper: it forwards the caller's \`this\` (a class method, an \`addEventListener\` target); an arrow would freeze \`this\` to the definition site.
 - Leading-edge option: if no timer is pending on the first call, invoke immediately, then arm the timer and skip the trailing call unless new args arrived.
-- In React: debounce the *value* (\`useDebouncedValue\`) or \`useMemo(() => debounce(fn, 300), [])\` — never create the debounced function inline in render (a new closure every render debounces nothing); clear timers in effect cleanup.
-- For visual updates, a \`requestAnimationFrame\` throttle coalesces to one call per frame instead of a time window.`,
+- In React: debounce the *value* (\`useDebouncedValue\`) or \`useMemo(() => debounce(fn, 300), [])\` — never create the debounced function inline in render (a new closure every render debounces nothing); clear timers in effect cleanup.`,
     judge: {
-      solutionCode: `// Debounce: run fn only after calls have stopped for \`wait\` ms (trailing edge).
-function debounce(fn, wait) {
-  let timer = null;
-  return function debounced(...args) {      // function, not arrow: keep caller's \`this\`
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      timer = null;
-      fn.apply(this, args);
-    }, wait);
-  };
-}
-
-// Debounce II: adds cancel() (drop the pending call) and flush() (run it now).
+      solutionCode: `// Trailing-edge debounce with cancel() (drop the pending call) and flush() (run it now).
 function debounceWithControls(fn, wait) {
   let timer = null;
   let pendingArgs;
@@ -697,7 +638,7 @@ function debounceWithControls(fn, wait) {
     fn.apply(ctx, args);
   };
 
-  function debounced(...args) {
+  function debounced(...args) {             // function, not arrow: keep caller's \`this\`
     pendingArgs = args;
     pendingThis = this;
     clearTimeout(timer);
@@ -719,32 +660,6 @@ function debounceWithControls(fn, wait) {
 
   return debounced;
 }
-
-// Throttle: run at most once per \`wait\` ms (leading call + trailing call with latest args).
-function throttle(fn, wait) {
-  let last = 0;
-  let timer = null;
-  let lastArgs;
-  let lastThis;
-  return function throttled(...args) {
-    const now = Date.now();
-    lastArgs = args;
-    lastThis = this;
-    const remaining = wait - (now - last);
-    if (remaining <= 0) {
-      clearTimeout(timer);
-      timer = null;
-      last = now;
-      fn.apply(this, args);
-    } else if (timer === null) {
-      timer = setTimeout(() => {
-        last = Date.now();
-        timer = null;
-        fn.apply(lastThis, lastArgs);
-      }, remaining);
-    }
-  };
-}
 `,
       starterCode: `/** Trailing-edge debounce with .cancel() and .flush(). */
 function debounceWithControls(fn, wait) {
@@ -756,19 +671,12 @@ function debounceWithControls(fn, wait) {
   debounced.flush = () => {};
   return debounced;
 }
-
-/** Leading call, then at most one call per wait ms, with a trailing call carrying the latest args. */
-function throttle(fn, wait) {
-  return function throttled(...args) {
-    fn.apply(this, args);
-  };
-}
 `,
-      entry: "__runTimingScenario",
+      entry: "__runDebounceScenario",
       // Virtual clock: setTimeout/clearTimeout/Date.now are replaced by a
       // scheduler the driver advances, so scenarios are deterministic and
       // instant. The clock starts well above zero, as a real one would.
-      driverCode: `function __runTimingScenario(kind, wait, script) {
+      driverCode: `function __runDebounceScenario(wait, script) {
   var timers = new Map();
   var base = 1000000;
   var now = base;
@@ -790,7 +698,7 @@ function throttle(fn, wait) {
   var record = function () {
     fires.push({ at: now - base, args: Array.prototype.slice.call(arguments) });
   };
-  var wrapped = kind === "throttle" ? throttle(record, wait) : debounceWithControls(record, wait);
+  var wrapped = debounceWithControls(record, wait);
 
   function advanceTo(t) {
     for (;;) {
@@ -822,17 +730,16 @@ function throttle(fn, wait) {
   return fires;
 }`,
       tests: [
-        { name: "A burst collapses to one trailing fire", input: ["debounce", 100, [[0, "call", 1], [30, "call", 2], [60, "call", 3]]], expected: [{ at: 160, args: [3] }] },
-        { name: "cancel drops the pending call", input: ["debounce", 100, [[0, "call", 1], [50, "cancel"]]], expected: [] },
-        { name: "flush runs the pending call now", input: ["debounce", 100, [[0, "call", 1], [20, "flush"]]], expected: [{ at: 20, args: [1] }] },
-        { name: "flush with nothing pending is a no-op", input: ["debounce", 100, [[0, "flush"], [10, "call", 1]]], expected: [{ at: 110, args: [1] }] },
-        { name: "A fresh cycle after flush", input: ["debounce", 100, [[0, "call", 1], [10, "flush"], [50, "call", 2]]], expected: [{ at: 10, args: [1] }, { at: 150, args: [2] }] },
-        { name: "A fresh cycle after cancel", input: ["debounce", 100, [[0, "call", 1], [10, "cancel"], [20, "call", 2]]], expected: [{ at: 120, args: [2] }] },
-        { name: "Debounce forwards every argument", input: ["debounce", 50, [[0, "call", "a", "b"]]], expected: [{ at: 50, args: ["a", "b"] }] },
-        { name: "Throttle fires immediately", input: ["throttle", 100, [[0, "call", 1]]], expected: [{ at: 0, args: [1] }] },
-        { name: "Calls inside the window collapse to one trailing fire", input: ["throttle", 100, [[0, "call", 1], [30, "call", 2], [60, "call", 3]]], expected: [{ at: 0, args: [1] }, { at: 100, args: [3] }] },
-        { name: "A call after a quiet window fires immediately", input: ["throttle", 100, [[0, "call", 1], [150, "call", 2]]], expected: [{ at: 0, args: [1] }, { at: 150, args: [2] }] },
-        { name: "Trailing fire, then a new window", input: ["throttle", 100, [[0, "call", 1], [50, "call", 2], [120, "call", 3]]], expected: [{ at: 0, args: [1] }, { at: 100, args: [2] }, { at: 200, args: [3] }] },
+        { name: "A burst collapses to one trailing fire", input: [100, [[0, "call", 1], [30, "call", 2], [60, "call", 3]]], expected: [{ at: 160, args: [3] }] },
+        { name: "Separate bursts fire separately", input: [100, [[0, "call", 1], [150, "call", 2]]], expected: [{ at: 100, args: [1] }, { at: 250, args: [2] }] },
+        { name: "cancel drops the pending call", input: [100, [[0, "call", 1], [50, "cancel"]]], expected: [] },
+        { name: "cancel with nothing pending is harmless", input: [100, [[0, "cancel"], [10, "call", 1]]], expected: [{ at: 110, args: [1] }] },
+        { name: "flush runs the pending call now", input: [100, [[0, "call", 1], [20, "flush"]]], expected: [{ at: 20, args: [1] }] },
+        { name: "flush with nothing pending is a no-op", input: [100, [[0, "flush"], [10, "call", 1]]], expected: [{ at: 110, args: [1] }] },
+        { name: "flush after the call already fired is a no-op", input: [100, [[0, "call", 1], [200, "flush"]]], expected: [{ at: 100, args: [1] }] },
+        { name: "A fresh cycle after flush", input: [100, [[0, "call", 1], [10, "flush"], [50, "call", 2]]], expected: [{ at: 10, args: [1] }, { at: 150, args: [2] }] },
+        { name: "A fresh cycle after cancel", input: [100, [[0, "call", 1], [10, "cancel"], [20, "call", 2]]], expected: [{ at: 120, args: [2] }] },
+        { name: "Debounce forwards every argument", input: [50, [[0, "call", "a", "b"]]], expected: [{ at: 50, args: ["a", "b"] }] },
       ],
     },
   },
@@ -843,8 +750,8 @@ function throttle(fn, wait) {
     difficulty: "easy",
     companies: ["airbnb"],
     summary:
-      "Declarative rules, first error per field, and the accessible display everyone forgets.",
-    prompt: `Build the validation layer for a form: declarative rules per field, **one** error message per field — the first failing rule's — and \`{}\` when everything is valid. Reported on a senior frontend screen as simply "input validation".
+      "Declarative rule factories and one message per field — the first failing rule's.",
+    prompt: `Build the validation layer for a form: declarative rules per field, **one** error message per field — the first failing rule's — and \`{}\` when everything is valid.
 
 \`\`\`
 validate(values, schema) -> { fieldName: message }   // only the fields with errors
@@ -859,15 +766,7 @@ schema = { title: [rules.required(), rules.minLength(3)], email: [rules.required
 | \`minLength(n, msg?)\` | \`Must be at least {n} characters\` |
 | \`pattern(regex, msg?)\` | \`Invalid format\` |
 | \`email(msg?)\` | \`Enter a valid email\` |
-| \`range(min, max, msg?)\` | \`Must be between {min} and {max}\` — non-numeric input fails too |
-
-## Follow-up
-
-How do you display these accessibly? \`aria-invalid\` on the input, the message in an element referenced by \`aria-describedby\`, validate on blur first (and on change only after the first error), and move focus to the first invalid field on submit.
-
-## Worth asking out loud
-
-Validate on every keystroke or on blur? Trim before checking? Does \`required\` treat \`0\` as present (yes — only blank strings are empty)?`,
+| \`range(min, max, msg?)\` | \`Must be between {min} and {max}\` — non-numeric input fails too |`,
     hints: [
       "Each rule is a tiny function (value) => message | null. `validate` walks each field's rules in order and stops at the first message — one error per field, not five.",
       "Write the factories to close over their parameters and default message: `minLength(n, msg = ...)` returns the validator; keep the messages in one place so the UI and tests agree.",

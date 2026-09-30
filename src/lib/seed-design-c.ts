@@ -14,13 +14,11 @@ export const designProblemsC: Problem[] = [
     summary:
       "Idempotent bulk ingestion with per-item ordering, fairness, and safe deletions.",
     prompt: [
-      '"Merchants give Pinterest their product catalogs: scheduled feed files with up to tens of millions of items, plus real-time API updates for price and availability. Design the pipeline that ingests, validates, and publishes products as shoppable pins, keeps price and stock fresh within minutes, and tells merchants what went wrong."',
+      "Merchants give Pinterest their product catalogs: scheduled feed files with up to tens of millions of items, plus real-time API updates for price and availability. Design the pipeline that ingests, validates, and publishes products as shoppable pins, keeps price and stock fresh within minutes, and tells merchants what went wrong.",
       "",
       "Feeds come as daily full snapshots and hourly deltas (CSV/TSV/XML) plus an item-level API. Full feeds imply deletion semantics: an item missing from a full feed is gone. Most merchants have thousands of items; a few have 20M+ — a 20M-item feed cannot starve a 200-item feed. Validation rejects at item level with reasons, never the whole feed for one bad row. Per item, last writer wins by source timestamp: an old feed must not overwrite a newer API price.",
       "",
       "Cover: idempotency and per-item ordering across the two write sources, safe full-feed deletion, fairness and backpressure across merchants, and how a price change reaches the pin within minutes.",
-      "",
-      '*Reported as: "Design Catalog Update Pipeline — scalable, fault-tolerant, with partitioning for horizontal scalability" (PracHub); Prepfully lists a product-catalogue example. Shopping is a strategic Pinterest surface.*',
     ].join("\n"),
     hints: [
       "One topic keyed by (merchant, item) gives per-item ordering for feed rows and API updates alike; version every write with its source timestamp and make the catalog write conditional (only if newer). Replays then become no-ops.",
@@ -87,13 +85,11 @@ export const designProblemsC: Problem[] = [
     summary:
       "Presigned uploads, content-addressed variants, and a CDN that caches forever.",
     prompt: [
-      '"Design the architecture for uploading and storing images for pins: hundreds of millions of users saving image-heavy content, processed into the sizes the product needs and served globally with low latency."',
+      "Design the architecture for uploading and storing images for pins: hundreds of millions of users saving image-heavy content, processed into the sizes the product needs and served globally with low latency.",
       "",
       "Scope: upload, dedup, processing into variants, global serving, and the pin-creation flow — not the image ML. Assume ~50M new images/day at ~1 MB, while serving is orders of magnitude larger (feeds show dozens of images per page at tens of thousands of QPS → millions of image requests per second), so the design is about the CDN and the variants, not the upload.",
       "",
       "Cover: how bytes get in without transiting your API tier, dedup when the same image is saved by a million users, cache-friendly URLs, and what the pin row shows while processing is still running.",
-      "",
-      '*Reported as: "Design the architecture for uploading and storing images (pins)" (Design Gurus); "image storage" (Glassdoor forum). Also surfaces as a follow-up inside the feed or pin-save prompt.*',
     ].join("\n"),
     hints: [
       "The API tier should never proxy image bytes: hand the client a presigned URL and let it PUT straight to object storage; an upload-complete event drives everything else asynchronously.",
@@ -144,11 +140,9 @@ export const designProblemsC: Problem[] = [
     summary:
       "Sharding a relational model: object tables, mapping tables, no cross-shard joins.",
     prompt: [
-      '"Design the storage for pins, boards, and saves: users save pins to boards, follow boards and users, and browse a board\'s pins in order. Billions of pins, hundreds of millions of users, high availability."',
+      "Design the storage for pins, boards, and saves: users save pins to boards, follow boards and users, and browse a board's pins in order. Billions of pins, hundreds of millions of users, high availability.",
       "",
       "This is really \"do you know how to shard a relational model\" — Pinterest's signature public engineering story. Cover: the id scheme, where objects and relationships live, how \"pins on board B\" and \"boards of user U\" stay single-shard queries, what happens transactionally on a save versus asynchronously, and the hot cases (moving pins between shards, boards with millions of pins).",
-      "",
-      '*Reported as: "Design a pin save and board management service — metadata storage, graph relationships, high availability" (System Design Handbook).*',
     ].join("\n"),
     hints: [
       "Pinterest's actual scheme: a 64-bit id packing 16 bits of shard, 10 bits of type, and 36 bits of local id — the id itself tells you where the row lives, so routing needs no lookup service.",

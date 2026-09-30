@@ -1,9 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple system-design prompts reported for Software Engineer loops (PracHub's
-// Apple list, 2025–2026), part D: disk-based inventory serving, the
+// Apple system-design prompts, part D: disk-based inventory serving, the
 // digit-square (happy number) service at scale, and a video sharing platform.
-// Prompts are restated in our own words.
 
 export const appleDesignProblemsD: Problem[] = [
   {
@@ -20,8 +18,6 @@ export const appleDesignProblemsD: Problem[] = [
       "Records are keyed by item id and hold an available quantity, a reserved quantity, and descriptive metadata. The service must support reads, updates, and **conditional reservations**: reserve one unit only if the available quantity is greater than zero, without ever overselling — including across a crash.",
       "",
       "Discuss the on-disk data layout, the indexing strategy, what you cache and why, the write path, the read path, how a reservation stays atomic and durable, recovery, and how you keep latency acceptable given what a disk head can do.",
-      "",
-      "*Reported as: inventory serving on a machine with no SSD and little RAM (PracHub, Apple Software Engineer technical screen, senior, Oct 2025).*",
     ].join("\n"),
     hints: [
       "Start from the physics: a 7200 rpm disk does roughly 100–150 random operations a second (8–10 ms each) but 100+ MB/s sequentially. The design goal is at most one seek per read and zero seeks per write.",
@@ -103,8 +99,6 @@ export const appleDesignProblemsD: Problem[] = [
       "Design the service for very high volume: billions of requests over time, low latency per request, and no expensive repeated computation for common inputs. You are given an observation to exploit: after a small number of transformations, any fixed-width integer collapses into a small numeric range.",
       "",
       "Cover: the per-request algorithm and its cost; what you precompute and how big it is; whether and where caching helps; the API, including batching; capacity planning; input validation; deployment and latency; and how you would test and monitor it.",
-      "",
-      "*Reported as: a high-volume service for the digit-square convergence operation (PracHub, Apple Software Engineer technical screen, senior, Oct 2025).*",
     ].join("\n"),
     hints: [
       "Bound the first step: a d-digit number maps to at most 81·d. For a 64-bit integer that is at most 1,620 — so after one pass every input lands in a range you can tabulate completely at start-up.",
@@ -184,8 +178,6 @@ export const appleDesignProblemsD: Problem[] = [
       "Assume 100M daily viewers watching ~25 minutes a day and ~1M uploads a day averaging 100 MB.",
       "",
       "Cover: traffic and storage estimates; the ingestion pipeline from upload to playable, including thumbnails; the storage tiers; delivery, caching and adaptive bitrate; metadata, search indexing and engagement counters; the contract with the recommendation system; rate limiting; multi-region availability; encryption and DRM; and the cost trade-offs you would actually pull on.",
-      "",
-      "*Reported as: a YouTube-like video platform, one of two systems in a single onsite round (PracHub, Apple Software Engineer onsite, Sep 2025).*",
     ].join("\n"),
     hints: [
       "Estimate egress before anything else: 100M viewers × 25 minutes × a few megabits per second is tens of petabytes a day. Delivery cost dwarfs storage and compute, so CDN hit ratio and codec efficiency are first-order design decisions.",

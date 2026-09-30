@@ -1,10 +1,9 @@
 import type { Problem } from "./types";
 
-// Pinterest design-round prompts 1–2 of the researched set (home feed,
-// notifications), from the Pinterest_Design_Round_Prep research doc: each
-// carries the prompt as reported by candidates, a rubric for the AI design
-// review, and the worked L5-grade solution grounded in Pinterest's public
-// engineering. Continues in seed-design-b/c/d.ts.
+// Pinterest design-round prompts 1–2 (home feed, notifications): each carries
+// the prompt, a rubric for the AI design review, and a worked solution
+// grounded in Pinterest's public engineering. Continues in
+// seed-design-b/c/d.ts.
 
 export const designProblemsA: Problem[] = [
   {
@@ -16,13 +15,11 @@ export const designProblemsA: Problem[] = [
     summary:
       "Recsys serving, not a social timeline — retrieval funnels, session state, four nines.",
     prompt: [
-      '"Design the Pinterest home feed. When a user opens the app they see a personalized, infinitely scrollable grid of pins drawn from boards they follow and from recommendations. It has to feel fresh, never repeat, and load fast for hundreds of millions of people."',
+      "Design the Pinterest home feed. When a user opens the app they see a personalized, infinitely scrollable grid of pins drawn from boards they follow and from recommendations. It has to feel fresh, never repeat, and load fast for hundreds of millions of people.",
       "",
       "Assume a scoring model exists — your job is retrieval, serving, freshness, and state. The feed is mostly recommendations, not followed content, which should make you suspicious of pure fan-out-on-write. Target: first page p99 under ~400 ms end to end, four nines of read availability, new pins eligible within minutes, and in-session feedback (hide, save) influencing later pages.",
       "",
       "Cover: the retrieval-to-ranking funnel and why you cannot score the corpus online, pagination without repeats, the push/pull/hybrid decision for followed boards, and what degrades when each dependency fails. Ads insertion, model training, and moderation are out of scope.",
-      "",
-      "*Reported as: \"typical recsys\" (Blind L5 loop), \"Design Pin recommendation system powering the personalized home feed\" (PracHub), \"home feed ranking pipeline at billion-user scale\" (TechScreen), \"feed generation\" (Glassdoor forum).*",
     ].join("\n"),
     hints: [
       "Do the math first: 640M MAU → ~160M DAU → ~45k QPS peak. If each request scored 3k candidates with a heavy model that's 135M evaluations/s — impossible. The number forces a funnel: retrieve thousands → light score → heavy score hundreds.",
@@ -97,13 +94,11 @@ export const designProblemsA: Problem[] = [
     summary:
       "Fan-out, viral-pin aggregation under skew, and deciding not to send.",
     prompt: [
-      '"Design Pinterest\'s notification system: push, email, and in-app notifications for comments, saves, follows, new pins on boards you follow, and recommendations. Billions of candidate events a day, with user preferences and volume limits."',
+      "Design Pinterest's notification system: push, email, and in-app notifications for comments, saves, follows, new pins on boards you follow, and recommendations. Billions of candidate events a day, with user preferences and volume limits.",
       "",
-      'A reported variant sharpens the hard part: *"Send a push notification to a pin owner when someone comments on their pin. A pin can go viral and get thousands of comments in minutes; the owner should not get thousands of pushes."*',
+      "The hard part: when someone comments on a pin, its owner gets a push — but a pin can go viral and draw thousands of comments in minutes, and the owner should not get thousands of pushes.",
       "",
       "Assume push (APNs/FCM), email, and an in-app inbox with unread counts. Social events should notify within ~5 s p99; board updates within minutes; digests are batched. Internally delivery is at-least-once — the user must still see at-most-once. Respect per-user caps, quiet hours, and per-type preferences; unsubscribe takes effect immediately. The system must absorb 100x spikes from viral pins without backing up unrelated traffic.",
-      "",
-      "*Reported as: 1point3acres 2018 onsite (candidate rejected on \"architecture\"), Dev Genius 2020 write-up, PracHub ×2, Glassdoor forum — the most-reported prompt after the feed.*",
     ].join("\n"),
     hints: [
       "The viral pin is a stream-aggregation problem with a hot key: 1M comments in 10 minutes is ~1.7k events/s hashing to one partition. Two-stage aggregation — partition by (pin, salt) for partial counts, then merge keyed by pin — turns the firehose into one message per salt per second.",

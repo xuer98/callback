@@ -102,25 +102,16 @@ func (c *LRUCache) Put(key int, value int) {
   },
   "round-numeric-strings": {
     entry: "__call",
-    starterCode: `// Part 1: round one numeric string to the nearest integer, rounding
-// half away from zero. No leading zeros in the result, and never "-0".
+    starterCode: `// Round one numeric string to the nearest integer, rounding half away
+// from zero. No leading zeros in the result, and never "-0".
 // Values can exceed any built-in numeric type - stay in string land.
 func roundNumericString(s string) string {
 	// Your code here
 	return s
 }
-
-// Part 2: round every value in a comma-separated list.
-func roundAll(csv string) string {
-	// Your code here
-	return csv
-}
 `,
     driverCode: `func __call(a []interface{}) interface{} {
-	if JStr(a[0]) == "csv" {
-		return roundAll(JStr(a[1]))
-	}
-	return roundNumericString(JStr(a[1]))
+	return roundNumericString(JStr(a[0]))
 }`,
   },
   "violation-log-analyzer": {
@@ -246,16 +237,9 @@ func Constructor(readChunk func() string) *LineReader {
 func (r *LineReader) ReadLine() (line string, ok bool) {
 	return "", false
 }
-
-// Part 2: lines are "payer,payee,amount" (integer amounts). Return the
-// minimum number of transactions to settle all balances (use LineReader).
-func settleFromStream(readChunk func() string) int {
-	// Your code here
-	return 0
-}
 `,
     driverCode: `func __call(a []interface{}) interface{} {
-	chunks := JStrs(a[1])
+	chunks := JStrs(a[0])
 	next := 0
 	readChunk := func() string {
 		if next >= len(chunks) {
@@ -264,12 +248,9 @@ func settleFromStream(readChunk func() string) int {
 		next++
 		return chunks[next-1]
 	}
-	if JStr(a[0]) == "settle" {
-		return settleFromStream(readChunk)
-	}
 	reader := Constructor(readChunk)
 	out := []interface{}{}
-	for n := JInt(a[2]); n > 0; n-- {
+	for n := JInt(a[1]); n > 0; n-- {
 		line, ok := reader.ReadLine()
 		if !ok {
 			out = append(out, nil)

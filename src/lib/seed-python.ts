@@ -67,22 +67,13 @@ export const pythonJudges: Record<string, JudgeLanguage> = {
 `,
   },
   "round-numeric-strings": {
-    entry: "__dispatch",
+    entry: "round_numeric_string",
     starterCode: `def round_numeric_string(s):
-    """Part 1: round one numeric string to the nearest integer, rounding
-    half away from zero. No leading zeros in the result, and never "-0".
+    """Round one numeric string to the nearest integer, rounding half away
+    from zero. No leading zeros in the result, and never "-0".
     Values can exceed any built-in numeric type - stay in string land."""
     # Your code here
     return s
-
-
-def round_all(csv):
-    """Part 2: round every value in a comma-separated list."""
-    # Your code here
-    return csv
-`,
-    driverCode: `def __dispatch(kind, value):
-    return round_all(value) if kind == "csv" else round_numeric_string(value)
 `,
   },
   "violation-log-analyzer": {
@@ -155,7 +146,7 @@ def round_all(csv):
 `,
   },
   "stream-line-reader": {
-    entry: "__dispatch",
+    entry: "__read_lines",
     starterCode: `class LineReader:
     def __init__(self, read_chunk):
         """read_chunk() returns the next chunk, or "" once the stream ends."""
@@ -166,23 +157,13 @@ def round_all(csv):
         """Next complete line without the newline; None once exhausted.
         Call read_chunk lazily."""
         return None
-
-
-def settle_from_stream(read_chunk):
-    """Part 2: lines are "payer,payee,amount" (integer amounts).
-    Return the minimum number of transactions to settle all balances
-    (use your LineReader)."""
-    # Your code here
-    return 0
 `,
-    driverCode: `def __dispatch(kind, chunks, cap):
+    driverCode: `def __read_lines(chunks, cap):
     it = iter(chunks)
 
     def read_chunk():
         return next(it, "")
 
-    if kind == "settle":
-        return settle_from_stream(read_chunk)
     reader = LineReader(read_chunk)
     out = []
     for _ in range(cap):
@@ -335,17 +316,8 @@ def resize_buckets(buckets, name, new_size):
     [frm, to, amount] settling everyone, at most n - 1 of them."""
     # Your code here
     return []
-
-
-def min_transfers(debts):
-    """debts: (debtor, creditor, amount) triples. Minimum transfers that
-    settle all balances."""
-    # Your code here
-    return 0
 `,
-    driverCode: `def __judge_settle(op, payments, debts):
-    if op == "min":
-        return min_transfers(debts)
+    driverCode: `def __judge_settle(payments):
     bal = {}
 
     def add(who, delta):
@@ -372,23 +344,12 @@ def min_transfers(debts):
 `,
   },
   "reconstruct-itinerary": {
-    entry: "__judge_itinerary",
+    entry: "find_itinerary",
     starterCode: `def find_itinerary(tickets, start):
     """Use every [frm, to] ticket exactly once from start; return the
     lexicographically smallest itinerary as a list of airports."""
     # Your code here
     return []
-
-
-def has_loop(tickets, start):
-    """Does that itinerary ever revisit an airport?"""
-    # Your code here
-    return False
-`,
-    driverCode: `def __judge_itinerary(op, tickets, start):
-    if op == "loop":
-        return has_loop(tickets, start)
-    return find_itinerary(tickets, start)
 `,
   },
   "access-log-query": {
@@ -436,22 +397,11 @@ def has_loop(tickets, start):
 `,
   },
   "board-exact-jumps": {
-    entry: "__judge_board",
+    entry: "can_reach_end",
     starterCode: `def can_reach_end(board, start):
     """Can you reach the last index moving exactly board[i] steps?"""
     # Your code here
     return False
-
-
-def min_moves_to_end(board, start):
-    """Minimum moves to reach the last index, or -1."""
-    # Your code here
-    return -1
-`,
-    driverCode: `def __judge_board(op, board, start):
-    if op == "reach":
-        return can_reach_end(board, start)
-    return min_moves_to_end(board, start)
 `,
   },
   "restaurant-free-intervals": {
@@ -536,43 +486,21 @@ def can_reach(roads, src, dst, k):
 `,
   },
   "bank-teller-wait-time": {
-    entry: "__judge_tellers",
+    entry: "wait_time",
     starterCode: `def wait_time(times, m):
     """Agent i takes times[i] minutes; m customers are ahead of you; ties
     go to the lowest-numbered agent. When does your service start?"""
     # Your code here
     return 0
-
-
-def min_time_to_serve(times, m):
-    """Smallest T with sum(T // times[i]) >= m."""
-    # Your code here
-    return 0
-`,
-    driverCode: `def __judge_tellers(op, times, m):
-    if op == "wait":
-        return wait_time(times, m)
-    return min_time_to_serve(times, m)
 `,
   },
   "first-word-with-prefix": {
-    entry: "__judge_prefix",
+    entry: "first_match",
     starterCode: `def first_match(words, prefix):
     """words is sorted ascending. Index of the first word starting with
     prefix, or -1. O(log n) comparisons."""
     # Your code here
     return -1
-
-
-def match_range(words, prefix):
-    """Inclusive [first, last] of matching indexes, or [-1, -1]."""
-    # Your code here
-    return [-1, -1]
-`,
-    driverCode: `def __judge_prefix(op, words, prefix):
-    if op == "first":
-        return first_match(words, prefix)
-    return match_range(words, prefix)
 `,
   },
   "autocomplete-session": {
@@ -601,23 +529,12 @@ def match_range(words, prefix):
 `,
   },
   "reverse-count-and-say": {
-    entry: "__judge_reverse_say",
+    entry: "reverse_count_and_say",
     starterCode: `def reverse_count_and_say(s):
     """All originals whose count-and-say step produces s, sorted
     ascending. s == "" returns [""]; unparseable s returns []."""
     # Your code here
     return []
-
-
-def count_originals(s):
-    """Just how many originals there are."""
-    # Your code here
-    return 0
-`,
-    driverCode: `def __judge_reverse_say(op, s):
-    if op == "all":
-        return reverse_count_and_say(s)
-    return count_originals(s)
 `,
   },
   "flag-spam-numbers": {
@@ -777,206 +694,63 @@ def count_originals(s):
   },
   // -- Anduril bank ----------------------------------------------------------
   "team-photo-arrangement": {
-    entry: "__judge_team_photo",
-    starterCode: `def can_stand_behind(front, back):
-    """Phase 1: equal sizes — does every back player clear the front player ahead?"""
+    entry: "photo_order",
+    starterCode: `def photo_order(team_a, team_b):
+    """Equal sizes. ["A", "B"] if team A can stand in front of team B,
+    ["B", "A"] if team B can stand in front of team A, None if neither."""
     # Your code here
-    return False
-
-
-def photo_order(team_a, team_b):
-    """Phase 1: ("A", "B") if team A stands in front, ("B", "A") if B does, None if neither."""
     return None
-
-
-def can_arrange_with_gaps(front, back):
-    """Phase 2: different sizes, empty slots allowed (rows have max(len) slots)."""
-    return False
-
-
-def arrange_with_gaps(front, back):
-    """Phase 3: (front_row, back_row) with None for empty slots, or None when impossible."""
-    return None
-`,
-    driverCode: `def __judge_team_photo(kind, front, back):
-    if kind == "behind":
-        return can_stand_behind(front, back)
-    if kind == "order":
-        result = photo_order(front, back)
-        return None if result is None else list(result)
-    if kind == "gaps":
-        return can_arrange_with_gaps(front, back)
-    rows = arrange_with_gaps(front, back)
-    if rows is None:
-        return "impossible"
-    if not isinstance(rows, (list, tuple)) or len(rows) != 2:
-        return "not two rows"
-    row_f, row_b = rows
-    n = max(len(front), len(back))
-    if len(row_f) != n or len(row_b) != n:
-        return "wrong row length"
-    if sorted(h for h in row_f if h is not None) != sorted(front):
-        return "front row changed"
-    if sorted(h for h in row_b if h is not None) != sorted(back):
-        return "back row changed"
-    for i, (f, b) in enumerate(zip(row_f, row_b)):
-        if f is not None and b is not None and not b > f:
-            return "blocked at slot " + str(i)
-    return "valid"
 `,
   },
   "largest-sensor-distance": {
-    entry: "__judge_sensors",
+    entry: "largest_sensor_distance",
     starterCode: `def largest_sensor_distance(targets, sensors):
     """Largest distance from any target to its closest sensor. Neither list is
     sorted. Return 0 when either list is empty."""
     # Your code here
     return 0
-
-
-def min_towers_to_cover(crossings, r):
-    """Phase 3: fewest towers of range r (covering [x - r, x + r]) that cover every crossing."""
-    return 0
-`,
-    driverCode: `def __judge_sensors(kind, a, b):
-    if kind == "largest":
-        return largest_sensor_distance(a, b)
-    return min_towers_to_cover(a, b)
 `,
   },
   "surveillance-footage": {
-    entry: "__judge_footage",
+    entry: "min_clips",
     starterCode: `def min_clips(clips, T):
     """Fewest clips whose union covers [0, T], or -1 when impossible."""
     # Your code here
     return -1
-
-
-def min_clips_with_choice(clips, T):
-    """Phase 2: the chosen clips themselves (any minimal set), or None when impossible."""
-    return None
-
-
-def uncovered_gaps(clips, T):
-    """Phase 3: every [start, end] sub-interval of [0, T] no clip covers, in order."""
-    return []
-`,
-    driverCode: `def __judge_footage(kind, clips, T):
-    if kind == "count":
-        return min_clips(clips, T)
-    if kind == "gaps":
-        return [list(g) for g in uncovered_gaps(clips, T)]
-    known = {tuple(c) for c in clips}
-    chosen = min_clips_with_choice(clips, T)
-    if chosen is None:
-        return "impossible"
-    if not isinstance(chosen, (list, tuple)):
-        return "not a list"
-    for c in chosen:
-        if not isinstance(c, (list, tuple)) or len(c) != 2 or tuple(c) not in known:
-            return "unknown clip"
-    covered = 0
-    for s, e in sorted(chosen):
-        if s <= covered:
-            covered = max(covered, e)
-    return {"clips": len(chosen), "covers": covered >= T}
 `,
   },
   "shortest-path-with-obstacles": {
-    entry: "__judge_paths",
-    starterCode: `def euclid(p, q):
-    """Phases 1-2: straight-line distance between two points of any dimension."""
-    # Your code here
-    return 0.0
-
-
-def shortest_path_grid(grid, src, dst, diagonal=False):
-    """Phase 3: grid of 0 (free) / 1 (blocked); src and dst are (row, col) tuples.
+    entry: "__judge_grid",
+    starterCode: `def shortest_path_grid(grid, src, dst, diagonal=False):
+    """Grid of 0 (free) / 1 (blocked); src and dst are (row, col) tuples.
     Steps along the shortest path (8-directional when diagonal), or -1."""
-    return -1
-
-
-def astar_grid(grid, src, dst):
-    """Phase 4: the same answer as BFS, found with an admissible heuristic."""
-    return -1
-
-
-def dijkstra_grid(cost, src, dst):
-    """Phase 5: cost[r][c] is the cost to enter a cell, -1 = obstacle. Cheapest path cost, or -1."""
+    # Your code here
     return -1
 `,
-    driverCode: `def __judge_paths(kind, a, b, c=None, d=None):
-    if kind == "euclid":
-        return euclid(tuple(a), tuple(b))
-    if kind == "grid":
-        return shortest_path_grid(a, tuple(b), tuple(c), bool(d))
-    if kind == "astar":
-        return astar_grid(a, tuple(b), tuple(c))
-    return dijkstra_grid(a, tuple(b), tuple(c))
+    driverCode: `def __judge_grid(grid, src, dst, diagonal=False):
+    return shortest_path_grid(grid, tuple(src), tuple(dst), bool(diagonal))
 `,
   },
   "sensor-network-cycles": {
-    entry: "__judge_network",
-    starterCode: `def has_cycle_directed(n, edges):
-    """Directed edges (u, v) over sensors 0..n-1: is there a cycle?"""
+    entry: "has_cycle",
+    starterCode: `def has_cycle(n, edges):
+    """Undirected edges (u, v) over sensors 0..n-1: is there a cycle?"""
     # Your code here
     return False
-
-
-def topo_order(n, edges):
-    """Directed: a processing order that respects every edge, or [] when there's a cycle."""
-    return []
-
-
-def undirected_cycle_and_components(n, edges):
-    """Undirected: (has_cycle, component_count)."""
-    return (False, 0)
-`,
-    driverCode: `def __judge_network(kind, n, edges):
-    if kind == "cycle":
-        return has_cycle_directed(n, edges)
-    if kind == "components":
-        return list(undirected_cycle_and_components(n, edges))
-    order = topo_order(n, edges)
-    if not isinstance(order, (list, tuple)):
-        return "not a list"
-    if len(order) == 0:
-        return "empty"
-    if sorted(order) != list(range(n)):
-        return "not a permutation"
-    pos = {v: i for i, v in enumerate(order)}
-    for u, v in edges:
-        if pos[u] > pos[v]:
-            return "violates edge " + str(u) + "->" + str(v)
-    return "valid-order"
 `,
   },
   "rod-cutting-profit": {
     entry: "__judge_rod",
     starterCode: `def rod_cutting(prices, n):
-    """(revenue, piece_lengths) for the best way to cut a rod of length n
+    """[revenue, piece_lengths] for the best way to cut a rod of length n
     (prices[i] sells a piece of length i + 1)."""
     # Your code here
-    return (0, [])
-
-
-def rod_cutting_with_cost(prices, n, cut_cost):
-    """Phase 2: every cut costs cut_cost; selling the rod whole makes zero cuts."""
-    return 0
-
-
-def rod_cutting_limited(prices, n, max_pieces):
-    """Phase 3: at most max_pieces pieces."""
-    return 0
+    return [0, []]
 `,
-    driverCode: `def __judge_rod(kind, prices, n, extra=None):
-    if kind == "cost":
-        return rod_cutting_with_cost(prices, n, extra)
-    if kind == "limited":
-        return rod_cutting_limited(prices, n, extra)
+    driverCode: `def __judge_rod(prices, n):
     result = rod_cutting(prices, n)
     if not isinstance(result, (list, tuple)) or len(result) != 2:
-        return "expected (revenue, cuts)"
+        return "expected [revenue, cuts]"
     revenue, cuts = result
     if not isinstance(cuts, (list, tuple)):
         return "cuts is not a list"
@@ -990,21 +764,11 @@ def rod_cutting_limited(prices, n, max_pieces):
 `,
   },
   "brace-expansion": {
-    entry: "__judge_braces",
+    entry: "brace_expansion",
     starterCode: `def brace_expansion(s):
     """Flat groups only: "{a,b}c{d,e}f" -> every string it produces, sorted."""
     # Your code here
     return []
-
-
-def brace_expansion_ii(expression):
-    """Phase 2: groups nest and commas union whole sub-expressions. Sorted, deduplicated."""
-    return []
-`,
-    driverCode: `def __judge_braces(kind, s):
-    if kind == "flat":
-        return brace_expansion(s)
-    return brace_expansion_ii(s)
 `,
   },
   "transactional-kv-store": {
@@ -1049,39 +813,12 @@ def brace_expansion_ii(expression):
 `,
   },
   "replace-without-builtins": {
-    entry: "__judge_strings",
+    entry: "replace_all",
     starterCode: `def replace_all(s, old, new):
     """Replace every non-overlapping, left-to-right occurrence of old with new —
     no str methods (no replace / find / split)."""
     # Your code here
     return s
-
-
-def rle_encode(s):
-    """Phase 2: 'aaabcc' -> 'a3b1c2'"""
-    return ""
-
-
-def rle_decode(s):
-    """Phase 2: 'a3b1c12' -> 'aaab' + 'c' * 12 (counts can be multi-digit)."""
-    return ""
-
-
-def compress_inplace(chars):
-    """Phase 3: rewrite the list in place as char + count (count omitted when 1),
-    O(1) extra space. Return the new length."""
-    return len(chars)
-`,
-    driverCode: `def __judge_strings(kind, a, b=None, c=None):
-    if kind == "replace":
-        return replace_all(a, b, c)
-    if kind == "encode":
-        return rle_encode(a)
-    if kind == "decode":
-        return rle_decode(a)
-    chars = list(a)
-    n = compress_inplace(chars)
-    return [n, chars[:n]]
 `,
   },
   "drone-zone-sensor": {

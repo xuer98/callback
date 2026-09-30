@@ -32,12 +32,7 @@ A . . B                       . A
 => 3             => 2         => 2
 \`\`\`
 
-H and W up to 2000 — **avoid recursion**; a 2000 × 2000 object blows the stack. Each API call is O(1).
-
-## Follow-ups
-
-- Solve it again with union-find over pixel ids.
-- The grid isn't available at all: you drive a robot with move(direction), isBackground(), and isSameObject(direction), starting on an unknown pixel — count the pixels of the object you are standing on (track relative coordinates).`,
+H and W up to 2000 — **avoid recursion**; a 2000 × 2000 object blows the stack. Each API call is O(1).`,
     hints: [
       "This is Number of Islands with one twist: adjacency is not \"both non-background\" but \"isSameObject says so.\" Wire your neighbor check through the API and the rest is standard flood fill.",
       "Iterate every cell; when you find a non-background pixel you haven't visited, that is one new object — BFS it to mark the rest.",
@@ -77,7 +72,12 @@ def count_objects(grid):
     return count
 \`\`\`
 
-O(H × W) time and space — each pixel is enqueued at most once and each adjacent pair is tested a constant number of times. For the union-find follow-up: union every 4-adjacent pair that isSameObject approves, then count distinct roots among non-background pixels. For the robot variant, track your position relative to the start and flood fill over relative coordinates in a visited set.`,
+O(H × W) time and space — each pixel is enqueued at most once and each adjacent pair is tested a constant number of times.
+
+## Worth saying out loud
+
+- Union-find gives the same count: union every 4-adjacent pair that isSameObject approves, then count distinct roots among non-background pixels. It wins when pixels keep arriving after the first answer.
+- If there were no grid at all — only a robot with move(direction), isBackground() and isSameObject(direction) starting on an unknown pixel — the same flood fill works over coordinates relative to the start, kept in a visited set, with the robot backtracking along its path.`,
     judge: {
       starterCode: `/**
  * Count distinct objects reachable through the grid API.
@@ -112,7 +112,7 @@ function countObjects(grid) {
   return countObjects(grid);
 }`,
       tests: [
-        { name: "Three objects from the write-up", input: [["AA.B", "A..B", "..C."]], expected: 3 },
+        { name: "Three objects", input: [["AA.B", "A..B", "..C."]], expected: 3 },
         { name: "Touching but different objects", input: [["AB"]], expected: 2 },
         { name: "Diagonal contact does not connect", input: [["A.", ".A"]], expected: 2 },
         { name: "Empty grid", input: [[]], expected: 0 },
@@ -146,11 +146,7 @@ minFlips(roads, "C", "A") => -1       (roads are one-way)
 minFlips(roads, "A", "A") => 0
 \`\`\`
 
-Up to 10^5 nodes and 10^6 roads; node ids are arbitrary; src or dst may appear on no road at all (then only src == dst is reachable). Expected O(V + E).
-
-## Follow-up (the grid variant, LC 1293)
-
-An m × n grid of 0s and 1s; you may walk through at most k obstacles. Minimum steps corner to corner — every step costs 1, so plain BFS over (r, c, obstaclesUsed) states; and when k >= m + n − 3 the answer is just the Manhattan distance.`,
+Up to 10^5 nodes and 10^6 roads; node ids are arbitrary; src or dst may appear on no road at all (then only src == dst is reachable). Expected O(V + E).`,
     hints: [
       "Weights are only 0 (open) and 1 (closed) — that is 0-1 BFS: a deque where 0-cost edges push front and 1-cost edges push back. Dijkstra with a heap also works, one log factor slower.",
       "The deque invariant: distances popped are non-decreasing, so the first time dst pops, its flip count is final.",
@@ -193,7 +189,12 @@ def can_reach(roads, src, dst, k):
     return 0 <= flips <= k
 \`\`\`
 
-O(V + E) time and space. Worth saying in the room: why the deque preserves the Dijkstra invariant (front pushes never decrease the head distance), and that the grid follow-up is uniform-cost, so its trick is not 0-1 BFS but the extra state dimension — plus the k >= m + n − 3 shortcut that makes eliminations unlimited in practice.`,
+O(V + E) time and space.
+
+## Worth saying out loud
+
+- Why the deque preserves the Dijkstra invariant: front pushes never decrease the head distance, so popped distances stay non-decreasing.
+- A related grid question — walk corner to corner through at most k obstacles — looks similar but is uniform-cost: every step costs 1, so its trick is plain BFS over (r, c, obstaclesUsed) states, plus the shortcut that k >= m + n − 3 makes the answer the Manhattan distance.`,
     judge: {
       starterCode: `/**
  * Minimum closed roads to flip to drive src -> dst, or -1.

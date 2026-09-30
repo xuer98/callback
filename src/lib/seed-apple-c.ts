@@ -1,18 +1,18 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part C: Number of Islands, insert-interval plus
-// sessionization, and Design HashMap. Same sourcing and conventions as
-// seed-apple-a.ts.
+// Apple coding bank, part C: Number of Islands, Insert Interval, and Design
+// HashMap. Same conventions as seed-apple-a.ts; sessionization lives in
+// seed-apple-n.ts.
 
 export const appleProblemsC: Problem[] = [
   {
     slug: "number-of-islands",
-    title: "Number of Islands, Three Ways",
+    title: "Number of Islands",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],
     summary:
-      "DFS, BFS or union-find — the reported pass came from choosing out loud, not from the code.",
+      "Flood fill from every unvisited land cell — and know when DFS, BFS or union-find fits.",
     prompt: [
       "Count the islands in a grid of `'0'` (water) and `'1'` (land). Land cells connect four-directionally — up, down, left, right — and an island is a maximal connected group of land. The grid arrives as a list of equal-length strings.",
       "",
@@ -24,12 +24,6 @@ export const appleProblemsC: Problem[] = [
       "```",
       "",
       "Do not mutate the input.",
-      "",
-      "The candidate who reported this screen described what earned the pass: before writing anything, they compared DFS, BFS and union-find with pros and cons, asked the interviewer which follow-up was coming, *then* chose an approach, and hand-ran test cases at the end. Do the same.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Do diagonal neighbours connect? Can the grid be huge — is recursion depth a concern? Will cells be added or removed later (which would favour union-find)? May I mark visited cells in place, or must the input stay untouched?",
     ].join("\n"),
     hints: [
       "Scan every cell; each unvisited land cell starts a new island, and a flood fill (iterative DFS with an explicit stack, or BFS with a queue) marks everything reachable from it as visited before the scan continues.",
@@ -38,7 +32,7 @@ export const appleProblemsC: Problem[] = [
     solution: [
       "## Approach",
       "",
-      "Do not just write it. The reported script is: recursive DFS risks stack overflow on one huge island; BFS is safe on large connected regions; union-find is what you want if islands get added or removed dynamically. Ask which case matters, then write it. The reference uses an iterative DFS with an explicit stack and a visited set — the strings are immutable, so the input stays untouched without a copy — and the Python version is the BFS variant.",
+      "Compare the three before writing: recursive DFS risks stack overflow on one huge island; BFS is safe on large connected regions; union-find is what you want if islands get added or removed dynamically. Pick one for a stated reason, then write it. The reference uses an iterative DFS with an explicit stack and a visited set — the strings are immutable, so the input stays untouched without a copy — and the Python version is the BFS variant.",
       "",
       "Every cell is visited at most once, so the scan plus the flood fills is linear in the grid.",
       "",
@@ -48,7 +42,7 @@ export const appleProblemsC: Problem[] = [
       "",
       "## Worth saying out loud",
       "",
-      "- **Islands added one at a time** is LeetCode 305, and union-find is the only one of the three that answers it without re-scanning: count land cells up, and subtract one for every union that joins two components.",
+      "- **Islands added one at a time?** Union-find is the only one of the three that answers it without re-scanning: count land cells up, and subtract one for every union that joins two components.",
       "- **Do not mutate the input** — the reference keeps a visited set; flipping cells to `'0'` in a copy is the alternative. Say which you did and why: silently destroying the caller's grid is a real code-review note.",
       "- **Diagonals count?** Ask. It is a one-line change to the neighbour list and a free demonstration that you clarify.",
       "- The union-find version counts *down* from total land rather than up from zero; explain that inversion, because it reads as a bug otherwise.",
@@ -106,58 +100,36 @@ function countIslands(grid) {
     },
   },
   {
-    slug: "insert-interval-sessionize",
-    title: "Insert Interval, Then Sessionize",
+    slug: "insert-interval",
+    title: "Insert Interval",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],
-    summary:
-      "Three linear phases instead of a re-sort — and the same sweep groups events into sessions.",
+    summary: "Three linear phases instead of a re-sort: before, overlapping, after.",
     prompt: [
-      "One 45-minute Apple phone screen asked two problems back to back: merge overlapping intervals, then insert a new interval into an already-merged list. This problem is the second half plus the data-pipeline cousin an AIML data-engineering screen asked about — \"grouping processes within a specific time window\".",
-      "",
-      "## Phase 1 — `insertInterval(intervals, newInterval)`",
-      "",
       "`intervals` is a list of closed `[start, end]` pairs that are sorted by start and do not overlap. Insert `newInterval`, merging where it overlaps, and return the list still sorted and non-overlapping. Touching intervals merge (`[1, 4]` and `[4, 5]` become `[1, 5]`). Do it in one pass without re-sorting.",
       "",
       "```",
       "insertInterval([[1, 3], [6, 9]], [2, 5])                       ->  [[1, 5], [6, 9]]",
       "insertInterval([[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]], [4, 8])  ->  [[1, 2], [3, 10], [12, 16]]",
       "```",
-      "",
-      "## Phase 2 — `sessionize(events, gap)`",
-      "",
-      "`events` is an unordered list of `[entity, timestamp]` pairs. For each entity, group its events into sessions: consecutive events (in time order) that are at most `gap` apart belong to the same session. Return `{ entity: [[start, end, count], ...] }` with each entity's sessions in time order.",
-      "",
-      "```",
-      "sessionize([[\"u1\", 1], [\"u1\", 5], [\"u1\", 30], [\"u2\", 2]], 10)",
-      "  ->  { \"u1\": [[1, 5, 2], [30, 30, 1]], \"u2\": [[2, 2, 1]] }",
-      "```",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Are the intervals closed or half-open — does `[1, 4]` touching `[4, 5]` make one interval or two? Is the merged list guaranteed sorted, so I can rely on the invariant instead of re-sorting? For sessions, is the gap inclusive, and are events already sorted by entity and time?",
     ].join("\n"),
     hints: [
       "Insert is three linear phases over the sorted list: copy everything that ends before the new interval starts; absorb everything that starts before the new interval ends by widening it; copy the rest. No sort needed — the invariant gives you O(n).",
-      "Sessionize is the same sweep after sorting by (entity, timestamp): open a session on the first event, extend it while the next timestamp is within `gap` of the session's current end, otherwise close it and open a new one.",
     ],
     solution: [
       "## Approach",
       "",
-      "For insert, resist re-sorting: the list is already merged, so it is three linear phases — everything strictly before, everything overlapping (collapsed into the new interval by taking the min start and max end), everything after. Saying \"I do not need to re-sort, the invariant gives me O(n)\" is the whole point of asking insert after merge.",
-      "",
-      "Sessionization is the same idea with a gap instead of an overlap: sort the events by entity and time, walk them, and either extend the entity's open session (when the timestamp is within `gap` of its end) or start a new one. The state per entity is one open session, which is exactly what a windowed `lag()` in Spark gives you.",
+      "Resist re-sorting: the list is already merged, so it is three linear phases — everything strictly before, everything overlapping (collapsed into the new interval by taking the min start and max end), everything after. Saying \"I do not need to re-sort, the invariant gives me O(n)\" is the point of the question.",
       "",
       "## Complexity",
       "",
-      "Insert: O(n) time, O(n) for the output. Sessionize: O(e log e) for the sort, then a linear sweep; O(e) space for the sessions.",
+      "O(n) time, O(n) for the output.",
       "",
       "## Worth saying out loud",
       "",
-      "- **Do it in Spark?** `lag()` over a window partitioned by entity and ordered by timestamp, flag rows where the gap exceeds the threshold, cumulative-sum the flags to get a session id. Name the skew risk: one hot entity puts the whole partition on one executor.",
-      "- **Streaming with late-arriving events?** Watermarks. A late event can reopen a closed session, so you either bound lateness and drop, or emit a correction.",
       "- **Closed vs half-open:** the code merges touching intervals; a booking system would deliberately not, so a checkout and a check-in at the same instant do not collide.",
+      "- **Many inserts?** Keep the intervals in a balanced tree keyed by start; each insert then finds its neighbours in O(log n) and only touches the intervals it absorbs.",
     ].join("\n"),
     judge: {
       solutionCode: `// O(n), no re-sort: before, overlapping (collapsed), after.
@@ -175,25 +147,6 @@ function insertInterval(intervals, newInterval) {
   while (i < intervals.length) out.push([...intervals[i++]]);
   return out;
 }
-
-// Sort by (entity, time), then one sweep with one open session per entity.
-function sessionize(events, gap) {
-  const sorted = [...events].sort((a, b) =>
-    a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1],
-  );
-  const out = {};
-  for (const [entity, ts] of sorted) {
-    const sessions = (out[entity] ??= []);
-    const last = sessions[sessions.length - 1];
-    if (last && ts - last[1] <= gap) {
-      last[1] = ts;
-      last[2]++;
-    } else {
-      sessions.push([ts, ts, 1]);
-    }
-  }
-  return out;
-}
 `,
       starterCode: `/**
  * @param {[number, number][]} intervals sorted, non-overlapping, closed
@@ -204,54 +157,20 @@ function insertInterval(intervals, newInterval) {
   // Your code here
   return intervals;
 }
-
-/**
- * @param {[string, number][]} events unordered [entity, timestamp] pairs
- * @param {number} gap events at most this far apart share a session
- * @returns {Record<string, [number, number, number][]>} entity -> [[start, end, count], ...]
- */
-function sessionize(events, gap) {
-  // Your code here
-  return {};
-}
 `,
-      entry: "__judgeIntervals",
-      driverCode: `function __judgeIntervals(kind, a, b) {
-  return kind === "insert" ? insertInterval(a, b) : sessionize(a, b);
-}`,
+      entry: "insertInterval",
       tests: [
-        { name: "Insert: overlaps the first interval", input: ["insert", [[1, 3], [6, 9]], [2, 5]], expected: [[1, 5], [6, 9]] },
+        { name: "Overlaps the first interval", input: [[[1, 3], [6, 9]], [2, 5]], expected: [[1, 5], [6, 9]] },
         {
-          name: "Insert: swallows three intervals",
-          input: ["insert", [[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]], [4, 8]],
+          name: "Swallows three intervals",
+          input: [[[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]], [4, 8]],
           expected: [[1, 2], [3, 10], [12, 16]],
         },
-        { name: "Insert into an empty list", input: ["insert", [], [5, 7]], expected: [[5, 7]] },
-        { name: "Insert before everything", input: ["insert", [[3, 4]], [1, 2]], expected: [[1, 2], [3, 4]] },
-        { name: "Insert after everything", input: ["insert", [[1, 2]], [3, 4]], expected: [[1, 2], [3, 4]] },
-        { name: "Insert: touching intervals merge", input: ["insert", [[1, 4]], [4, 5]], expected: [[1, 5]] },
-        { name: "Insert: contained entirely", input: ["insert", [[1, 10]], [3, 4]], expected: [[1, 10]] },
-        {
-          name: "Sessionize: prompt example",
-          input: ["sessionize", [["u1", 1], ["u1", 5], ["u1", 30], ["u2", 2]], 10],
-          expected: { u1: [[1, 5, 2], [30, 30, 1]], u2: [[2, 2, 1]] },
-        },
-        {
-          name: "Sessionize: unsorted input",
-          input: ["sessionize", [["a", 50], ["a", 10], ["a", 20]], 10],
-          expected: { a: [[10, 20, 2], [50, 50, 1]] },
-        },
-        {
-          name: "Sessionize: the gap is inclusive",
-          input: ["sessionize", [["a", 0], ["a", 10], ["a", 21]], 10],
-          expected: { a: [[0, 10, 2], [21, 21, 1]] },
-        },
-        { name: "Sessionize: no events", input: ["sessionize", [], 5], expected: {} },
-        {
-          name: "Sessionize: gap 0 joins only simultaneous events",
-          input: ["sessionize", [["a", 1], ["a", 1], ["a", 2]], 0],
-          expected: { a: [[1, 1, 2], [2, 2, 1]] },
-        },
+        { name: "Into an empty list", input: [[], [5, 7]], expected: [[5, 7]] },
+        { name: "Before everything", input: [[[3, 4]], [1, 2]], expected: [[1, 2], [3, 4]] },
+        { name: "After everything", input: [[[1, 2]], [3, 4]], expected: [[1, 2], [3, 4]] },
+        { name: "Touching intervals merge", input: [[[1, 4]], [4, 5]], expected: [[1, 5]] },
+        { name: "Contained entirely", input: [[[1, 10]], [3, 4]], expected: [[1, 10]] },
       ],
     },
   },
@@ -262,7 +181,7 @@ function sessionize(events, gap) {
     difficulty: "medium",
     companies: ["apple"],
     summary:
-      "Separate chaining with a resize — the fixed-bucket version passes LeetCode and fails the follow-up.",
+      "Separate chaining with a resize at a load-factor threshold — fixed buckets aren't enough.",
     prompt: [
       "Implement a hash map with `put(key, value)`, `get(key)` and `remove(key)` **without using any built-in hash table** (no `Map`, `Set`, `dict` or plain-object-as-map for the storage itself). Keys are non-negative integers; `get` returns `-1` for a missing key.",
       "",
@@ -277,15 +196,7 @@ function sessionize(events, gap) {
       "map.get(2)    ->  -1",
       "```",
       "",
-      "Rehearse this one until you can type it without thinking. The reported screen was hostile: the interviewer interrupted throughout, gave no hints, deleted part of the scaffold so the code would not compile, and stopped the candidate with three minutes left. Typing it cold is the only defence against that room.",
-      "",
-      "## Follow-up",
-      "",
-      "Keep operations O(1) amortised as the map grows: resize when the load factor passes a threshold, and be ready to explain what a production hash map does beyond that.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Are keys integers only, or arbitrary hashable values? How many entries — does resizing matter? Is thread safety in scope? Should collisions chain or probe?",
+      "Keep operations O(1) amortised as the map grows: resize when the load factor passes a threshold.",
     ].join("\n"),
     hints: [
       "Separate chaining: an array of buckets, each a small list of [key, value] pairs, indexed by key modulo the capacity. put scans the bucket for an existing key before appending; get and remove scan the same bucket.",
@@ -294,7 +205,7 @@ function sessionize(events, gap) {
     solution: [
       "## Approach",
       "",
-      "Fixed-size bucket arrays pass LeetCode; they do not pass a follow-up. Open with \"separate chaining, and I will resize at a 0.75 load factor so lookups stay O(1) amortised\" — then write it. Each bucket is a list of pairs; the index is the key modulo the capacity (mask the hash non-negative first if keys can hash negative). `put` updates in place when the key exists, otherwise appends and checks the load factor; `get` scans one bucket; `remove` splices one entry. Resizing doubles the bucket array and re-inserts every pair, which is O(n) once per doubling and O(1) amortised over the inserts that triggered it.",
+      "A fixed-size bucket array degrades as the map grows. Open with \"separate chaining, and I will resize at a 0.75 load factor so lookups stay O(1) amortised\" — then write it. Each bucket is a list of pairs; the index is the key modulo the capacity (mask the hash non-negative first if keys can hash negative). `put` updates in place when the key exists, otherwise appends and checks the load factor; `get` scans one bucket; `remove` splices one entry. Resizing doubles the bucket array and re-inserts every pair, which is O(n) once per doubling and O(1) amortised over the inserts that triggered it.",
       "",
       "## Complexity",
       "",
@@ -302,7 +213,7 @@ function sessionize(events, gap) {
       "",
       "## Worth saying out loud",
       "",
-      "- **What is in a real HashMap?** Java 8+ turns a bucket into a red-black tree past eight entries, so a collision-heavy bucket degrades to O(log n) rather than O(n). Apple has reported this exact follow-up as \"implement a HashMap and explain the underlying data structures.\"",
+      "- **What is in a real HashMap?** Java 8+ turns a bucket into a red-black tree past eight entries, so a collision-heavy bucket degrades to O(log n) rather than O(n).",
       "- **Open addressing instead?** Better cache locality, but deletion needs tombstones and the table degrades badly past ~0.7 load. Naming the tombstone is the tell that you have implemented one.",
       "- **Thread-safe?** Lock striping — one lock per bucket group, not one global lock.",
     ].join("\n"),

@@ -1,9 +1,8 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), UI part G: an
-// image carousel with previous, next and page buttons, wrap-around, any
-// image fitted inside a fixed frame, and one image element in the DOM
-// (GreatFrontEnd's Apple list). React is the default template and
+// Apple front-end bank, UI part G: an image carousel with previous, next and
+// page buttons, wrap-around, any image fitted inside a fixed frame, and one
+// image element in the DOM. React is the default template and
 // HTML/CSS/JS the alternate. Images are generated SVGs in five aspect
 // ratios, since the preview has no network.
 
@@ -289,8 +288,6 @@ export const appleUiProblemsG: Problem[] = [
       "- The five images have different aspect ratios. Each fits entirely inside the frame, without cropping or distortion, and the frame and controls never move as images change.",
       "- There is exactly one `<img>` in the DOM at any time, and navigation changes its `src` and `alt`.",
       "- With the carousel focused, ArrowLeft and ArrowRight navigate. A live region announces \"Image 2 of 5\".",
-      "",
-      "*Listed under Apple by GreatFrontEnd, with no date or role.*",
     ].join("\n"),
     hints: [
       "Wrap with a modulo that handles negatives: `((i % n) + n) % n`. A plain `i % n` gives `-1` for `i = -1`.",

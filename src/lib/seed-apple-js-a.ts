@@ -1,9 +1,9 @@
 import type { Problem } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), part A: the
-// two built-in rewrites that recur across the most reports — Array.prototype
-// .flat and map/filter/reduce/concat. JavaScript judges here; the TypeScript
-// variants live in seed-typescript-apple.ts. Tests write an array hole as
+// Apple front-end bank, part A: built-in rewrites — Array.prototype.flat and
+// Array.prototype.map (filter, reduce and concat are in seed-apple-js-h.ts).
+// JavaScript judges here; the TypeScript variants live in
+// seed-typescript-apple.ts. Tests write an array hole as
 // the string "<hole>", which the drivers turn into a real empty slot and
 // back, so every case stays JSON.
 
@@ -29,6 +29,31 @@ const holeHelpers = `  var HOLE = "<hole>";
     return out;
   }`;
 
+const nativeGuard = `  var NATIVE_NAMES = ["map", "filter", "reduce", "concat"];
+  function guarded(run) {
+    var saved = {};
+    var banned = function () {
+      throw new Error("Write it yourself: the native map, filter, reduce and concat are off limits here");
+    };
+    for (var n = 0; n < NATIVE_NAMES.length; n++) {
+      saved[NATIVE_NAMES[n]] = Array.prototype[NATIVE_NAMES[n]];
+      Array.prototype[NATIVE_NAMES[n]] = banned;
+    }
+    try {
+      return run();
+    } finally {
+      for (var m = 0; m < NATIVE_NAMES.length; m++) Array.prototype[NATIVE_NAMES[m]] = saved[NATIVE_NAMES[m]];
+    }
+  }
+  function typeErrorOf(run) {
+    try {
+      guarded(run);
+      return "no error";
+    } catch (err) {
+      return err instanceof TypeError ? "TypeError" : "threw " + (err && err.message);
+    }
+  }`;
+
 export const appleJsProblemsA: Problem[] = [
   {
     slug: "implement-array-flat",
@@ -37,7 +62,7 @@ export const appleJsProblemsA: Problem[] = [
     difficulty: "medium",
     companies: ["apple"],
     summary:
-      "Depth, holes and `Infinity`, then the follow-up that always comes: do it without recursion.",
+      "Depth, holes and `Infinity` — without recursion, so 100,000 levels can't overflow the stack.",
     prompt: [
       "Implement `Array.prototype.myFlat(depth = 1)` so it behaves like the built-in `flat`, without calling `flat` or `flatMap`. The grader swaps both out while your code runs.",
       "",
@@ -53,14 +78,9 @@ export const appleJsProblemsA: Problem[] = [
       "- `depth` defaults to 1 and `Infinity` is valid. A depth of 0 or less copies one level without flattening anything.",
       "- Holes (`[1, , 3]`) are skipped at every level the method walks, the top level included, even at depth 0. A nested array past the depth is kept as it is, holes and all.",
       "- Return a new array and leave the input alone. Define the method with `function`, not an arrow, so `this` is the array.",
-      "",
-      "## Follow-up",
-      "",
-      "The usual next question is \"now without recursion\". The last test nests 100,000 levels deep and flattens with `Infinity`. A recursive walk overflows the call stack there, so that case only passes with an explicit stack.",
+      "- Don't recurse. The last test nests 100,000 levels deep and flattens with `Infinity`; a recursive walk overflows the call stack there, so that case only passes with an explicit stack.",
       "",
       "Tests write a hole as the string `\"<hole>\"`. The grader turns it into a real empty slot before calling you, and back into `\"<hole>\"` when it reads your result.",
-      "",
-      "*Reported in: Glassdoor (UI Engineer, Aug 2020; Nov 2021), BFE.dev's Apple tag and GreatFrontEnd's Apple list. It is one of the three prompts that recur across the most independent reports.*",
     ].join("\n"),
     hints: [
       "Walk with an index loop and use `i in arr` to skip holes. An element that is an array, with depth left, is walked with `depth - 1`; everything else is pushed.",
@@ -70,7 +90,7 @@ export const appleJsProblemsA: Problem[] = [
     solution: [
       "## Approach",
       "",
-      "The recursive version comes first, and it is what most candidates write in the first five minutes:",
+      "The recursive version is the natural first draft:",
       "",
       "```js",
       "Array.prototype.myFlat = function (depth = 1) {",
@@ -93,7 +113,7 @@ export const appleJsProblemsA: Problem[] = [
       "## Worth saying out loud",
       "",
       "- **`flat` skips holes**: `[1, , 3].flat()` is `[1, 3]`, and so is `flat(0)`. That is why depth 0 is not simply `slice`.",
-      "- `Infinity` is a legal depth. It is also how you would write the fully flattening `flatten(value)` that GreatFrontEnd lists.",
+      "- `Infinity` is a legal depth. It is also how you would write a fully flattening `flatten(value)`.",
       "- `out.push(...flatten(item))` looks tidy, but it passes every element as an argument and throws on a very large sub-array. Push in a loop.",
       "- Assigning to `Array.prototype` creates an enumerable property that shows up in `for...in` over arrays. `Object.defineProperty` keeps it non-enumerable, like the built-ins.",
       "- In real code, don't extend built-in prototypes. The standard method is called `flat` rather than `flatten` because an old library had already put a `flatten` on `Array.prototype`.",
@@ -189,66 +209,46 @@ ${holeHelpers}
     },
   },
   {
-    slug: "array-method-polyfills",
-    title: "map, filter, reduce, and concat From Scratch",
+    slug: "implement-array-map",
+    title: "Implement Array.prototype.map",
     category: "frontend",
-    difficulty: "medium",
+    difficulty: "easy",
     companies: ["apple"],
-    summary:
-      "Holes, `thisArg`, a missing versus an `undefined` initial value, and why `concat` spreads one level.",
+    summary: "Pre-size the output so holes stay holes, and forward `thisArg`.",
     prompt: [
-      "Implement array prototype methods yourself, \"like flat, map, reduce, concat\", as a Glassdoor report put it. Write `myMap`, `myFilter`, `myReduce` and `myConcat` on `Array.prototype` so they match the built-ins. The grader disables the native four while your code runs.",
+      "Write `Array.prototype.myMap(cb, thisArg)` so it matches the built-in `map`. The grader disables the native `map`, `filter`, `reduce` and `concat` while your code runs.",
       "",
       "## Rules",
       "",
-      "- `myMap(cb, thisArg)` and `myFilter(cb, thisArg)` call `cb.call(thisArg, value, index, array)`. A callback that isn't a function throws `TypeError`.",
-      "- `myMap` returns an array of the same length and **keeps holes**, never calling back for them. `myFilter` and `myReduce` skip holes.",
-      "- `myReduce(cb, initial)` uses `initial` whenever that argument was passed, even as `undefined`. Otherwise it starts from the first element that exists. With no initial value and nothing to reduce, it throws `TypeError`.",
-      "- `myConcat(...items)` spreads arrays one level, plus objects whose `Symbol.isConcatSpreadable` is true, keeping their holes. Every other value is appended as it is, strings included. It always returns a new array.",
+      "- Call `cb.call(thisArg, value, index, array)` for each element. A callback that isn't a function throws `TypeError`.",
+      "- Return a new array of the same length that **keeps holes**, never calling back for them.",
+      "- Define the method with `function`, not an arrow, so `this` is the array.",
       "",
-      "Tests write a hole as `\"<hole>\"`, as in the flat question. Callbacks are named in each test's input and supplied by the grader.",
+      "```",
+      "[1, 2, 3].myMap((v) => v * 2)        // [2, 4, 6]",
+      "[1, , 3].myMap((v) => v * 2)         // [2, <hole>, 6]",
+      "```",
       "",
-      "*Reported in: Glassdoor (Nov 2021) and GreatFrontEnd's Apple list. Pair it with [Implement Array.prototype.flat](/problems/implement-array-flat).*",
+      "Tests write a hole as `\"<hole>\"`; the grader turns it into a real empty slot and back. Callbacks are named in each test's input and supplied by the grader.",
     ].join("\n"),
     hints: [
-      "`i in this` tells a hole from a stored `undefined`. `myMap` pre-sizes its output with `new Array(len)` and writes only the indices it visits, so holes stay holes.",
-      "A default parameter can't carry the initial value, because `reduce(fn, undefined)` must count as supplied. Take `...rest` and check `rest.length`.",
-      "For `myConcat`, walk `[this, ...items]`. Spread a value when it is an object whose `Symbol.isConcatSpreadable` is true, or, when that is undefined, when it is an array. Set `out.length` at the end so trailing holes survive.",
+      "`i in this` tells a hole from a stored `undefined`.",
+      "Pre-size the output with `new Array(len)` and write only the indices you visit, so holes stay holes.",
     ],
     solution: [
       "## Approach",
       "",
-      "All four are loops over `this`, with `i in this` doing the hole handling. `myMap` pre-sizes its result and assigns by index, so holes stay holes. `myFilter` and `myReduce` skip holes and build their output as they go. `myReduce` decides between the two starting states with `rest.length`, because a default parameter cannot tell `reduce(fn)` from `reduce(fn, undefined)`. `myConcat` writes by index with its own counter and fixes `length` at the end, which is what keeps a trailing hole.",
+      "A loop over `this` with `i in this` doing the hole handling. Pre-size the result with `new Array(len)` and assign by index, so an index you skip stays a hole, and call the callback with `thisArg` as its `this`.",
       "",
       "## Worth saying out loud",
       "",
       "- **`map` keeps holes; `filter` and `reduce` skip them.** That is why `map` pre-sizes its output and the others push.",
-      "- **`reduce` takes `...rest`, not a default parameter.** `reduce(fn, undefined)` is a supplied initial value.",
-      "- **`concat` spreads one level only**, and only arrays or objects marked with `Symbol.isConcatSpreadable`. A string is never spread.",
-      "- Define each polyfill with `function` and never an arrow, so that `this` is the array.",
+      "- Define the polyfill with `function` and never an arrow, so that `this` is the array.",
       "- Real polyfills also handle array-likes through `Object(this)` and `ToLength`. Mention it rather than write it.",
     ].join("\n"),
     judge: {
       starterCode: `/** Like Array.prototype.map: keeps holes, forwards thisArg. */
 Array.prototype.myMap = function (cb, thisArg) {
-  // Your code here
-  return [];
-};
-
-/** Like Array.prototype.filter: skips holes. */
-Array.prototype.myFilter = function (cb, thisArg) {
-  // Your code here
-  return [];
-};
-
-/** Like Array.prototype.reduce: an initial value counts whenever it is passed. */
-Array.prototype.myReduce = function (cb, ...rest) {
-  // Your code here
-  return undefined;
-};
-
-/** Like Array.prototype.concat: spreads arrays one level. */
-Array.prototype.myConcat = function (...items) {
   // Your code here
   return [];
 };
@@ -262,147 +262,29 @@ Array.prototype.myConcat = function (...items) {
   }
   return out;
 };
-
-Array.prototype.myFilter = function (cb, thisArg) {
-  if (typeof cb !== "function") throw new TypeError(cb + " is not a function");
-  const len = this.length;
-  const out = [];
-  for (let i = 0; i < len; i++) {
-    if (!(i in this)) continue;
-    const v = this[i];
-    if (cb.call(thisArg, v, i, this)) out.push(v);
-  }
-  return out;
-};
-
-// ...rest, not a default parameter: reduce(fn, undefined) supplies a value.
-Array.prototype.myReduce = function (cb, ...rest) {
-  if (typeof cb !== "function") throw new TypeError(cb + " is not a function");
-  const len = this.length;
-  let i = 0;
-  let acc;
-  if (rest.length > 0) {
-    acc = rest[0];
-  } else {
-    while (i < len && !(i in this)) i++;
-    if (i >= len) throw new TypeError("Reduce of empty array with no initial value");
-    acc = this[i++];
-  }
-  for (; i < len; i++) {
-    if (i in this) acc = cb(acc, this[i], i, this);
-  }
-  return acc;
-};
-
-Array.prototype.myConcat = function (...items) {
-  const out = [];
-  let n = 0;
-  for (const item of [this, ...items]) {
-    const spreadable =
-      item !== null &&
-      typeof item === "object" &&
-      (item[Symbol.isConcatSpreadable] ?? Array.isArray(item));
-    if (spreadable) {
-      for (let i = 0; i < item.length; i++, n++) {
-        if (i in item) out[n] = item[i];
-      }
-    } else {
-      out[n++] = item;
-    }
-  }
-  out.length = n; // keeps a trailing hole
-  return out;
-};
 `,
-      entry: "__judgeArrayMethods",
-      driverCode: `function __judgeArrayMethods(kind, input, a, b) {
+      entry: "__judgeMap",
+      driverCode: `function __judgeMap(kind, input, a, b) {
 ${holeHelpers}
+${nativeGuard}
   var calls = 0;
   var callbacks = {
     double: function (v) { calls++; return v * 2; },
     indexPlusLength: function (v, i, arr) { calls++; return i + arr.length; },
     plusThis: function (v) { calls++; return this.k + v; },
-    even: function (v) { calls++; return v % 2 === 0; },
-    always: function () { calls++; return true; },
-    sum: function (acc, v) { calls++; return acc + v; },
-    joinText: function (acc, v) { calls++; return String(acc) + v; },
-    indexTrail: function (acc, v, i) { calls++; return acc + "," + i; },
-    mustNotRun: function () { calls++; throw new Error("the callback should not run"); },
   };
-  var names = ["map", "filter", "reduce", "concat"];
-  function guarded(run) {
-    var saved = {};
-    var banned = function () {
-      throw new Error("Write it yourself: the native map, filter, reduce and concat are off limits here");
-    };
-    for (var n = 0; n < names.length; n++) {
-      saved[names[n]] = Array.prototype[names[n]];
-      Array.prototype[names[n]] = banned;
-    }
-    try {
-      return run();
-    } finally {
-      for (var m = 0; m < names.length; m++) Array.prototype[names[m]] = saved[names[m]];
-    }
-  }
-  function reduceArgs(cb, initial) {
-    if (initial && initial.none) return [cb];
-    if (initial && initial.undefined) return [cb, undefined];
-    return [cb, initial.value];
-  }
+  if (kind === "throws") return typeErrorOf(function () { return build(input).myMap(a); });
   var arr = build(input);
-  if (kind === "map") return render(guarded(function () { return arr.myMap(callbacks[a], b); }));
-  if (kind === "mapCalls") {
-    guarded(function () { return arr.myMap(callbacks[a]); });
-    return calls;
-  }
-  if (kind === "filter") return render(guarded(function () { return arr.myFilter(callbacks[a], b); }));
-  if (kind === "reduce") {
-    return guarded(function () { return arr.myReduce.apply(arr, reduceArgs(callbacks[a], b)); });
-  }
-  if (kind === "throws") {
-    var target = build(a);
-    try {
-      guarded(function () {
-        if (input === "myReduce") return target.myReduce.apply(target, reduceArgs(callbacks.sum, b));
-        return target[input](b);
-      });
-      return "no error";
-    } catch (err) {
-      return err instanceof TypeError ? "TypeError" : "threw " + (err && err.message);
-    }
-  }
-  if (kind === "concat") {
-    var args = [];
-    for (var k = 0; k < a.length; k++) args.push(build(a[k]));
-    return render(guarded(function () { return arr.myConcat.apply(arr, args); }));
-  }
-  if (kind === "concatFresh") return guarded(function () { return arr.myConcat(); }) !== arr;
-  throw new Error("unknown case " + kind);
+  var out = guarded(function () { return arr.myMap(callbacks[a], b); });
+  return kind === "calls" ? calls : render(out);
 }`,
       tests: [
         { name: "map doubles", input: ["map", [1, 2, 3], "double"], expected: [2, 4, 6] },
         { name: "map passes the index and the array", input: ["map", [5, 6, 7], "indexPlusLength"], expected: [3, 4, 5] },
         { name: "map uses thisArg", input: ["map", [1, 2], "plusThis", { k: 10 }], expected: [11, 12] },
         { name: "map keeps holes", input: ["map", [1, "<hole>", 3], "double"], expected: [2, "<hole>", 6] },
-        { name: "map never calls back for a hole", input: ["mapCalls", [1, "<hole>", "<hole>", 4], "double"], expected: 2 },
-        { name: "filter keeps matches", input: ["filter", [1, 2, 3, 4], "even"], expected: [2, 4] },
-        { name: "filter skips holes", input: ["filter", [1, "<hole>", 2], "always"], expected: [1, 2] },
-        { name: "reduce with an initial value", input: ["reduce", [1, 2, 3], "sum", { value: 10 }], expected: 16 },
-        { name: "reduce starts from the first element", input: ["reduce", [1, 2, 3], "sum", { none: true }], expected: 6 },
-        { name: "An explicit undefined is an initial value", input: ["reduce", [1, 2], "joinText", { undefined: true }], expected: "undefined12" },
-        { name: "reduce skips leading holes", input: ["reduce", ["<hole>", 2, 3], "sum", { none: true }], expected: 5 },
-        { name: "reduce passes the index", input: ["reduce", [9, 9, 9], "indexTrail", { value: "i" }], expected: "i,0,1,2" },
-        { name: "Without an initial value, reduce starts at index 1", input: ["reduce", [9, 9, 9], "indexTrail", { none: true }], expected: "9,1,2" },
-        { name: "A lone element is returned without a call", input: ["reduce", [7], "mustNotRun", { none: true }], expected: 7 },
-        { name: "Empty with no initial value throws TypeError", input: ["throws", "myReduce", [], { none: true }], expected: "TypeError" },
-        { name: "map rejects a non-function", input: ["throws", "myMap", [1], null], expected: "TypeError" },
-        { name: "filter rejects a non-function", input: ["throws", "myFilter", [1], 42], expected: "TypeError" },
-        { name: "concat spreads one level", input: ["concat", [1], [[2, [3]], 4]], expected: [1, 2, [3], 4] },
-        { name: "concat keeps holes", input: ["concat", [1, "<hole>"], [[2, "<hole>"]]], expected: [1, "<hole>", 2, "<hole>"] },
-        { name: "concat spreads isConcatSpreadable objects", input: ["concat", [1], [{ spreadable: [2, 3] }]], expected: [1, 2, 3] },
-        { name: "concat leaves strings and objects whole", input: ["concat", [1], ["ab", { a: 1 }]], expected: [1, "ab", { a: 1 }] },
-        { name: "concat with no arguments copies", input: ["concatFresh", [1, 2]], expected: true },
+        { name: "map never calls back for a hole", input: ["calls", [1, "<hole>", "<hole>", 4], "double"], expected: 2 },
+        { name: "map rejects a non-function", input: ["throws", [1], null], expected: "TypeError" },
       ],
     },
   },

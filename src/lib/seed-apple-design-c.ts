@@ -1,9 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple system-design prompts reported for Software Engineer loops (PracHub's
-// Apple list, 2025–2026), part C: the election voting API discussion, an
-// accuracy-first click aggregator, and a file sync service. Prompts are
-// restated in our own words.
+// Apple system-design prompts, part C: the election voting APIs, an
+// accuracy-first click aggregator, and a file sync service.
 
 export const appleDesignProblemsC: Problem[] = [
   {
@@ -22,8 +20,6 @@ export const appleDesignProblemsC: Problem[] = [
       "Work through three parts. **Elections:** the resources and endpoints to create an election, add options, configure eligibility and timing, publish it and read its state — including its lifecycle and who may do what. **Casting a ballot:** the endpoint, its request and response, its error model, and what happens with a retry after a timeout, two simultaneous requests from one voter, and a request that races the closing time. **Results and audit:** when results are visible, how counts are produced, and what operators can inspect without exposing how individuals voted.",
       "",
       "The coding version of this question — a service class with idempotent votes and an audit log — is [Voting System API](/problems/voting-service-api).",
-      "",
-      "*Reported as: design the APIs and core data model for a voting system (PracHub, Apple Software Engineer technical screen, May 2026; also the second half of a reported Apple Senior SWE phone screen).*",
     ].join("\n"),
     hints: [
       "Freeze the rules when the election is published. A ballot has to be judged against the option set and eligibility policy the voter actually saw, so either make those immutable once open or record the rules version on every ballot.",
@@ -112,8 +108,6 @@ export const appleDesignProblemsC: Problem[] = [
       "Assume 10k clicks per second on average with 10× peaks, tens of millions of ads, and clients that retry, double-click, go offline and send events late or out of order. Queries are: clicks for ad X between two times at minute granularity, and the top ads in a window.",
       "",
       "Cover: how a click is captured so it can be verified and deduplicated; ingestion; the aggregation model (event time, windows, lateness); how you get effectively-exactly-once counts through retries and restarts; hot ads; the store that serves queries; how streaming numbers are reconciled with a batch recount; and what you monitor to prove the numbers are right.",
-      "",
-      "*Reported as: an accurate click aggregator with deduplication and correctness at scale (PracHub, Apple Software Engineer technical screen, Dec 2025), and as half of a two-system onsite prompt (Jan 2026).*",
     ].join("\n"),
     hints: [
       "Give every click an identity you can trust: serve the ad with a signed impression token and route the click through your redirect endpoint, so a click is verifiable and a duplicate is recognisable by its impression id.",
@@ -188,8 +182,6 @@ export const appleDesignProblemsC: Problem[] = [
       "Assume hundreds of millions of users, files from a few bytes to tens of gigabytes, devices that edit offline, and networks where re-uploading a whole large file for a one-line change is unacceptable.",
       "",
       "Cover: how files are broken up, stored and deduplicated; the metadata model and how devices learn what changed; the upload and download flows and the moment a new version exists; conflicts between devices; version history and garbage collection; sharing and permissions; security; and how it scales.",
-      "",
-      "*Reported as: a cloud file storage and synchronization service with versioning and secure sharing, as half of a two-system onsite prompt (PracHub, Apple Software Engineer onsite, Jan 2026).*",
     ].join("\n"),
     hints: [
       "Split every file into blocks of a few megabytes and address each block by its hash. A file version is just an ordered list of block hashes, so an edit uploads only the blocks that changed.",

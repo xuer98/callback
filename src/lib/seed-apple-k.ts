@@ -1,13 +1,12 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part K: recurring classics reported in Apple
-// screens — trie-pruned word search, Word Ladder, and capturing stones on a
-// Go board. Same sourcing and conventions as seed-apple-a.ts.
+// Apple coding bank, part K: trie-pruned word search, Word Ladder, and
+// capturing stones on a Go board. Same conventions as seed-apple-a.ts.
 
 export const appleProblemsK: Problem[] = [
   {
     slug: "word-search-trie",
-    title: "Trie, Then DFS the Board",
+    title: "Word Search on a Letter Grid",
     category: "algorithms",
     difficulty: "hard",
     companies: ["apple"],
@@ -23,12 +22,6 @@ export const appleProblemsK: Problem[] = [
       "         \"iflv\"]",
       "findWords(board, [\"oath\", \"pea\", \"eat\", \"rain\"])  ->  [\"eat\", \"oath\"]",
       "```",
-      "",
-      "Reported for a 45-minute Apple iCloud phone screen. The candidate explained the logic and wrote code without finishing, was told to skip cases, and the community read was that this still passes a screen.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "How many words versus how big a board — is searching per word acceptable? Can words share prefixes (the argument for a trie)? May a cell be reused? Is the board mutable for marking visited cells?",
     ].join("\n"),
     hints: [
       "Searching the board once per word repeats the same walks. Insert all words into a trie, then DFS from every cell following trie children only: a cell whose letter is not a child of the current node ends that branch immediately.",
@@ -116,12 +109,6 @@ function findWords(board, words) {
       "ladderLength(\"hit\", \"cog\", [\"hot\", \"dot\", \"dog\", \"lot\", \"log\", \"cog\"])  ->  5",
       "ladderLength(\"hit\", \"cog\", [\"hot\", \"dot\", \"dog\", \"lot\", \"log\"])         ->  0",
       "```",
-      "",
-      "Reported in a one-hour Apple ICT3 phone screen in Cupertino that ended in an offer.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is `beginWord` required to be in the list? Are all words the same length and lowercase? How large is the list — is generating 26 × L neighbours per word acceptable, or should I index by wildcard patterns?",
     ].join("\n"),
     hints: [
       "It is a shortest path in an implicit graph, so BFS by levels: from each frontier word, try every position and every letter, keep the candidates that are still in the word set, and remove them from the set as you enqueue them.",
@@ -211,12 +198,6 @@ function ladderLength(beginWord, endWord, wordList) {
       "         \"ebe\"]",
       "captureStones(board, 1, 2, \"b\", \"w\")  ->  1     // the white stone loses its last liberty",
       "```",
-      "",
-      "Reported as an Apple ICT5 phone screen, with the board given as a literal grid of `e`/`b`/`w`.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is suicide (my own group ending with no liberties) legal or out of scope? Do only groups adjacent to the placed stone matter? Should the board be mutated, or a copy used? Diagonals never connect, correct?",
     ].join("\n"),
     hints: [
       "Place the stone in a copy of the board, then for each of its four neighbours that holds an enemy stone not yet examined, flood-fill that group, collecting its stones and noting whether any neighbour of the group is empty.",

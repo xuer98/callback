@@ -4,6 +4,8 @@ import { airbnbProblemsC } from "./seed-airbnb-c";
 import { airbnbProblemsD } from "./seed-airbnb-d";
 import { airbnbProblemsE } from "./seed-airbnb-e";
 import { airbnbProblemsF } from "./seed-airbnb-f";
+import { airbnbProblemsG } from "./seed-airbnb-g";
+import { airbnbProblemsH } from "./seed-airbnb-h";
 import { appleProblemsA } from "./seed-apple-a";
 import { appleProblemsB } from "./seed-apple-b";
 import { appleProblemsC } from "./seed-apple-c";
@@ -23,6 +25,10 @@ import { appleDesignProblemsE } from "./seed-apple-design-e";
 import { appleDesignProblemsF } from "./seed-apple-design-f";
 import { appleProblemsL } from "./seed-apple-l";
 import { appleProblemsM } from "./seed-apple-m";
+import { appleProblemsN } from "./seed-apple-n";
+import { appleProblemsO } from "./seed-apple-o";
+import { appleProblemsP } from "./seed-apple-p";
+import { appleProblemsQ } from "./seed-apple-q";
 import { appleJsProblemsA } from "./seed-apple-js-a";
 import { appleJsProblemsB } from "./seed-apple-js-b";
 import { appleJsProblemsC } from "./seed-apple-js-c";
@@ -30,6 +36,11 @@ import { appleJsProblemsD } from "./seed-apple-js-d";
 import { appleJsProblemsE } from "./seed-apple-js-e";
 import { appleJsProblemsF } from "./seed-apple-js-f";
 import { appleJsProblemsG } from "./seed-apple-js-g";
+import { appleJsProblemsH } from "./seed-apple-js-h";
+import { appleJsProblemsI } from "./seed-apple-js-i";
+import { appleJsProblemsJ } from "./seed-apple-js-j";
+import { appleJsProblemsK } from "./seed-apple-js-k";
+import { appleJsProblemsL } from "./seed-apple-js-l";
 import { appleUiProblemsA } from "./seed-apple-ui-a";
 import { appleUiProblemsB } from "./seed-apple-ui-b";
 import { appleUiProblemsC } from "./seed-apple-ui-c";
@@ -38,12 +49,16 @@ import { appleUiProblemsE } from "./seed-apple-ui-e";
 import { appleUiProblemsF } from "./seed-apple-ui-f";
 import { appleUiProblemsG } from "./seed-apple-ui-g";
 import { appleQuizProblems } from "./seed-apple-js-quiz";
+import { appleReactQuizProblems } from "./seed-apple-js-quiz-b";
 import { appleConceptProblems } from "./seed-apple-js-concepts";
+import { appleBrowserConceptProblems } from "./seed-apple-js-concepts-b";
 import { appleDesignProblemsG } from "./seed-apple-design-g";
 import { andurilProblemsA } from "./seed-anduril-a";
 import { andurilProblemsB } from "./seed-anduril-b";
 import { andurilProblemsC } from "./seed-anduril-c";
 import { andurilProblemsD } from "./seed-anduril-d";
+import { andurilProblemsE } from "./seed-anduril-e";
+import { andurilProblemsF } from "./seed-anduril-f";
 import { frontendProblems } from "./seed-frontend";
 import { pinterestProblemsA } from "./seed-pinterest-a";
 import { pinterestProblemsB } from "./seed-pinterest-b";
@@ -51,6 +66,7 @@ import { pinterestProblemsC } from "./seed-pinterest-c";
 import { pinterestProblemsD } from "./seed-pinterest-d";
 import { pinterestProblemsE } from "./seed-pinterest-e";
 import { pinterestProblemsF } from "./seed-pinterest-f";
+import { pinterestProblemsG } from "./seed-pinterest-g";
 import { designProblemsA } from "./seed-design-a";
 import { designProblemsB } from "./seed-design-b";
 import { designProblemsC } from "./seed-design-c";
@@ -91,13 +107,37 @@ export const problems: Problem[] = [
     category: "algorithms",
     difficulty: "easy",
     companies: ["google", "amazon"],
-    summary: "The two-pointer warm-up every loop still asks.",
+    summary: "The two-pointer warm-up: one pointer at each end.",
     prompt:
-      "Given an array of integers sorted in ascending order and a target value, return the indices of two distinct elements that sum to the target, or [-1, -1] if no such pair exists.\n\nFollow-up: solve it in O(n) time and O(1) extra space, then discuss how your approach changes if the array is unsorted.",
+      "Given an array of integers sorted in ascending order and a target value, return the indices of two distinct elements that sum to the target, or [-1, -1] if no such pair exists. Solve it in O(n) time and O(1) extra space.",
     hints: [
       "Start one pointer at each end. What does the current sum tell you about which pointer can safely move?",
       "If the sum is too small, moving the right pointer left only makes it smaller — so only one move can ever help.",
     ],
+    solution: `## Approach
+
+Two pointers, one at each end. If the pair sums to the target, done. If the sum is too small, the left element can't pair with anything remaining — every other candidate on the right is smaller still — so advance the left pointer; if it's too big, retreat the right one by the mirror argument. Each step discards one element for good.
+
+\`\`\`python
+def pair_sum(numbers, target):
+    i, j = 0, len(numbers) - 1
+    while i < j:
+        total = numbers[i] + numbers[j]
+        if total == target:
+            return [i, j]
+        if total < target:
+            i += 1
+        else:
+            j -= 1
+    return [-1, -1]
+\`\`\`
+
+O(n) time, O(1) extra space.
+
+## Worth saying out loud
+
+- The discard argument is the proof: say why moving a pointer can never skip the answer.
+- If the array were unsorted, sorting would scramble the indices (sort index pairs and it costs O(n log n)); one pass with a hash map from value to index gives O(n) time for O(n) space instead.`,
     judge: {
       starterCode: `/**
  * @param {number[]} numbers - sorted ascending
@@ -127,11 +167,32 @@ function pairSum(numbers, target) {
     companies: ["google", "meta", "apple"],
     summary: "Sort, then sweep — the pattern behind a dozen calendar problems.",
     prompt:
-      "Given a list of intervals [start, end], merge all overlapping intervals and return the result sorted by start time.\n\nFollow-up: how would you handle a stream of intervals that arrive out of order?",
+      "Given a list of intervals [start, end], merge all overlapping intervals and return the result sorted by start time. Intervals that touch, such as [1, 4] and [4, 5], overlap.",
     hints: [
       "Sort by start time first. What invariant does that buy you when you sweep left to right?",
       "An interval overlaps the last merged one exactly when its start is less than or equal to the last merged end.",
     ],
+    solution: `## Approach
+
+Sort by start, then sweep. After sorting, an interval can only overlap the most recently merged one, so keep a result list and either extend its last interval (when the next start is at or before its end) or append a new one. Take the max of the ends — a long interval can swallow the ones after it.
+
+\`\`\`python
+def merge_intervals(intervals):
+    merged = []
+    for start, end in sorted(intervals):
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return merged
+\`\`\`
+
+O(n log n) for the sort, O(n) for the sweep.
+
+## Worth saying out loud
+
+- \`max\` on the end is the classic bug: \`[[1, 10], [2, 3]]\` must stay \`[1, 10]\`.
+- If intervals arrive as a stream in any order, keep the merged set in a structure ordered by start (a balanced tree or sorted list). Each arrival binary-searches its neighbors and absorbs the run it overlaps, O(log n) plus the intervals it swallows.`,
     judge: {
       starterCode: `/**
  * @param {number[][]} intervals - [start, end] pairs, in any order
@@ -163,11 +224,69 @@ function mergeIntervals(intervals) {
     companies: ["amazon", "meta", "apple"],
     summary: "Hash map plus doubly linked list, all operations O(1).",
     prompt:
-      "Design a data structure for a least-recently-used (LRU) cache with a fixed capacity. Implement get(key) and put(key, value), both in O(1) average time. When the cache is full, put evicts the least recently used entry.\n\nBe ready to discuss thread safety, and what changes for an LFU variant.",
+      "Design a data structure for a least-recently-used (LRU) cache with a fixed capacity. Implement get(key) and put(key, value), both in O(1) average time. When the cache is full, put evicts the least recently used entry.",
     hints: [
       "You need O(1) lookup and O(1) reordering. Which two structures combine to give you both?",
       "A doubly linked list makes move-to-front and evict-from-back constant time; the map points at its nodes.",
     ],
+    solution: `## Approach
+
+A hash map from key to node, and a doubly linked list of nodes ordered by recency. \`get\` looks the node up and moves it to the front; \`put\` updates in place or inserts at the front, evicting the node at the back when the cache is full. Two sentinel nodes remove every empty-list special case.
+
+\`\`\`python
+class Node:
+    __slots__ = ("key", "value", "prev", "next")
+
+    def __init__(self, key=None, value=None):
+        self.key, self.value = key, value
+        self.prev = self.next = None
+
+
+class LRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.map = {}
+        self.head, self.tail = Node(), Node()  # head.next is the most recent
+        self.head.next, self.tail.prev = self.tail, self.head
+
+    def _unlink(self, node):
+        node.prev.next, node.next.prev = node.next, node.prev
+
+    def _push_front(self, node):
+        node.prev, node.next = self.head, self.head.next
+        self.head.next.prev = node
+        self.head.next = node
+
+    def get(self, key):
+        node = self.map.get(key)
+        if node is None:
+            return -1
+        self._unlink(node)
+        self._push_front(node)
+        return node.value
+
+    def put(self, key, value):
+        node = self.map.get(key)
+        if node:
+            node.value = value
+            self._unlink(node)
+        else:
+            if len(self.map) == self.capacity:
+                lru = self.tail.prev
+                self._unlink(lru)
+                del self.map[lru.key]
+            node = Node(key, value)
+            self.map[key] = node
+        self._push_front(node)
+\`\`\`
+
+Every operation is O(1); space is O(capacity).
+
+## Worth saying out loud
+
+- Updating an existing key must not evict — check for the key before checking capacity.
+- Thread safety: \`get\` mutates the recency order, so a read-write lock buys nothing. One lock around both operations is correct; sharding the cache by key hash, with a lock per shard, is how it scales.
+- An LFU variant keeps a list per use-count plus the current minimum count; a hit moves the node to the next count's list, and eviction takes the least recent node of the minimum list — still O(1).`,
     judge: {
       starterCode: `class LRUCache {
   /** @param {number} capacity */
@@ -235,11 +354,44 @@ function mergeIntervals(intervals) {
     companies: ["netflix", "stripe"],
     summary: "Cycle detection dressed up as a scheduling question.",
     prompt:
-      "There are n courses labeled 0 to n-1, and a list of prerequisite pairs [a, b] meaning you must take course b before course a. Determine whether it is possible to finish all courses.\n\nFollow-up: when it is possible, return one valid ordering (topological sort).",
+      "There are n courses labeled 0 to n-1, and a list of prerequisite pairs [a, b] meaning you must take course b before course a. Determine whether it is possible to finish all courses.",
     hints: [
       "Model courses as a directed graph. Completion is impossible exactly when the graph has a cycle.",
       "Kahn's algorithm: repeatedly remove nodes with in-degree zero. If anything is left over, you found a cycle.",
     ],
+    solution: `## Approach
+
+Courses are nodes and each prerequisite is an edge from the prerequisite to the course. Finishing everything is possible exactly when the graph has no cycle. Kahn's algorithm finds out: count each course's in-degree, repeatedly take a course with no remaining prerequisites, and release the courses that depend on it. If every course gets taken, there is no cycle.
+
+\`\`\`python
+from collections import deque
+
+
+def can_finish(num_courses, prerequisites):
+    indegree = [0] * num_courses
+    unlocks = [[] for _ in range(num_courses)]
+    for course, prereq in prerequisites:
+        unlocks[prereq].append(course)
+        indegree[course] += 1
+    ready = deque(c for c in range(num_courses) if indegree[c] == 0)
+    taken = 0
+    while ready:
+        course = ready.popleft()
+        taken += 1
+        for nxt in unlocks[course]:
+            indegree[nxt] -= 1
+            if indegree[nxt] == 0:
+                ready.append(nxt)
+    return taken == num_courses
+\`\`\`
+
+O(V + E) time and space.
+
+## Worth saying out loud
+
+- A self-loop is a one-course cycle; Kahn's handles it with no special case.
+- The order in which courses leave the queue is a valid schedule, so returning one ordering is a one-line change: record each course as it is taken, and return the list only if it holds every course.
+- DFS with three colors (unvisited, on the current path, done) detects the same cycles; a back edge to an on-path node is the cycle.`,
     judge: {
       starterCode: `/**
  * @param {number} numCourses
@@ -370,9 +522,7 @@ Example:
 "3.45"  -> "3"      "2.5"   -> "3"      "-2.5"  -> "-3"
 "-0.4"  -> "0"      "9.99"  -> "10"     "999.5" -> "1000"
 "123456789123456789123456789.5" -> "123456789123456789123456790"
-\`\`\`
-
-Part 2: given a comma-separated string of such values, return the comma-separated rounded values.`,
+\`\`\``,
     hints: [
       "Only the first fractional digit matters for direction: with half-away-from-zero, the magnitude rounds up exactly when that digit is 5 or more.",
       "Split off the sign and round the magnitude, reattaching the sign only when the result is not 0. Rounding up is big-integer addition: walk the integer digits right to left carrying a 1, and prepend a digit if the carry survives (999 to 1000).",
@@ -380,8 +530,8 @@ Part 2: given a comma-separated string of such values, return the comma-separate
     solution: roundNumericStringsSolution,
     judge: {
       starterCode: `/**
- * Part 1: round one numeric string to the nearest integer, rounding
- * half away from zero. No leading zeros in the result, and never "-0".
+ * Round one numeric string to the nearest integer, rounding half away
+ * from zero. No leading zeros in the result, and never "-0".
  * Values can exceed any built-in numeric type — stay in string land.
  * @param {string} s - e.g. "3.45", "-2.5", "999.5"
  * @returns {string}
@@ -390,68 +540,50 @@ function roundNumericString(s) {
   // Your code here
   return s;
 }
-
-/**
- * Part 2: round every value in a comma-separated list.
- * @param {string} csv - e.g. "2.5,-2.5,9.99"
- * @returns {string}
- */
-function roundAll(csv) {
-  // Your code here
-  return csv;
-}
 `,
-      entry: "__dispatch",
-      driverCode: `function __dispatch(kind, value) {
-  return kind === "csv" ? roundAll(value) : roundNumericString(value);
-}`,
+      entry: "roundNumericString",
       tests: [
-        { name: "Example: 3.45", input: ["single", "3.45"], expected: "3" },
+        { name: "Example: 3.45", input: ["3.45"], expected: "3" },
         {
           name: "Tie rounds away from zero",
-          input: ["single", "2.5"],
+          input: ["2.5"],
           expected: "3",
         },
         {
           name: "Negative tie",
-          input: ["single", "-2.5"],
+          input: ["-2.5"],
           expected: "-3",
         },
-        { name: "Never -0", input: ["single", "-0.4"], expected: "0" },
+        { name: "Never -0", input: ["-0.4"], expected: "0" },
         {
           name: "Carry ripples through 999",
-          input: ["single", "999.5"],
+          input: ["999.5"],
           expected: "1000",
         },
         {
           name: "Bigger than any float",
-          input: ["single", "123456789123456789123456789.5"],
+          input: ["123456789123456789123456789.5"],
           expected: "123456789123456789123456790",
         },
-        { name: "No decimal point", input: ["single", "42"], expected: "42" },
+        { name: "No decimal point", input: ["42"], expected: "42" },
         {
           name: "Strips leading zeros",
-          input: ["single", "007.4"],
+          input: ["007.4"],
           expected: "7",
         },
         {
-          name: "Part 2: comma-separated list",
-          input: ["csv", "2.5,-2.5,9.99,-0.4"],
-          expected: "3,-3,10,0",
-        },
-        {
           name: "Negative half rounds away from zero",
-          input: ["single", "-0.5"],
+          input: ["-0.5"],
           expected: "-1",
         },
         {
           name: "Just below half stays put",
-          input: ["single", "7.499"],
+          input: ["7.499"],
           expected: "7",
         },
         {
           name: "Negative carry ripples all the way",
-          input: ["single", "-99999999999999999999.9"],
+          input: ["-99999999999999999999.9"],
           expected: "-100000000000000000000",
         },
       ],
@@ -935,14 +1067,14 @@ function collectReachablePins(boards, start) {
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],
-    summary: "Reassemble lines from arbitrary chunks, then settle the balances they carry.",
+    summary: "Reassemble lines from arbitrary chunks, reading lazily.",
     prompt: `You are given an API you cannot modify:
 
 \`\`\`
 readChunk() -> string    // next chunk of a log stream; "" means end of stream
 \`\`\`
 
-The judge implements readChunk and passes it **into** your code: it is the argument your LineReader constructor and settleFromStream receive (a plain callback in JavaScript, TypeScript, and Python; a Supplier<String> in Java; a function<string()> in C++; a func() string in Go). Don't define it yourself, and don't call it as a global — use the one handed to you.
+The judge implements readChunk and passes it **into** your code: it is the argument your LineReader constructor receives (a plain callback in JavaScript, TypeScript, and Python; a Supplier<String> in Java; a function<string()> in C++; a func() string in Go). Don't define it yourself, and don't call it as a global — use the one handed to you.
 
 Chunks split arbitrarily: one chunk may contain several lines, and one line may span several chunks. Implement a LineReader class whose readLine() returns the next complete line WITHOUT the newline; the final line may lack a trailing newline; return null once the stream is exhausted. Call readChunk lazily — only when you do not already have a complete line buffered.
 
@@ -951,12 +1083,10 @@ Example:
 \`\`\`
 chunks: ["ab", "c\\nde", "f\\n"]      ->  readLine(): "abc", then "def", then null
 chunks: ["a\\n\\nb"]                  ->  "a", "" (empty line preserved), "b"
-\`\`\`
-
-Part 2 (as actually reported): each line of the stream is payer,payee,amount. Implement settleFromStream(readChunk): parse the stream with your LineReader, compute each person's net balance, and return the minimum number of transactions needed to settle everyone.`,
+\`\`\``,
     hints: [
       "Keep two pieces of state: a queue of complete lines ready to serve, and the fragments of the current unterminated line. chunk.split(\"\\n\") tells you everything — every piece except the last completes a line, and the last piece is the new partial. Join fragments only when a line completes, and flush the partial at EOF.",
-      "For Part 2, compute net balances first — people who net to zero drop out entirely. Settling the remaining nonzero balances in the fewest transactions is a backtracking search: match each nonzero against later opposite-sign balances (exponential, but fine because few distinct nonzero balances remain).",
+      "Pull a chunk only when no complete line is waiting — that is the lazy requirement.",
     ],
     solution: streamLineReaderSolution,
     judge: {
@@ -971,22 +1101,11 @@ Part 2 (as actually reported): each line of the stream is payer,payee,amount. Im
     return null;
   }
 }
-
-/**
- * Part 2: lines are "payer,payee,amount" (amount is an integer).
- * @param {() => string} readChunk
- * @returns {number} minimum number of transactions to settle all balances
- */
-function settleFromStream(readChunk) {
-  // Your code here (use your LineReader)
-  return 0;
-}
 `,
-      entry: "__dispatch",
-      driverCode: `function __dispatch(kind, chunks, cap) {
+      entry: "__readLines",
+      driverCode: `function __readLines(chunks, cap) {
   let i = 0;
   const readChunk = () => (i < chunks.length ? chunks[i++] : "");
-  if (kind === "settle") return settleFromStream(readChunk);
   const reader = new LineReader(readChunk);
   const out = [];
   for (let n = 0; n < cap; n++) {
@@ -999,49 +1118,34 @@ function settleFromStream(readChunk) {
       tests: [
         {
           name: "Lines split across chunks",
-          input: ["lines", ["ab", "c\nde", "f\n"], 10],
+          input: [["ab", "c\nde", "f\n"], 10],
           expected: ["abc", "def", null],
         },
         {
           name: "Empty lines are preserved",
-          input: ["lines", ["a\n\nb"], 10],
+          input: [["a\n\nb"], 10],
           expected: ["a", "", "b", null],
         },
         {
           name: "One line spanning four chunks",
-          input: ["lines", ["a", "b", "c", "\n", "d"], 10],
+          input: [["a", "b", "c", "\n", "d"], 10],
           expected: ["abc", "d", null],
         },
         {
           name: "Chunk that is exactly a newline",
-          input: ["lines", ["\n"], 10],
+          input: [["\n"], 10],
           expected: ["", null],
         },
-        { name: "Empty stream", input: ["lines", [], 5], expected: [null] },
-        {
-          name: "Settle: middleman nets to zero",
-          input: ["settle", ["a,b,5\na,c", ",5\nb,c,5"], 0],
-          expected: 1,
-        },
-        {
-          name: "Settle: everyone already even",
-          input: ["settle", ["a,b,1\nb,c,1\nc,a,1\n"], 0],
-          expected: 0,
-        },
-        {
-          name: "Settle: two independent debts",
-          input: ["settle", ["a,b,1\nc,d,1"], 0],
-          expected: 2,
-        },
+        { name: "Empty stream", input: [[], 5], expected: [null] },
         {
           name: "Chunk boundary lands right after a newline",
-          input: ["lines", ["ab\n", "cd"], 10],
+          input: [["ab\n", "cd"], 10],
           expected: ["ab", "cd", null],
         },
         {
-          name: "Settle: amounts split across chunks",
-          input: ["settle", ["x,y,1", "0\nz,w,", "10\n"], 0],
-          expected: 2,
+          name: "Trailing newline adds no empty line",
+          input: [["x\ny\n"], 10],
+          expected: ["x", "y", null],
         },
       ],
     },
@@ -1064,7 +1168,7 @@ get_room(player_id)    -> int    the player's current room. O(1).
 leaderboard(k)         -> list   up to k player ids ordered by
                                  room DESC, ties broken by EARLIEST
                                  entry into that room.  Must be O(N + k),
-                                 NOT O(N log N)  (sorting is the reported fail).
+                                 NOT O(N log N) - no sorting per query.
 \`\`\`
 
 Example
@@ -1079,14 +1183,7 @@ g.leaderboard(3)  -> [9, 3, 7]
 \`\`\`
 
 Constraints: 1 <= N <= 1e5 players, ids unique in [0, 1e9]; 1 <= R <= 1e4;
-up to 2e5 operations; 1 <= k <= N.
-
-Follow-ups
-
-- Why is sorting on every leaderboard() call wrong? (O(N log N) per query)
-- What if R >> N? (walking empty rooms costs O(R))
-- What if players could also move BACKWARD?
-- Thread-safety / many readers.`,
+up to 2e5 operations; 1 <= k <= N.`,
     hints: [
       "One doubly-linked list per room, exactly the LRU-cache trick: advance() unlinks a node and appends it to the next room's tail",
       "leaderboard() walks rooms from the highest occupied one down. No sorting, no heap.",
@@ -1527,12 +1624,7 @@ resize([["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "a", 150)
 
 resize([["a", 0, 99], ["b", 100, 299], ["c", 300, 349]], "a", 50)
 => [["a", 0, 49], ["b", 50, 249], ["c", 250, 299]]
-\`\`\`
-
-## Follow-ups
-
-- A validation variant: accept caller-proposed [start, end] ranges (gaps allowed), reject overlap or out-of-bounds, return them sorted by start.
-- How would concurrent resizes be kept safe — a lock over the whole space, or optimistic versioning with retry?`,
+\`\`\``,
     hints: [
       "pack is one cursor sweep — but validate every size and the total before you place anything, so a late failure can't leave a half-built layout.",
       "resize is a delta: newSize − currentSize. Buckets before the target are untouched; the target's end moves by the delta; every later bucket shifts start and end by the same delta.",
@@ -1600,15 +1692,15 @@ function resizeBuckets(buckets, name, newSize) {
 
 ## Complexity
 
-Both operations are O(n) time and O(n) space for n buckets — one validation pass plus one build pass. Nothing here needs a fancier structure; the interview follow-up about data structures is really about the *other* allocator shape (per-ID allocate/release wants a min-heap of freed IDs plus a watermark).
+Both operations are O(n) time and O(n) space for n buckets — one validation pass plus one build pass. Nothing here needs a fancier structure; the per-ID allocator shape (allocate and release single IDs) is where one earns its place — a min-heap of freed IDs plus a watermark.
 
 ## Pitfalls worth saying out loud
 
 - Mutating the input and then discovering infeasibility — the reason to validate first and build fresh.
 - Off-by-one on end = start + size − 1, and forgetting zero-size buckets don't advance the cursor.
-- For packed layouts, the sum-of-sizes check is exactly the "last end ≤ 999" check; if gaps were allowed (the validate variant) those two checks diverge.
+- For packed layouts, the sum-of-sizes check is exactly the "last end ≤ 999" check. If callers proposed their own [start, end] ranges with gaps allowed, those two checks would diverge: validating such a layout means sorting by start and rejecting any overlap or out-of-bounds range.
 
-## Concurrency follow-up
+## Concurrency
 
 A single mutex over the space is the honest first answer — layouts are tiny and operations are O(n). Under contention, use optimistic versioning: read version v, compute the new layout, commit only if the version is still v, retry otherwise. Since resize returns a fresh layout, compare-and-swap of an immutable snapshot fits naturally.`,
     judge: {
@@ -1651,7 +1743,7 @@ function resizeBuckets(buckets, name, newSize) {
 }`,
       tests: [
         {
-          name: "Pack from the write-up",
+          name: "Pack three buckets",
           input: ["pack", [["a", 100], ["b", 200], ["c", 50]], "", 0],
           expected: [["a", 0, 99], ["b", 100, 299], ["c", 300, 349]],
         },
@@ -2437,11 +2529,11 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
 - Urls are non-empty strings.
 - \`steps\` may be zero or negative; non-positive steps must not move the cursor.
 - \`back\` and \`forward\` clamp at the oldest and newest page rather than erroring.
-- Target O(1) amortized time per operation and O(n) space for n total visits.
-- Be ready to justify the structure you pick — dynamic array plus cursor, two stacks, or doubly linked list plus cursor — and its trade-offs.`,
+- Target O(1) amortized time per operation and O(n) space for n total visits.`,
     hints: [
       "An array of urls plus a cursor index covers every operation: back and forward are clamped index arithmetic, and visit drops everything after the cursor before appending.",
       "haveVisited cannot read the live history, because visit truncates urls that were still visited. Keep a separate set that only ever grows — written once at construction, then on every visit.",
+      "Two stacks or a doubly linked list plus a cursor also work. The array keeps back and forward as pure index math and makes visit's truncation a length change, which is why it is the simplest to justify.",
     ],
     judge: {
       starterCode: `function solution(operations, args) {
@@ -2655,11 +2747,38 @@ function debounce(fn, wait) {
     companies: ["amazon", "netflix"],
     summary: "Window functions beat self-joins — know why.",
     prompt:
-      "Given tables employees(id, name, salary, department_id) and departments(id, name), write a query returning each department's name alongside its highest-paid employees, including ties.\n\nFollow-up: return the top three per department, and compare the performance of a window-function solution against a correlated subquery.",
+      "Given tables employees(id, name, salary, department_id) and departments(id, name), write a query returning each department's name alongside its highest-paid employees, including ties.",
     hints: [
       "DENSE_RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) handles ties cleanly.",
       "Window functions cannot appear in WHERE — filter on the rank in an outer query or CTE.",
     ],
+    solution: `## Approach
+
+Rank salaries within each department, then keep rank 1. \`DENSE_RANK\` gives every tied top earner rank 1, and the filter has to live outside the window's own query block, so rank in a CTE and filter on it.
+
+\`\`\`sql
+WITH ranked AS (
+  SELECT d.name AS department,
+         e.name AS employee,
+         e.salary,
+         DENSE_RANK() OVER (
+           PARTITION BY e.department_id
+           ORDER BY e.salary DESC
+         ) AS salary_rank
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
+)
+SELECT department, employee, salary
+FROM ranked
+WHERE salary_rank = 1
+ORDER BY department, employee;
+\`\`\`
+
+## Worth saying out loud
+
+- The window version scans employees once and sorts within each department; an index on \`(department_id, salary DESC)\` lets it read each partition in order.
+- The correlated-subquery version, \`WHERE e.salary = (SELECT MAX(salary) FROM employees x WHERE x.department_id = e.department_id)\`, is fine for the maximum when the planner decorrelates it or the index serves each lookup — but it doesn't generalize.
+- Top three per department is \`salary_rank <= 3\` here. Say which "top three" is meant: \`DENSE_RANK\` gives the top three *salaries* (possibly more people), \`ROW_NUMBER\` exactly three people with an arbitrary tie-break. The subquery equivalent counts higher distinct salaries per row, which is quadratic.`,
   },
   {
     slug: "design-rate-limiter",
@@ -2708,7 +2827,7 @@ function debounce(fn, wait) {
       "- **API & data model** — create and redirect endpoints, the mapping table keyed for the lookup path, expiry/ownership if claimed as a feature.",
       "- **Redirect path** — a concrete latency budget: cache layers (CDN/edge, then Redis, then store), and a 301 vs. 302 decision connected to caching and analytics consequences.",
       "- **Scaling** — replication or sharding for the mapping store with a stated partition key, and a story for hot links beyond \"add a cache\".",
-      "- **Analytics follow-up** — click tracking that stays off the synchronous redirect path (async events/queue), matching the prompt's constraint.",
+      "- **Analytics** — click tracking that stays off the synchronous redirect path (async events/queue), matching the prompt's constraint.",
     ].join("\n"),
   },
   {
@@ -2755,6 +2874,7 @@ function debounce(fn, wait) {
   ...pinterestProblemsD,
   ...pinterestProblemsE,
   ...pinterestProblemsF,
+  ...pinterestProblemsG,
   ...designProblemsA,
   ...designProblemsB,
   ...designProblemsC,
@@ -2763,6 +2883,8 @@ function debounce(fn, wait) {
   ...andurilProblemsB,
   ...andurilProblemsC,
   ...andurilProblemsD,
+  ...andurilProblemsE,
+  ...andurilProblemsF,
   ...appleProblemsA,
   ...appleProblemsB,
   ...appleProblemsC,
@@ -2776,6 +2898,10 @@ function debounce(fn, wait) {
   ...appleProblemsK,
   ...appleProblemsL,
   ...appleProblemsM,
+  ...appleProblemsN,
+  ...appleProblemsO,
+  ...appleProblemsP,
+  ...appleProblemsQ,
   ...appleDesignProblems,
   ...appleDesignProblemsB,
   ...appleDesignProblemsC,
@@ -2789,6 +2915,11 @@ function debounce(fn, wait) {
   ...appleJsProblemsE,
   ...appleJsProblemsF,
   ...appleJsProblemsG,
+  ...appleJsProblemsH,
+  ...appleJsProblemsI,
+  ...appleJsProblemsJ,
+  ...appleJsProblemsK,
+  ...appleJsProblemsL,
   ...appleUiProblemsA,
   ...appleUiProblemsB,
   ...appleUiProblemsC,
@@ -2797,7 +2928,9 @@ function debounce(fn, wait) {
   ...appleUiProblemsF,
   ...appleUiProblemsG,
   ...appleQuizProblems,
+  ...appleReactQuizProblems,
   ...appleConceptProblems,
+  ...appleBrowserConceptProblems,
   ...appleDesignProblemsG,
   ...airbnbProblemsA,
   ...airbnbProblemsB,
@@ -2805,6 +2938,8 @@ function debounce(fn, wait) {
   ...airbnbProblemsD,
   ...airbnbProblemsE,
   ...airbnbProblemsF,
+  ...airbnbProblemsG,
+  ...airbnbProblemsH,
 ];
 
 export const tracks: Track[] = [

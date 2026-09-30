@@ -50,12 +50,12 @@ O(total characters) time — each word is placed once and each output character 
 ## Worth saying out loud
 
 - The prompt's "excess spaces on the right-hand side" phrasing is about where the *leftover padding* visually accumulates; the worked example pins the actual rule — the leftmost gaps take the extra spaces. Restate the rule from the example before coding.
-- This variant justifies every line the same way. The classic LeetCode 68 variant left-justifies the final line; the judge's cases don't distinguish the two, but an interviewer will expect you to ask.
+- This variant justifies every line the same way. The classic text-justification variant left-justifies the final line; the judge's cases don't distinguish the two, but an interviewer will expect you to ask.
 - Off-by-one bait: the fits-check must count the space *before* the incoming word — \`letters + len(line) + len(word)\`, not \`+ len(line) - 1\`.`;
 
 export const roundNumericStringsSolution = `## Approach
 
-Floats are a trap the prompt sets on purpose — \`float("123456789123456789123456789.5")\` silently loses the digits that decide the answer. Stay in string land.
+Floats are the trap here — \`float("123456789123456789123456789.5")\` silently loses the digits that decide the answer. Stay in string land.
 
 Split off the sign, then split on the dot. Only the **first fractional digit** matters under round-half-away-from-zero: the magnitude rounds up exactly when that digit is \`"5"\` or more (everything after it can only push further in the same direction). Rounding up is big-integer increment: walk the integer digits right to left turning \`9\`s into \`0\`s until a digit absorbs the carry, prepending \`"1"\` if none does. Reattach the sign only when the result isn't \`"0"\`.
 
@@ -81,17 +81,11 @@ def add_one(digits):
             out[i] = str(int(out[i]) + 1)
             return "".join(out)
     return "1" + "".join(out)
-
-
-def round_all(csv):
-    if not csv:
-        return ""
-    return ",".join(round_numeric_string(v) for v in csv.split(","))
 \`\`\`
 
 ## Complexity
 
-O(n) per value — one pass to split, at worst one pass for the carry (\`"999…9.5"\` ripples the whole way). Part 2 is a split-map-join over the same routine.
+O(n) per value — one pass to split, at worst one pass for the carry (\`"999…9.5"\` ripples the whole way).
 
 ## Worth saying out loud
 

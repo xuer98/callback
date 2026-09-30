@@ -1,8 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part B: ballot counter, top-N frequent logs and
-// synonym groups.
-// Same sourcing and conventions as seed-apple-a.ts.
+// Apple coding bank, part B: ballot counter, top-N frequent logs and synonym
+// groups. Same conventions as seed-apple-a.ts.
 
 export const appleProblemsB: Problem[] = [
   {
@@ -14,9 +13,7 @@ export const appleProblemsB: Problem[] = [
     summary:
       "Millions of ballots, Borda scoring, and memory that stays O(candidates) — the constraint is the question.",
     prompt: [
-      "> \"Build a class to read millions of votes from a ballot list and perform rank-based vote counting. Had to handle batching to solve for memory usage.\"",
-      "",
-      "Reported verbatim from an ICT3 phone screen in Cupertino that ended in an offer; the memory constraint was in the prompt, not a follow-up.",
+      "Millions of ranked ballots have to be counted without ever holding them all in memory: votes are read in batches, and memory must stay proportional to the number of candidates.",
       "",
       "A **ballot** is a list of candidate names, most preferred first. Score it Borda-style: a ballot of `n` names gives `n - 1` points to its first name, `n - 2` to the second, and so on down to `0` for the last. Implement `RankedBallotCounter(batchSize)`:",
       "",
@@ -35,10 +32,6 @@ export const appleProblemsB: Problem[] = [
       "counter.add([\"alice\", \"carol\", \"bob\"])   // alice 2, carol 1",
       "counter.results()  ->  [[\"alice\", 5], [\"bob\", 3], [\"carol\", 1]]",
       "```",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Which counting rule — plurality, Borda, or instant-runoff? Do ballots always list every candidate? How are ties broken? Is the input an iterator I can stream, or a list already in memory?",
     ].join("\n"),
     hints: [
       "The score is a sum over ballots, so the state you need is one counter per candidate — O(candidates), independent of how many ballots arrive. The buffer exists only to model batch processing; flushing it means folding each buffered ballot into the counters and clearing it.",
@@ -242,12 +235,6 @@ class RankedBallotCounter {
       "```",
       "",
       "If fewer than `n` distinct lines exist, return all of them in order; `n = 0` returns nothing.",
-      "",
-      "Reported for an Apple AI Engineer phone screen; the plain top-k-frequent version appears independently in another Apple screen.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Does the full multiset fit in memory, or is this a stream where memory should be bounded by `n`? Is `n` small relative to the number of distinct lines? Are ties expected to be deterministic?",
     ].join("\n"),
     hints: [
       "Count first. With the counts in hand there are two finishes: bucket the distinct lines by frequency and walk the buckets from the top (O(d) time, O(d) space), or keep a min-heap of size n keyed by (count, reversed lexicographic order) so memory is bounded by n.",
@@ -328,14 +315,6 @@ function topNFrequent(lines, n) {
       "```",
       "",
       "Pairs may repeat, may arrive in any order, and a word may be paired with itself — it still forms a group. Comparison is plain string order (`\"Mango\"` sorts before `\"apple\"`).",
-      "",
-      "## Follow-up",
-      "",
-      "Pairs keep streaming in after the first answer. Which structure lets each new pair cost near-constant time instead of re-walking the graph?",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is the relation symmetric and transitive — so I'm computing connected components? Can words appear in no pair at all? Is the comparison case-sensitive? Will pairs keep arriving after the first answer?",
     ].join("\n"),
     hints: [
       "Restate the relation as connected components of an undirected graph. Union-find fits because the relation is incremental: register both words, union them, then group every word by its root.",
@@ -353,7 +332,7 @@ function topNFrequent(lines, n) {
       "## Worth saying out loud",
       "",
       "- **Pairs keep streaming in?** That is exactly why union-find and not DFS: each new pair is near-O(1), whereas DFS re-walks the graph.",
-      "- **\"Merge accounts, not words\"** is LeetCode 721 — same skeleton, but the union key is the email and the output carries the name. Recognising it as the same problem is worth saying.",
+      "- **\"Merge accounts, not words\"** is the same skeleton, but the union key is the email and the output carries the name. Recognising it as the same problem is worth saying.",
       "- **Watch for:** a word that appears in no pair still forms a group of one; path compression plus union by rank is what keeps `find` flat, so mention both.",
     ].join("\n"),
     judge: {

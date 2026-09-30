@@ -1,10 +1,9 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), UI part E:
-// tic-tac-toe on an N by N board with M in a row to win (GreatFrontEnd's
-// Apple list), which also covers the plain 3 by 3 game from a 2017
-// Glassdoor report. HTML/CSS/JS is the default template; React is the
-// alternate. Both carry complete reference files.
+// Apple front-end bank, UI part E: tic-tac-toe on an N by N board with M in a
+// row to win, which also covers the plain 3 by 3 game. HTML/CSS/JS is the
+// default template; React is the alternate. Both carry complete reference
+// files.
 
 const tttCss: UiFile = {
   name: "styles.css",
@@ -340,8 +339,6 @@ export const appleUiProblemsE: Problem[] = [
       "- `isWinningMove(board, row, col, m)` decides a win by checking **only the lines through the last move**: horizontal, vertical and both diagonals.",
       "- The status line shows whose turn it is, the winner, or a draw when the board fills without one. No moves are allowed after the game ends.",
       "- Cells are buttons with labels such as \"Row 1, column 2, empty\", and the status is announced politely.",
-      "",
-      "*Listed under Apple by GreatFrontEnd, with no date or role. The plain 3 by 3 game in HTML, CSS and JS comes from a 2017 Glassdoor report.*",
     ].join("\n"),
     hints: [
       "A win can only be created by the mark just placed. From that cell, count matching marks outward in both directions along each of the four direction vectors. `1 + forward + backward >= m` is a win.",

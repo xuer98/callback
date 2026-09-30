@@ -1,11 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part A. Sourced from candidate reports of Apple
-// technical phone screens (1point3acres, LeetCode Discuss, Blind, Glassdoor)
-// collected for the AIML Evaluation role; prompts keep the reported wording
-// and the screen's habit of adding a requirement once the first version
-// works. Continues in seed-apple-b.ts onward; Python variants live in
-// seed-python-apple.ts.
+// Apple coding bank, part A: access-log request metrics. Continues in
+// seed-apple-b.ts onward; Python variants live in seed-python-apple.ts.
 
 export const appleProblemsA: Problem[] = [
   {
@@ -48,16 +44,10 @@ export const appleProblemsA: Problem[] = [
       "",
       "A 3xx is not a failure. `failurePct` is computed over **valid** lines, not all lines.",
       "",
-      "## Follow-up",
-      "",
-      "The file is 200 GB. Structure the code so it streams: one pass, nothing retained per line, state proportional to the number of distinct endpoints. Be ready to say what `merge()` of two partial reports would look like.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "What counts as invalid? Is the denominator for the failure rate all lines or valid lines? Do you want per-endpoint numbers now or later? Can I assume one pass over the input?",
+      "The real file is 200 GB, so the code must stream: one pass, nothing retained per line, state proportional to the number of distinct endpoints.",
     ].join("\n"),
     hints: [
-      "Validate with one anchored pattern for the shape — four single-space fields, a three-digit status — then check each field's semantics separately. Leading zeros, octets over 255, impossible dates and a status outside 100–599 are the cases interviewers test.",
+      "Validate with one anchored pattern for the shape — four single-space fields, a three-digit status — then check each field's semantics separately. Leading zeros, octets over 255, impossible dates and a status outside 100–599 are the cases to test.",
       "Keep counters, not lines: total, valid, 4xx, 5xx and a map from path to [hits, failures]. The report is derived at the end, and the division must guard against zero valid lines.",
     ],
     solution: [

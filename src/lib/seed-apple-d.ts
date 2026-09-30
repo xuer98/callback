@@ -1,7 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part D: Design Task Manager, unit conversion in a
-// tree, and Valid Sudoku. Same sourcing and conventions as seed-apple-a.ts.
+// Apple coding bank, part D: Design Task Manager, unit conversion in a
+// tree, and Valid Sudoku. Same conventions as seed-apple-a.ts.
 
 export const appleProblemsD: Problem[] = [
   {
@@ -30,12 +30,6 @@ export const appleProblemsD: Problem[] = [
       "tm.add(5, 105, 15)",
       "tm.execTop()   ->  5      // task 105 (priority 15) runs",
       "```",
-      "",
-      "Reported as the second of two Apple phone screens for a Senior Software Engineer — both were recent LeetCode problems, which is a signal on its own: this screener was pulling from the current set, not a 2019 list.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Can `edit` and `rmv` be called on a task that does not exist? Are priorities and task ids bounded? How many operations — does the heap's growth under repeated edits matter? Is `execTop` called far more often than `edit`?",
     ].join("\n"),
     hints: [
       "Keep an authoritative map from taskId to (userId, priority) alongside a max-heap ordered by (priority, taskId). add and edit push a fresh heap entry; rmv only touches the map.",
@@ -209,16 +203,14 @@ class TaskManager {
   },
   {
     slug: "unit-conversion-tree",
-    title: "Unit Conversion in a Tree, Then Any-to-Any",
+    title: "Unit Conversion in a Tree",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],
     summary:
-      "One DFS multiplies factors down the tree; the modular inverse is what makes arbitrary queries work.",
+      "One DFS from the base unit multiplies factors down the tree, modulo a prime.",
     prompt: [
       "There are `n` unit types, numbered `0` to `n - 1`, and unit `0` is the base. Each conversion `[source, target, factor]` means one unit of `source` equals `factor` units of `target`. The conversions form a tree rooted at `0`, and every factor is at least 1.",
-      "",
-      "## Phase 1 — `baseUnitConversions(n, conversions)`",
       "",
       "Return `ans` where `ans[i]` is how many units of type `i` equal one unit of type `0`, modulo `1_000_000_007`.",
       "",
@@ -226,54 +218,29 @@ class TaskManager {
       "baseUnitConversions(3, [[0, 1, 2], [1, 2, 3]])  ->  [1, 2, 6]",
       "```",
       "",
-      "## Phase 2 — `queryConversions(n, conversions, queries)`",
-      "",
-      "Each query `[a, b]` asks how many units of `b` equal one unit of `a`, again modulo `1_000_000_007`. Return one answer per query.",
-      "",
-      "```",
-      "queryConversions(3, [[0, 1, 2], [1, 2, 3]], [[0, 2], [2, 0]])  ->  [6, 166666668]",
-      "```",
-      "",
       "Products can exceed 2^53 before the modulo — in JavaScript, do the arithmetic in `BigInt` (the harness converts your answers back to numbers).",
-      "",
-      "Reported as the first of two Apple phone screens for a Senior Software Engineer; the second was Design Task Manager.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is the graph guaranteed to be a tree rooted at 0, or could it be a general graph with cycles? Can `n` be large enough that recursion depth matters? Are the factors integers? Is the modulus prime — so I can invert with Fermat?",
     ].join("\n"),
     hints: [
-      "Phase 1 is one traversal from the root: ans[0] = 1 and ans[child] = ans[parent] × factor (mod p). Use an explicit stack; the tree can be a path.",
-      "Phase 2 is ans[b] / ans[a] — but you cannot divide under a modulus. Because p is prime, Fermat gives the inverse: ans[a]^(p−2) mod p. Multiply instead of dividing.",
+      "One traversal from the root: ans[0] = 1 and ans[child] = ans[parent] × factor (mod p).",
+      "Use an explicit stack; with up to 10^5 units the tree can be a path, and recursion that deep overflows.",
     ],
     solution: [
       "## Approach",
       "",
-      "Phase 1 is a single DFS from the root multiplying factors down; an explicit stack keeps a path-shaped tree from blowing the recursion limit. Phase 2 is where people stall: you cannot divide under a modulus. Say \"`ans[b] / ans[a]` becomes `ans[b] · ans[a]^-1`, and since 10^9 + 7 is prime I get the inverse from Fermat as `pow(x, p - 2, p)`.\" That one sentence is the whole difference between the two problems. JavaScript needs `BigInt` for the products, so the reference keeps everything as `BigInt` and lets the harness convert.",
+      "A single DFS from the root multiplying factors down: every unit's answer is its parent's answer times the edge's factor. An explicit stack keeps a path-shaped tree from blowing the recursion limit. JavaScript needs `BigInt` for the products, so the reference keeps everything as `BigInt` and lets the harness convert.",
       "",
       "## Complexity",
       "",
-      "O(n) to build the table, O(log p) per query for the modular exponentiation; O(n) space.",
+      "O(n) time and space.",
       "",
       "## Worth saying out loud",
       "",
-      "- **A general graph, not a tree?** That is LeetCode 399, Evaluate Division: BFS/DFS per query, or union-find with weights — and a general graph can contain an inconsistent cycle, so you need a validation pass. Raising that unprompted is a strong move.",
       "- **Why iterative and not recursive?** `n` up to 10^5 and the tree can be a path, so recursion blows the stack.",
-      "- **Round-trip check:** converting a→b then b→a must multiply to 1 mod p. It is a two-line test and it catches an inverted factor immediately.",
+      "- **Conversions listed in any order?** Build the child lists first, then traverse; processing edges in input order would read parents that aren't computed yet.",
+      "- **Between any two units?** Dividing two answers needs a modular inverse — see [Unit Conversion Queries](/problems/unit-conversion-queries).",
     ].join("\n"),
     judge: {
       solutionCode: `const MOD = 1000000007n;
-
-function modPow(base, exp) {
-  let result = 1n;
-  base %= MOD;
-  while (exp > 0n) {
-    if (exp & 1n) result = (result * base) % MOD;
-    base = (base * base) % MOD;
-    exp >>= 1n;
-  }
-  return result;
-}
 
 // ans[i] = units of i per one unit of 0. Iterative DFS: the tree can be a path.
 function baseUnitConversions(n, conversions) {
@@ -291,12 +258,6 @@ function baseUnitConversions(n, conversions) {
   }
   return ans;
 }
-
-// One unit of a == ans[b] * inverse(ans[a]) units of b; Fermat inverse since MOD is prime.
-function queryConversions(n, conversions, queries) {
-  const ans = baseUnitConversions(n, conversions);
-  return queries.map(([a, b]) => (ans[b] * modPow(ans[a], MOD - 2n)) % MOD);
-}
 `,
       starterCode: `const MOD = 1000000007n;
 
@@ -309,49 +270,29 @@ function baseUnitConversions(n, conversions) {
   // Your code here
   return new Array(n).fill(0);
 }
-
-/**
- * @param {[number, number][]} queries [a, b] -> units of b per one unit of a
- * @returns {(bigint|number)[]}
- */
-function queryConversions(n, conversions, queries) {
-  // Your code here
-  return queries.map(() => 0);
-}
 `,
       entry: "__judgeUnits",
-      driverCode: `function __judgeUnits(kind, n, conversions, queries) {
-  const out = kind === "base" ? baseUnitConversions(n, conversions) : queryConversions(n, conversions, queries);
-  return Array.from(out, Number);
+      driverCode: `function __judgeUnits(n, conversions) {
+  return Array.from(baseUnitConversions(n, conversions), Number);
 }`,
       tests: [
-        { name: "Base: prompt example", input: ["base", 3, [[0, 1, 2], [1, 2, 3]], null], expected: [1, 2, 6] },
+        { name: "Prompt example", input: [3, [[0, 1, 2], [1, 2, 3]]], expected: [1, 2, 6] },
         {
-          name: "Base: a wider tree",
-          input: ["base", 7, [[0, 1, 2], [0, 2, 3], [1, 3, 4], [1, 4, 5], [2, 5, 2], [4, 6, 3]], null],
+          name: "A wider tree",
+          input: [7, [[0, 1, 2], [0, 2, 3], [1, 3, 4], [1, 4, 5], [2, 5, 2], [4, 6, 3]]],
           expected: [1, 2, 3, 8, 10, 6, 30],
         },
         {
-          name: "Base: conversions listed out of order",
-          input: ["base", 5, [[4, 3, 4], [2, 4, 2], [1, 2, 3], [0, 1, 2]], null],
+          name: "Conversions listed out of order",
+          input: [5, [[4, 3, 4], [2, 4, 2], [1, 2, 3], [0, 1, 2]]],
           expected: [1, 2, 6, 48, 12],
         },
         {
-          name: "Base: products overflow 2^53 before the modulo",
-          input: ["base", 4, [[0, 1, 1000000000], [1, 2, 1000000000], [2, 3, 1000000000]], null],
+          name: "Products overflow 2^53 before the modulo",
+          input: [4, [[0, 1, 1000000000], [1, 2, 1000000000], [2, 3, 1000000000]]],
           expected: [1, 1000000000, 49, 999999664],
         },
-        { name: "Base: a single unit", input: ["base", 1, [], null], expected: [1] },
-        {
-          name: "Queries: prompt example plus inverses",
-          input: ["queries", 3, [[0, 1, 2], [1, 2, 3]], [[0, 2], [2, 0], [1, 2], [2, 1], [0, 0]]],
-          expected: [6, 166666668, 3, 333333336, 1],
-        },
-        {
-          name: "Queries: inverses of large factors",
-          input: ["queries", 3, [[0, 1, 1000000000], [1, 2, 1000000000]], [[2, 0], [1, 2], [0, 2], [2, 1]]],
-          expected: [448979595, 1000000000, 49, 857142863],
-        },
+        { name: "A single unit", input: [1, []], expected: [1] },
       ],
     },
   },
@@ -379,12 +320,6 @@ function queryConversions(n, conversions, queries) {
       " \"...419..5\",",
       " \"....8..79\"]   ->  true",
       "```",
-      "",
-      "Reported as the entire backend screening round of an Apple full-stack loop; the same loop's frontend screen was React and CSS theory.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is the board always 9×9, or should the code generalise to n²×n²? Are the characters guaranteed to be `'1'`–`'9'` or `'.'`? Do you want the validator, or the solver as a follow-up?",
     ].join("\n"),
     hints: [
       "Keep nine sets each for rows, columns and boxes and make a single pass over the cells; the first digit already present in any of its three sets ends the check.",
@@ -402,7 +337,7 @@ function queryConversions(n, conversions, queries) {
       "## Worth saying out loud",
       "",
       "- **n²×n²?** The same code generalises with box side n; call the complexity linear in the number of cells.",
-      "- **Now solve it** is LeetCode 37: backtracking with the same three sets as the constraint check. Mention that the validator you just wrote is the inner loop of the solver.",
+      "- **Now solve it?** Backtracking with the same three sets as the constraint check. Mention that the validator you just wrote is the inner loop of the solver.",
       "- Do not reach for a single set of encoded strings like `\"r\" + i + v` to save lines. It works, but it is slower and harder to read, and readability is being scored.",
     ].join("\n"),
     judge: {

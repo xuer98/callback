@@ -14,13 +14,11 @@ export const designProblemsD: Problem[] = [
     summary:
       "Embeddings, sharded ANN retrieval, and fresh pins searchable in seconds.",
     prompt: [
-      '"Design visual search: given a query image (or a crop of one), return visually similar pins with low latency. The index covers billions of images, and a newly created pin should be searchable within seconds."',
+      "Design visual search: given a query image (or a crop of one), return visually similar pins with low latency. The index covers billions of images, and a newly created pin should be searchable within seconds.",
       "",
       "Assume an embedding model exists; you design the serving system. Budget ~200 ms per query including embedding inference. Billions of pin embeddings at 256 floats ≈ 1 KB each means terabytes of index — sharded and quantized. Metadata filters (country, safety) must apply during retrieval, not as an afterthought.",
       "",
       "Cover: the root/leaf retrieval architecture, how the index shards and what that costs in recall, realtime inserts into an ANN index under concurrent reads, deletions, and how you'd know retrieval quality is degrading.",
-      "",
-      '*Reported as: "Design visual search backed by Pinterest Lens (image embedding + ANN retrieval + ranking)" (TechScreen); "Build a visual search system" (System Design Handbook).*',
     ].join("\n"),
     hints: [
       "The size forces the architecture: terabytes of embeddings can't fit one box, so a root fans out to leaf shards each holding an ANN graph over a partition, and merges top-k — lightweight scoring at the leaves, a heavier reranker at the root.",
@@ -72,11 +70,9 @@ export const designProblemsD: Problem[] = [
     summary:
       "Metadata plane vs data plane, chunk replication, and the atomic-commit moment.",
     prompt: [
-      '"Design a highly available blob storage service similar to S3 — or, in its product framing, a Google Photos-like service: users upload files or photos, retrieve them from anywhere, and never lose data."',
+      "Design a highly available blob storage service similar to S3 — or, in its product framing, a Google Photos-like service: users upload files or photos, retrieve them from anywhere, and never lose data.",
       "",
       "Cover: the split between the metadata plane and the data plane, the write path and where the object atomically comes into existence, replication versus erasure coding, what background processes keep the system healthy, and — for the Photos framing — dedup and quotas.",
-      "",
-      '*Reported as: "Design highly available blob storage service similar to S3" and "Design a Google Photos-like service" (PracHub).*',
     ].join("\n"),
     hints: [
       "Separate planes: object name → chunk list, versions, and ACLs in a sharded strongly consistent metadata store; immutable content-addressed chunks of a few MB on storage nodes placed by a placement service.",

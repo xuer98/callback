@@ -1,9 +1,8 @@
 import type { Problem } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), part E:
-// Lodash's get, chunk and groupBy (from the guide's "have cold" list, not
-// confirmed for Apple by name), and the key-paths question from a July 2025
-// online screen. TypeScript variants live in seed-typescript-apple.ts.
+// Apple front-end bank, part E: Lodash's get, chunk and groupBy, and the key
+// paths of a nested object. TypeScript variants live in
+// seed-typescript-apple-b.ts and seed-typescript-splits.ts.
 
 export const appleJsProblemsE: Problem[] = [
   {
@@ -29,8 +28,6 @@ export const appleJsProblemsE: Problem[] = [
       "- Walking into `null` or `undefined` returns `fallback`, and so does a final value of `undefined`.",
       "- Every other value comes back as stored, including `null`, `0`, `false` and `\"\"`. The fallback is for missing values, not falsy ones.",
       "- Properties of primitives work too: `\"name.length\"`.",
-      "",
-      "*The guide calls this the most common Lodash interview method. Utility rewrites like this come from reports of \"implement a Lodash method\" rounds that don't name the method, so treat it as likely rather than confirmed.*",
     ].join("\n"),
     hints: [
       "Normalize the path first. An array is used as it is. A string becomes keys by turning each `[n]` into `.n`, splitting on dots, and dropping empty pieces.",
@@ -93,58 +90,43 @@ function get(obj, path, fallback) {
     },
   },
   {
-    slug: "chunk-and-group-by",
-    title: "chunk and groupBy",
+    slug: "implement-chunk",
+    title: "Implement Lodash's chunk",
     category: "frontend",
     difficulty: "easy",
     companies: ["apple"],
-    summary:
-      "Two Lodash array methods, plus the key a plain object already has: `\"constructor\"`.",
+    summary: "Step by `size` and slice — after clamping the size, because 0 loops forever.",
     prompt: [
-      "Two short Lodash array methods.",
+      "Write `chunk(array, size)`: split `array` into arrays of `size` elements; the last one may be shorter.",
       "",
-      "## `chunk(array, size)`",
+      "- `size` is rounded down, and a size below 1 returns `[]`.",
+      "- Leave the input alone.",
       "",
-      "Split `array` into arrays of `size` elements; the last one may be shorter. `size` is rounded down, and a size below 1 returns `[]`. Leave the input alone.",
-      "",
-      "## `groupBy(array, iteratee)`",
-      "",
-      "Return an object mapping each key to the items that produced it, in input order. `iteratee` is a function, or a property name to read from each item, such as `\"length\"` or `\"type\"`. Keys are strings, as object keys always are.",
-      "",
-      "Every key must work, including `\"constructor\"` and `\"toString\"`, which a plain `{}` already inherits.",
-      "",
-      "`Object.groupBy` and `Map.groupBy` are switched off while your code runs. The functions named in the tests (`floor`, `identity` and `parity`) are supplied by the grader.",
-      "",
-      "*From the guide's list of short Lodash array methods. Utility rewrites like this come from reports of \"implement a Lodash method\" rounds that don't name the method, so treat them as likely rather than confirmed.*",
+      "```js",
+      "chunk([1, 2, 3, 4, 5], 2)   // [[1, 2], [3, 4], [5]]",
+      "chunk([1, 2, 3], 0)         // []",
+      "```",
     ].join("\n"),
     hints: [
-      "For `chunk`, step `i` by `size` and take `slice(i, i + size)`. Clamp the size first, because a size of 0 would loop forever.",
-      "For `groupBy`, turn a string iteratee into `(item) => item[iteratee]` once, at the top.",
-      "A plain `{}` answers `out.constructor` with the `Object` function, so `(out[key] ??= [])` finds a function and `.push` throws. Start from `Object.create(null)`, or check `Object.hasOwn(out, key)`.",
+      "Step `i` by `size` and take `slice(i, i + size)`.",
+      "Clamp the size first, because a size of 0 would loop forever — and `Math.floor(NaN)` is `NaN`, which fails every comparison.",
     ],
     solution: [
       "## Approach",
       "",
-      "`chunk` walks the array in steps of `size` and slices. `groupBy` normalizes the iteratee to a function, then appends each item to its key's list. The accumulator is a null-prototype object, so no key is ever already taken by `Object.prototype`.",
+      "Round the size down and reject anything below 1 at the boundary, then walk the array in steps of `size`, slicing each chunk. `slice` copies, so the input is never touched.",
       "",
       "## Worth saying out loud",
       "",
-      "- **`Object.groupBy` is built in now.** It returns a null-prototype object for exactly the reason in the last hint. Say so before writing your own.",
-      "- The quick `(out[key] ??= []).push(item)` over a plain `{}` breaks on `\"constructor\"` and `\"toString\"`. A key of `\"__proto__\"` is worse: assigning it changes the object's prototype instead of adding a group.",
-      "- When keys can be objects or must keep their type, return a `Map`, which is what `Map.groupBy` does.",
       "- `chunk` with a size of 0 is an infinite loop in the naive version. Clamp inputs at the boundary.",
+      "- `!(step >= 1)` also rejects `NaN`, which `step < 1` would let through.",
+      "- For streams, the same idea is a generator that yields each chunk as it fills.",
     ].join("\n"),
     judge: {
       starterCode: `/** Split array into arrays of \`size\` (rounded down); [] when size < 1. */
 function chunk(array, size) {
   // Your code here
   return [];
-}
-
-/** Map each key (iteratee function or property name) to its items, in input order. */
-function groupBy(array, iteratee) {
-  // Your code here
-  return {};
 }
 `,
       solutionCode: `function chunk(array, size) {
@@ -154,8 +136,71 @@ function groupBy(array, iteratee) {
   for (let i = 0; i < array.length; i += step) out.push(array.slice(i, i + step));
   return out;
 }
-
+`,
+      entry: "__judgeChunk",
+      driverCode: `function __judgeChunk(kind, array, size) {
+  if (kind === "unchanged") {
+    var before = JSON.stringify(array);
+    chunk(array, size);
+    return JSON.stringify(array) === before;
+  }
+  return chunk(array, size);
+}`,
+      tests: [
+        { name: "chunk by 2", input: ["chunk", [1, 2, 3, 4, 5], 2], expected: [[1, 2], [3, 4], [5]] },
+        { name: "An exact multiple", input: ["chunk", [1, 2, 3, 4], 2], expected: [[1, 2], [3, 4]] },
+        { name: "A size larger than the array", input: ["chunk", [1, 2], 5], expected: [[1, 2]] },
+        { name: "An empty array", input: ["chunk", [], 3], expected: [] },
+        { name: "A size of 0 returns []", input: ["chunk", [1, 2, 3], 0], expected: [] },
+        { name: "A fractional size rounds down", input: ["chunk", [1, 2, 3], 2.9], expected: [[1, 2], [3]] },
+        { name: "chunk leaves the input alone", input: ["unchanged", [1, 2, 3], 2], expected: true },
+      ],
+    },
+  },
+  {
+    slug: "implement-group-by",
+    title: "Implement groupBy",
+    category: "frontend",
+    difficulty: "easy",
+    companies: ["apple"],
+    summary: "Group items by key into a null-prototype object — because `{}` already has `\"constructor\"`.",
+    prompt: [
+      "Write `groupBy(array, iteratee)`: return an object mapping each key to the items that produced it, in input order.",
+      "",
+      "- `iteratee` is a function, or a property name to read from each item, such as `\"length\"` or `\"type\"`.",
+      "- Keys are strings, as object keys always are.",
+      "- Every key must work, including `\"constructor\"` and `\"toString\"`, which a plain `{}` already inherits.",
+      "",
+      "```js",
+      "groupBy([6.1, 4.2, 6.3], Math.floor)   // { \"4\": [4.2], \"6\": [6.1, 6.3] }",
+      "groupBy([\"one\", \"two\", \"three\"], \"length\")   // { \"3\": [\"one\", \"two\"], \"5\": [\"three\"] }",
+      "```",
+      "",
+      "`Object.groupBy` and `Map.groupBy` are switched off while your code runs. The functions named in the tests (`floor`, `identity` and `parity`) are supplied by the grader.",
+    ].join("\n"),
+    hints: [
+      "Turn a string iteratee into `(item) => item[iteratee]` once, at the top.",
+      "A plain `{}` answers `out.constructor` with the `Object` function, so `(out[key] ??= [])` finds a function and `.push` throws. Start from `Object.create(null)`, or check `Object.hasOwn(out, key)`.",
+    ],
+    solution: [
+      "## Approach",
+      "",
+      "Normalize the iteratee to a function, then append each item to its key's list. The accumulator is a null-prototype object, so no key is ever already taken by `Object.prototype`.",
+      "",
+      "## Worth saying out loud",
+      "",
+      "- **`Object.groupBy` is built in now.** It returns a null-prototype object for exactly the reason in the last hint. Say so before writing your own.",
+      "- The quick `(out[key] ??= []).push(item)` over a plain `{}` breaks on `\"constructor\"` and `\"toString\"`. A key of `\"__proto__\"` is worse: assigning it changes the object's prototype instead of adding a group.",
+      "- When keys can be objects or must keep their type, return a `Map`, which is what `Map.groupBy` does.",
+    ].join("\n"),
+    judge: {
+      starterCode: `/** Map each key (iteratee function or property name) to its items, in input order. */
 function groupBy(array, iteratee) {
+  // Your code here
+  return {};
+}
+`,
+      solutionCode: `function groupBy(array, iteratee) {
   const keyOf = typeof iteratee === "function" ? iteratee : (item) => item[iteratee];
   const out = Object.create(null); // no inherited keys like "constructor"
   for (const item of array) {
@@ -166,50 +211,34 @@ function groupBy(array, iteratee) {
   return out;
 }
 `,
-      entry: "__judgeCollections",
-      driverCode: `function __judgeCollections(kind, a, b) {
+      entry: "__judgeGroupBy",
+      driverCode: `function __judgeGroupBy(array, spec) {
   var named = {
     floor: Math.floor,
     identity: function (x) { return x; },
     parity: function (n) { return n % 2 === 0 ? "even" : "odd"; },
   };
-  if (kind === "chunk") return chunk(a, b);
-  if (kind === "chunkUnchanged") {
-    var before = JSON.stringify(a);
-    chunk(a, b);
-    return JSON.stringify(a) === before;
+  var iteratee = spec && typeof spec === "object" ? named[spec.fn] : spec;
+  var saved = { object: Object.groupBy, map: Map.groupBy };
+  var banned = function () {
+    throw new Error("Write it yourself: Object.groupBy and Map.groupBy are off limits here");
+  };
+  Object.groupBy = banned;
+  Map.groupBy = banned;
+  try {
+    return groupBy(array, iteratee);
+  } finally {
+    Object.groupBy = saved.object;
+    Map.groupBy = saved.map;
   }
-  if (kind === "groupBy") {
-    var iteratee = b && typeof b === "object" ? named[b.fn] : b;
-    var saved = { object: Object.groupBy, map: Map.groupBy };
-    var banned = function () {
-      throw new Error("Write it yourself: Object.groupBy and Map.groupBy are off limits here");
-    };
-    Object.groupBy = banned;
-    Map.groupBy = banned;
-    try {
-      return groupBy(a, iteratee);
-    } finally {
-      Object.groupBy = saved.object;
-      Map.groupBy = saved.map;
-    }
-  }
-  throw new Error("unknown case " + kind);
 }`,
       tests: [
-        { name: "chunk by 2", input: ["chunk", [1, 2, 3, 4, 5], 2], expected: [[1, 2], [3, 4], [5]] },
-        { name: "An exact multiple", input: ["chunk", [1, 2, 3, 4], 2], expected: [[1, 2], [3, 4]] },
-        { name: "A size larger than the array", input: ["chunk", [1, 2], 5], expected: [[1, 2]] },
-        { name: "An empty array", input: ["chunk", [], 3], expected: [] },
-        { name: "A size of 0 returns []", input: ["chunk", [1, 2, 3], 0], expected: [] },
-        { name: "A fractional size rounds down", input: ["chunk", [1, 2, 3], 2.9], expected: [[1, 2], [3]] },
-        { name: "chunk leaves the input alone", input: ["chunkUnchanged", [1, 2, 3], 2], expected: true },
-        { name: "groupBy with a function", input: ["groupBy", [6.1, 4.2, 6.3], { fn: "floor" }], expected: { "4": [4.2], "6": [6.1, 6.3] } },
-        { name: "groupBy with a property name", input: ["groupBy", ["one", "two", "three"], "length"], expected: { "3": ["one", "two"], "5": ["three"] } },
-        { name: "groupBy on objects", input: ["groupBy", [{ type: "a", n: 1 }, { type: "b", n: 2 }, { type: "a", n: 3 }], "type"], expected: { a: [{ type: "a", n: 1 }, { type: "a", n: 3 }], b: [{ type: "b", n: 2 }] } },
-        { name: "Groups keep input order", input: ["groupBy", [1, 2, 3, 4, 5], { fn: "parity" }], expected: { odd: [1, 3, 5], even: [2, 4] } },
-        { name: "Keys a plain object already has", input: ["groupBy", ["constructor", "toString", "a", "constructor"], { fn: "identity" }], expected: { constructor: ["constructor", "constructor"], toString: ["toString"], a: ["a"] } },
-        { name: "An empty array groups to {}", input: ["groupBy", [], { fn: "identity" }], expected: {} },
+        { name: "groupBy with a function", input: [[6.1, 4.2, 6.3], { fn: "floor" }], expected: { "4": [4.2], "6": [6.1, 6.3] } },
+        { name: "groupBy with a property name", input: [["one", "two", "three"], "length"], expected: { "3": ["one", "two"], "5": ["three"] } },
+        { name: "groupBy on objects", input: [[{ type: "a", n: 1 }, { type: "b", n: 2 }, { type: "a", n: 3 }], "type"], expected: { a: [{ type: "a", n: 1 }, { type: "a", n: 3 }], b: [{ type: "b", n: 2 }] } },
+        { name: "Groups keep input order", input: [[1, 2, 3, 4, 5], { fn: "parity" }], expected: { odd: [1, 3, 5], even: [2, 4] } },
+        { name: "Keys a plain object already has", input: [["constructor", "toString", "a", "constructor"], { fn: "identity" }], expected: { constructor: ["constructor", "constructor"], toString: ["toString"], a: ["a"] } },
+        { name: "An empty array groups to {}", input: [[], { fn: "identity" }], expected: {} },
       ],
     },
   },
@@ -220,7 +249,7 @@ function groupBy(array, iteratee) {
     difficulty: "easy",
     companies: ["apple"],
     summary:
-      "The dotted path to every primitive in a nested object or array, then the follow-up: inputs with cycles.",
+      "The dotted path to every primitive in a nested object or array — even when the input has cycles.",
     prompt: [
       "Return the path to every primitive in a nested object or array.",
       "",
@@ -235,12 +264,7 @@ function groupBy(array, iteratee) {
       "- A primitive is anything that is not an object, plus `null`. Empty objects and arrays contribute nothing.",
       "- Paths come out in visiting order: insertion order for objects, index order for arrays.",
       "- The input is always an object or an array.",
-      "",
-      "## Follow-up: cycles",
-      "",
-      "Inputs may contain cycles. Skip a reference to an object that is already on the current path. The same object reached along two different paths is listed under both.",
-      "",
-      "*Reported in: a 60-minute online screen for a Frontend Engineer role in Hyderabad (Medium, Jul 2025).*",
+      "- Inputs may contain cycles. Skip a reference to an object that is already on the current path. The same object reached along two different paths is listed under both.",
     ].join("\n"),
     hints: [
       "Recurse with the path so far. `typeof null` is `\"object\"`, so test `value === null` first.",

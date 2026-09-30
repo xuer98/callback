@@ -1,8 +1,8 @@
 import type { JudgeLanguage } from "./types";
 
 // TypeScript judge definitions for the Apple front-end bank
-// (seed-apple-js-a.ts to seed-apple-js-c.ts; the rest are in
-// seed-typescript-apple-b.ts), merged into each problem's judge by the seed script
+// (seed-apple-js-a.ts to seed-apple-js-c.ts; more are in
+// seed-typescript-apple-b.ts and seed-typescript-splits.ts), merged into each problem's judge by the seed script
 // alongside seed-typescript.ts. TypeScript is type-stripped and judged as
 // JavaScript through the same worker, so `entry` matches the JavaScript
 // judge and the JavaScript driver runs unchanged.
@@ -45,13 +45,10 @@ Array.prototype.myFlat = function (this: unknown[], depth = 1): unknown[] {
 };
 `,
   },
-  "array-method-polyfills": {
-    entry: "__judgeArrayMethods",
+  "implement-array-map": {
+    entry: "__judgeMap",
     starterCode: `interface Array<T> {
   myMap<U>(cb: (value: T, index: number, array: T[]) => U, thisArg?: unknown): U[];
-  myFilter(cb: (value: T, index: number, array: T[]) => unknown, thisArg?: unknown): T[];
-  myReduce<U>(cb: (acc: U, value: T, index: number, array: T[]) => U, ...initial: [U?]): U;
-  myConcat(...items: unknown[]): unknown[];
 }
 
 /** Like Array.prototype.map: keeps holes, forwards thisArg. */
@@ -59,30 +56,9 @@ Array.prototype.myMap = function (this: unknown[], cb: Function, thisArg?: unkno
   // Your code here
   return [];
 };
-
-/** Like Array.prototype.filter: skips holes. */
-Array.prototype.myFilter = function (this: unknown[], cb: Function, thisArg?: unknown): unknown[] {
-  // Your code here
-  return [];
-};
-
-/** Like Array.prototype.reduce: an initial value counts whenever it is passed. */
-Array.prototype.myReduce = function (this: unknown[], cb: Function, ...rest: unknown[]): any {
-  // Your code here
-  return undefined;
-};
-
-/** Like Array.prototype.concat: spreads arrays one level. */
-Array.prototype.myConcat = function (this: unknown[], ...items: unknown[]): unknown[] {
-  // Your code here
-  return [];
-};
 `,
     solutionCode: `interface Array<T> {
   myMap<U>(cb: (value: T, index: number, array: T[]) => U, thisArg?: unknown): U[];
-  myFilter(cb: (value: T, index: number, array: T[]) => unknown, thisArg?: unknown): T[];
-  myReduce<U>(cb: (acc: U, value: T, index: number, array: T[]) => U, ...initial: [U?]): U;
-  myConcat(...items: unknown[]): unknown[];
 }
 
 type Callback = (this: unknown, ...args: any[]) => any;
@@ -100,57 +76,6 @@ Array.prototype.myMap = function (this: unknown[], cb: unknown, thisArg?: unknow
   }
   return out;
 };
-
-Array.prototype.myFilter = function (this: unknown[], cb: unknown, thisArg?: unknown): unknown[] {
-  assertCallable(cb);
-  const out: unknown[] = [];
-  for (let i = 0; i < this.length; i++) {
-    if (!(i in this)) continue;
-    const v = this[i];
-    if (cb.call(thisArg, v, i, this)) out.push(v);
-  }
-  return out;
-};
-
-// ...rest, not a default parameter: reduce(fn, undefined) supplies a value.
-Array.prototype.myReduce = function (this: unknown[], cb: unknown, ...rest: unknown[]): any {
-  assertCallable(cb);
-  const len = this.length;
-  let i = 0;
-  let acc: unknown;
-  if (rest.length > 0) {
-    acc = rest[0];
-  } else {
-    while (i < len && !(i in this)) i++;
-    if (i >= len) throw new TypeError("Reduce of empty array with no initial value");
-    acc = this[i++];
-  }
-  for (; i < len; i++) {
-    if (i in this) acc = cb(acc, this[i], i, this);
-  }
-  return acc;
-};
-
-Array.prototype.myConcat = function (this: unknown[], ...items: unknown[]): unknown[] {
-  const out: unknown[] = [];
-  let n = 0;
-  for (const item of [this, ...items]) {
-    const spreadable =
-      item !== null &&
-      typeof item === "object" &&
-      ((item as any)[Symbol.isConcatSpreadable] ?? Array.isArray(item));
-    if (spreadable) {
-      const list = item as ArrayLike<unknown>;
-      for (let i = 0; i < list.length; i++, n++) {
-        if (i in list) out[n] = list[i];
-      }
-    } else {
-      out[n++] = item;
-    }
-  }
-  out.length = n; // keeps a trailing hole
-  return out;
-};
 `,
   },
   "run-promises-in-sequence": {
@@ -162,15 +87,6 @@ async function runInSequence<T>(tasks: Task<T>[]): Promise<T[]> {
   // Your code here
   return [];
 }
-
-/**
- * Drive a generator: wait for each yielded value, resume with the result,
- * throw rejections back in. Resolves with the generator's return value.
- */
-function run<R>(genFn: () => Generator<unknown, R, any>): Promise<R> {
-  // Your code here
-  return Promise.resolve(undefined as R);
-}
 `,
     solutionCode: `type Task<T = unknown> = () => Promise<T>;
 
@@ -181,41 +97,11 @@ async function runInSequence<T>(tasks: Task<T>[]): Promise<T[]> {
   }
   return results;
 }
-
-function run<R>(genFn: () => Generator<unknown, R, any>): Promise<R> {
-  return new Promise<R>((resolve, reject) => {
-    const it = genFn();
-    const step = (method: "next" | "throw", arg?: unknown): void => {
-      let r: IteratorResult<unknown, R>;
-      try {
-        r = method === "next" ? it.next(arg) : it.throw(arg);
-      } catch (err) {
-        reject(err); // the generator didn't catch it
-        return;
-      }
-      if (r.done) {
-        resolve(r.value);
-        return;
-      }
-      Promise.resolve(r.value).then(
-        (value) => step("next", value),
-        (err) => step("throw", err),
-      );
-    };
-    step("next");
-  });
-}
 `,
   },
   "map-async-limit": {
-    entry: "__judgeMapAsync",
-    starterCode: `/** Map every item through fn at once; results in input order. */
-function mapAsync<T, R>(items: Iterable<T>, fn: (item: T) => Promise<R>): Promise<R[]> {
-  // Your code here
-  return Promise.resolve([]);
-}
-
-/** Like mapAsync, with at most \`size\` calls in flight. */
+    entry: "__judgeMapAsyncLimit",
+    starterCode: `/** Map every item through fn with at most \`size\` calls in flight; results in input order. */
 function mapAsyncLimit<T, R>(
   items: Iterable<T>,
   fn: (item: T) => Promise<R>,
@@ -225,11 +111,7 @@ function mapAsyncLimit<T, R>(
   return Promise.resolve([]);
 }
 `,
-    solutionCode: `function mapAsync<T, R>(items: Iterable<T>, fn: (item: T) => Promise<R>): Promise<R[]> {
-  return Promise.all(Array.from(items, (item) => fn(item)));
-}
-
-async function mapAsyncLimit<T, R>(
+    solutionCode: `async function mapAsyncLimit<T, R>(
   items: Iterable<T>,
   fn: (item: T) => Promise<R>,
   size = Infinity,
@@ -255,8 +137,8 @@ async function mapAsyncLimit<T, R>(
 }
 `,
   },
-  "promise-basics-and-helpers": {
-    entry: "__judgePromises",
+  "promise-basics": {
+    entry: "__judgeBasics",
     starterCode: `/**
  * Settle 1,000 ms after the call: resolve "Data fetched successfully!",
  * or reject with new Error("Failed to fetch data.") when success is false.
@@ -270,18 +152,6 @@ function fetchData(success = true): Promise<string> {
 async function getData(success?: boolean): Promise<string> {
   // Your code here
   return "";
-}
-
-/** Like Promise.all, without calling it. */
-function promiseAll<T>(iterable: Iterable<T | PromiseLike<T>>): Promise<T[]> {
-  // Your code here
-  return Promise.resolve([]);
-}
-
-/** Settle like promise within ms, else reject with new Error("Timed out after <ms> ms"). */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  // Your code here
-  return promise;
 }
 `,
     solutionCode: `function fetchData(success = true): Promise<string> {
@@ -299,33 +169,6 @@ async function getData(success?: boolean): Promise<string> {
   } catch (err) {
     return (err as Error).message;
   }
-}
-
-function promiseAll<T>(iterable: Iterable<T | PromiseLike<T>>): Promise<T[]> {
-  return new Promise((resolve, reject) => {
-    const items = [...iterable];
-    const results: T[] = new Array(items.length);
-    let pending = items.length;
-    if (pending === 0) {
-      resolve(results); // nothing will ever count down
-      return;
-    }
-    items.forEach((item, i) => {
-      Promise.resolve(item).then((value) => {
-        results[i] = value; // by index, never in completion order
-        pending -= 1;
-        if (pending === 0) resolve(results);
-      }, reject);
-    });
-  });
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error("Timed out after " + ms + " ms")), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 `,
   },

@@ -1,10 +1,9 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), UI part D: the
-// star rating a 2025 interviewer probed for half stars, a thousand stars and
-// "well optimised" updates. HTML/CSS/JS is the default template, as in the
-// guide's worked example; a React template is the alternate. Both carry
-// complete reference files.
+// Apple front-end bank, UI part D: a star rating with half stars, a thousand
+// stars and updates that touch only what changed. HTML/CSS/JS is the default
+// template; a React template is the alternate. Both carry complete
+// reference files.
 
 const starCss: UiFile = {
   name: "styles.css",
@@ -368,7 +367,7 @@ export const appleUiProblemsD: Problem[] = [
     summary:
       "Click to fill, half stars from the click position, a thousand stars, and updates that touch only what changed.",
     prompt: [
-      "Build a star rating where a click fills every star up to the one clicked. Then handle the three things the interviewer probed: **half stars**, **a thousand stars**, and whether the update is **well optimised**. The candidate who reported this skipped half stars and was rejected.",
+      "Build a star rating where a click fills every star up to the one clicked, then make it handle **half stars**, **a thousand stars**, and updates that are **well optimised**.",
       "",
       "The default template is HTML/CSS/JS: write `createStarRating(root, { max, value, onChange })` in `star-rating.js`, returning `{ value, set(next) }`. The React template asks for a controlled `<StarRating max value onChange />` instead.",
       "",
@@ -378,8 +377,6 @@ export const appleUiProblemsD: Problem[] = [
       "- The rating is one focusable control: `role=\"slider\"` with `aria-valuenow`, `aria-valuemin` and `aria-valuemax`. The arrow keys step it by half a star, clamped at both ends.",
       "- With `max` at 1,000, the stars wrap inside their container, one listener serves all of them, and building them takes a single DOM insertion.",
       "- A change updates only the stars between the old and the new value. The HTML/CSS/JS demo counts the star elements each change writes to; the starter touches all 1,000.",
-      "",
-      "*Reported in: a 2025 front-end loop, where the probes were half stars, 1,000 stars and \"well optimised\" (Apple JavaScript guide, UI builds).*",
     ].join("\n"),
     hints: [
       "Decide half or whole from where the click landed: compare `event.clientX - box.left` with half the star's `getBoundingClientRect().width`.",
@@ -399,7 +396,7 @@ export const appleUiProblemsD: Problem[] = [
       "",
       "## Worth saying out loud",
       "",
-      "- Skipping half stars is the reported failure. Ask about precision up front: halves, tenths, or whole stars only?",
+      "- Ask about precision up front: halves, tenths, or whole stars only? Half stars are the part most often skipped.",
       "- A thousand listeners and a full re-render on every change both work at 5 stars, and both are what \"well optimised\" is probing.",
       "- For a form, back the rating with real radio inputs, or submit it through a hidden input, so it participates in `FormData`. See [Star Rating in a Form](/problems/star-rating-form).",
       "- Screen readers announce `aria-valuetext`, such as \"3.5 of 5 stars\", which reads better than a bare number.",

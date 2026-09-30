@@ -1,8 +1,7 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), UI part A:
-// nested tabs built from a flat list (an IC3 technical round, 2025) and the
-// CSS-only masonry round (a senior full-stack loop, 2025). Both ship one
+// Apple front-end bank, UI part A: nested tabs built from a flat list, and a
+// CSS-only masonry layout. Both ship one
 // template with complete reference files; the preview has no network, so
 // fixtures live in the files.
 
@@ -349,12 +348,6 @@ export const appleUiProblemsA: Problem[] = [
       "- A row whose `parentId` matches nothing becomes a top-level tab. The fixture has one, so you can see where it lands.",
       "- Each level starts on its first tab. Selecting a tab at one level resets the levels below it.",
       "- Each tab row is a `tablist` with `tab`s and a `tabpanel`. The selected tab is the only one in the Tab order, and the arrow keys move along the row.",
-      "",
-      "## Follow-up",
-      "",
-      "The round went on to `useMemo` and `useCallback`. Where does each belong here, and where would it add nothing?",
-      "",
-      "*Reported in: an IC3 front-end technical round (Medium and LeetCode, 2025), which asked for nested tabs or an accordion.*",
     ].join("\n"),
     hints: [
       "Build a `Map` from id to a copy of each row with an empty `children` array first, then link each node to its parent in a second pass. That is O(n), and order-independent.",
@@ -371,7 +364,7 @@ export const appleUiProblemsA: Problem[] = [
       "- **Build the map first, then link.** That makes it O(n), and correct when a child is listed before its parent.",
       "- An unknown `parentId` becomes a root here. Say so, or ask whether such rows should be dropped.",
       "- `useMemo` belongs on `buildTree`, keyed on the list. `useCallback` only matters once a child is memoized with `React.memo`, where a new callback on every render would defeat it.",
-      "- Tabs with roving `tabIndex` and arrow keys follow the ARIA tabs pattern. An accordion with `aria-expanded` headings is the other valid answer the prompt allowed.",
+      "- Tabs with roving `tabIndex` and arrow keys follow the ARIA tabs pattern. An accordion with `aria-expanded` headings is the other reasonable way to show the same tree.",
     ].join("\n"),
     ui: tabsUi,
   },
@@ -393,12 +386,6 @@ export const appleUiProblemsA: Problem[] = [
       "- Gutters are even, horizontally and vertically.",
       "- No card is ever split across two columns.",
       "- Change only `styles.css`.",
-      "",
-      "## Worth discussing",
-      "",
-      "What does the CSS-only version do to the **order** of the cards? When would you reach for JavaScript instead?",
-      "",
-      "*Reported in: a senior full-stack onsite that included \"a CSS masonry round\" (Front End Interview Handbook tips, Aug 2025).*",
     ].join("\n"),
     hints: [
       "CSS multi-column layout (`columns`) flows content down one column and into the next, which is masonry-shaped packing for free.",

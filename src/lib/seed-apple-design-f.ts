@@ -1,9 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple system-design prompts reported for Software Engineer loops (PracHub's
-// Apple list, 2025–2026), part F: the smartwatch sensing subsystem and the
-// wallet monolith-to-microservices migration. Prompts are restated in our own
-// words; the smartwatch prompt is reconstructed from its published overview.
+// Apple system-design prompts, part F: the smartwatch sensing subsystem and
+// the wallet monolith-to-microservices migration.
 
 export const appleDesignProblemsF: Problem[] = [
   {
@@ -20,8 +18,6 @@ export const appleDesignProblemsF: Problem[] = [
       "Constraints: the watch has a battery of roughly 1 Wh that must last well over a day, so continuous sensing gets a budget of a few milliwatts on average; the sensor window on the back is a few square centimetres; and readings must hold up on a moving, sweating wrist across skin tones, ages, tattoos, cold weather and loose straps. A wrong heart rate shown confidently is worse than no reading.",
       "",
       "Cover: which sensors you choose and why; the trade-offs among accuracy, power, size and reliability; the architecture from sensor to application processor; the signal processing and how it stays robust; how hardware and firmware are integrated and calibrated; how you validate and debug the system; and how you work with component suppliers on quality.",
-      "",
-      "*Reported as: a smartwatch sensor subsystem design covering sensor selection, trade-offs, signal processing, hardware–firmware integration, validation and supplier quality (PracHub, Apple Software Engineer onsite, Feb 2026). The original prompt is not public; this version is reconstructed from its overview.*",
     ].join("\n"),
     hints: [
       "Optical heart rate (PPG) is dominated by LED power and corrupted by motion. Those two facts drive everything: adaptive LED current and sampling rate for the power budget, and an accelerometer sampled on the same clock as the noise reference for artifact rejection.",
@@ -110,8 +106,6 @@ export const appleDesignProblemsF: Problem[] = [
       "Define the service boundaries (for example identity and KYC, wallet, ledger, payments orchestration, risk and fraud, notifications); who owns which data and how it is migrated; API design and idempotency; how transactions that cross services work, and whether you would use sagas or two-phase commit; consistency and reconciliation; authentication and authorisation; PCI and PII compliance; observability; and the rollout strategy, including strangler routing, canaries and rollback.",
       "",
       "Finish with a phased plan, the key risks, and the metrics that tell you the migration succeeded.",
-      "",
-      "*Reported as: migrating a monolithic digital wallet to microservices (PracHub, Apple Software Engineer technical screen, Sep 2025).*",
     ].join("\n"),
     hints: [
       "Draw boundaries around data ownership and rate of change, not around nouns. The ledger — immutable double-entry postings — is the one place money truth lives; everything else holds references to it.",

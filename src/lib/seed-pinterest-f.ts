@@ -10,7 +10,7 @@ export const pinterestProblemsF: Problem[] = [
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],
-    summary: "LC 642: a typing session over historical search frequencies.",
+    summary: "A typing session over search counts: top three by frequency, then alphabetically.",
     prompt: `Design a search-autocomplete session over historical sentences and their search counts: sentences[i] was searched times[i] times. The user then types one character at a time.
 
 \`\`\`
@@ -35,17 +35,10 @@ s.input("i")  => ["i love you", "island", "i love leetcode"]
 s.input(" ")  => ["i love you", "i love leetcode", "i a"]
 \`\`\`
 
-Up to 100 initial sentences, length <= 100, up to 5000 input() calls.
-
-## Follow-ups
-
-- Make input(c) cheaper than rescanning every sentence — where does the time go?
-- Generalize to top-k.
-- The user types a prefix nothing matches — avoid wasted work for the rest of that query.`,
+Up to 100 initial sentences, length <= 100, up to 5000 input() calls.`,
     hints: [
       "Keep the frequency table plus the current typed query as session state. Every non-# keystroke extends the query; # commits and clears it.",
       "The comparator is the whole trick: sort matches by (-frequency, sentence) and take three.",
-      "The scale follow-up wants a trie with a cursor: descend one node per keystroke instead of re-walking the prefix, and remember when you have fallen off the trie so the rest of the query costs nothing.",
     ],
     solution: `## Approach
 
@@ -69,7 +62,13 @@ class AutocompleteSystem:
         return matches[:3]
 \`\`\`
 
-With <= 100 stored sentences this scan is O(S · L + S log S) per keystroke and comfortably fits the constraints — say that, then answer the follow-up: a **trie with a session cursor** makes each keystroke O(1) to descend (store per-node candidate lists or counts to avoid walking subtrees), falling off the trie marks the rest of the query dead, and top-k falls out of the same per-node ordering. That is the difference between the working answer and the design answer this question is really probing for.`,
+With <= 100 stored sentences this scan is O(S · L + S log S) per keystroke and comfortably fits the constraints — say that before optimizing.
+
+## Worth saying out loud
+
+- Where the time goes: every keystroke rescans every sentence. A **trie with a session cursor** descends one node per keystroke instead of re-walking the prefix; storing a small ranked candidate list (or counts) per node avoids walking subtrees.
+- Once the cursor falls off the trie, no later keystroke in that query can match, so mark the query dead and return [] without work until "#".
+- Top-k instead of top-3 falls out of the same per-node ordering.`,
     judge: {
       starterCode: `class AutocompleteSystem {
   /**
@@ -105,7 +104,7 @@ With <= 100 stored sentences this scan is O(S · L + S log S) per keystroke and 
 }`,
       tests: [
         {
-          name: "The LC 642 session, verbatim",
+          name: "Example session",
           input: [
             ["AutocompleteSystem", "input", "input", "input", "input", "input", "input"],
             [
@@ -191,29 +190,16 @@ You are given a string s that is the output of **exactly one** such step. Return
 "0", "01", "1", "a1"  =>  []
 \`\`\`
 
-Return the originals **sorted ascending**. Originals can be exponentially long, so build them as (count, digit) runs and expand at the end — s stays short (<= 20) when materializing.
-
-## Part (b)
-
-countOriginals(s): just the number of originals, for s up to length 2000.
-
-## Follow-ups
-
-- Why can one input be unambiguous while a near-identical one explodes?
-- Where exactly does the "adjacent digits differ" rule come from in the forward step?`,
+Return the originals **sorted ascending**. Originals can be exponentially long, so build them as (count, digit) runs and expand at the end — s stays short (<= 20) when materializing.`,
     hints: [
       "Scan positions: at index i, the count is s[i..j) and the digit is s[j], for every j > i — then recurse from j + 1. A count may not start with \"0\".",
       "Carry the previous digit through the recursion and reject a pair whose digit equals it — that is the forward step's maximal-run rule reflected backward.",
-      "Part (b) is the same recursion memoized on (index, previousDigit) — counting parses instead of materializing them.",
     ],
     solution: `## Approach
 
 Backward parsing with backtracking. At position i, every split "count = s[i..j), digit = s[j]" is a candidate pair — counts can be any length, so j ranges over the rest of the string — subject to: the count has no leading zero, and the digit differs from the previous pair's digit (equal digits would have been a single longer run in the forward step). Originals are built in compact (count, digit) run form and expanded only at the end, since a count like 121 expands to 121 characters.
 
 \`\`\`python
-from functools import lru_cache
-
-
 def reverse_count_and_say(s):
     results = []
 
@@ -235,26 +221,14 @@ def reverse_count_and_say(s):
         return [""]
     backtrack(0, "", [])
     return sorted(results)
-
-
-def count_originals(s):
-    @lru_cache(maxsize=None)
-    def ways(i, prev):
-        if i == len(s):
-            return 1
-        if not s[i].isdigit() or s[i] == "0":
-            return 0
-        total = 0
-        for j in range(i + 1, len(s)):
-            digit = s[j]
-            if digit.isdigit() and digit != prev:
-                total += ways(j + 1, digit)
-        return total
-
-    return 1 if s == "" else ways(0, "")
 \`\`\`
 
-Counting runs in O(n² · 10) with memoization on (index, previous digit). The follow-up answer: ambiguity comes entirely from where the count ends — "1213" can end its first count at "1" or "121" — while the adjacent-digits rule exists because the forward step always emits **maximal** runs, so two adjacent pairs with the same digit could never have been produced.`,
+Exponential in the worst case, because the output itself can be.
+
+## Worth saying out loud
+
+- Ambiguity comes entirely from where each count ends — "1213" can end its first count at "1" or at "121" — so a near-identical input with fewer valid count boundaries can have a single parse.
+- The adjacent-digits rule exists because the forward step always emits **maximal** runs: two adjacent pairs with the same digit could never have been produced.`,
     judge: {
       starterCode: `/**
  * All originals whose count-and-say step produces s, sorted ascending.
@@ -265,9 +239,94 @@ function reverseCountAndSay(s) {
   // Your code here
   return [];
 }
+`,
+      entry: "reverseCountAndSay",
+      tests: [
+        {
+          name: "The classic ambiguity",
+          input: ["1213"],
+          expected: ["23", "3".repeat(121)],
+        },
+        { name: "Single pair", input: ["11"], expected: ["1"] },
+        { name: "Two ones", input: ["21"], expected: ["11"] },
+        { name: "Count one, digit zero", input: ["10"], expected: ["0"] },
+        {
+          name: "Adjacent equal digits are rejected",
+          input: ["11112"],
+          expected: ["1".repeat(11) + "2", "1" + "2".repeat(11), "2".repeat(1111)],
+        },
+        { name: "Leading zero count", input: ["01"], expected: [] },
+        { name: "Odd leftover digit", input: ["1"], expected: [] },
+        { name: "Empty round trip", input: [""], expected: [""] },
+      ],
+    },
+  },
+  {
+    slug: "count-count-and-say-originals",
+    title: "Count the Originals of a Count-and-Say String",
+    category: "algorithms",
+    difficulty: "hard",
+    companies: ["pinterest"],
+    summary: "The reverse parse, memoized on (index, previous digit) — count, don't build.",
+    prompt: `The count-and-say step reads a digit string run by run and writes count then digit for each run: "23" -> "1213" (one 2, one 3); "3" repeated 121 times -> "1213" as well; "11" -> "21"; "0" -> "10".
 
-/**
- * Just how many originals there are.
+You are given a string s that is the output of **exactly one** such step. Return **how many** original strings produce s.
+
+## A valid parse of s
+
+- s splits left to right into pairs (count, digit): count is a positive integer with no leading zero (multi-digit counts like "121" are legal), digit is exactly one character 0-9.
+- Consecutive pairs must have **different** digits — equal digits would have been one longer run.
+- If s cannot be parsed, the answer is 0. s = "" has exactly one original, "".
+
+\`\`\`
+"1213"  => 2     ("23" and "3" x 121)
+"11112" => 3     ((1,1)(1,1)(1,2) is rejected: two consecutive runs of "1")
+"0"     => 0
+\`\`\`
+
+s can be up to 2000 characters long, so the originals can't be listed — count them.`,
+    hints: [
+      "At index i, the count is s[i..j) and the digit is s[j], for every j > i. The number of parses from i onward depends only on i and the previous pair's digit.",
+      "Memoize ways(i, prevDigit): 1 at the end of the string, 0 when s[i] is not a digit or is \"0\", otherwise the sum over valid j of ways(j + 1, s[j]).",
+      "Up to 2000 characters means deep recursion — fill the table bottom-up from the end. A running total per digit turns the inner loop into a subtraction.",
+    ],
+    solution: `## Approach
+
+The same parse as listing the originals, but the number of ways to finish from position i depends only on i and the previous pair's digit, so count per (i, prev) instead of building. A pair starting at i has a count s[i..j) with no leading zero and a digit s[j] that must differ from prev. Every character is part of a count or is a pair's digit, so a string with anything but digits has no parse.
+
+Filling the table from the end avoids 2000-deep recursion, and a running sum per digit removes the inner loop: acc[d] totals ways[j + 1][d] over the positions j > i holding digit d, so the parses from i with previous digit p are sum(acc) − acc[p].
+
+\`\`\`python
+def count_originals(s):
+    n = len(s)
+    if n == 0:
+        return 1
+    if not s.isdigit():
+        return 0
+    # ways[i][p]: parses of s[i:] when the previous pair's digit is p (10 = none)
+    ways = [[0] * 11 for _ in range(n + 1)]
+    ways[n] = [1] * 11
+    acc = [0] * 10
+    for i in range(n - 1, -1, -1):
+        if s[i] != "0":
+            total = sum(acc)
+            for p in range(11):
+                ways[i][p] = total - (acc[p] if p < 10 else 0)
+        d = int(s[i])
+        acc[d] += ways[i + 1][d]
+    return ways[0][10]
+\`\`\`
+
+O(n · 10) time and space. The counts grow fast; Python's integers don't overflow, and in a fixed-width language you would say what bound the input promises.
+
+## Worth saying out loud
+
+- Counting is polynomial even though listing is exponential: the answer only needs how many ways each suffix parses, not the parses themselves.
+- The previous digit is the only history that matters, which is why the state is (i, prev) and not the whole prefix.`,
+    judge: {
+      starterCode: `/**
+ * How many originals does the count-and-say string s have?
+ * @param {string} s
  * @returns {number}
  */
 function countOriginals(s) {
@@ -275,30 +334,15 @@ function countOriginals(s) {
   return 0;
 }
 `,
-      entry: "__judgeReverseSay",
-      driverCode: `function __judgeReverseSay(op, s) {
-  return op === "all" ? reverseCountAndSay(s) : countOriginals(s);
-}`,
+      entry: "countOriginals",
       tests: [
-        {
-          name: "The classic ambiguity",
-          input: ["all", "1213"],
-          expected: ["23", "3".repeat(121)],
-        },
-        { name: "Single pair", input: ["all", "11"], expected: ["1"] },
-        { name: "Two ones", input: ["all", "21"], expected: ["11"] },
-        { name: "Count one, digit zero", input: ["all", "10"], expected: ["0"] },
-        {
-          name: "Adjacent equal digits are rejected",
-          input: ["all", "11112"],
-          expected: ["1".repeat(11) + "2", "1" + "2".repeat(11), "2".repeat(1111)],
-        },
-        { name: "Leading zero count", input: ["all", "01"], expected: [] },
-        { name: "Odd leftover digit", input: ["all", "1"], expected: [] },
-        { name: "Empty round trip", input: ["all", ""], expected: [""] },
-        { name: "Count the classic", input: ["count", "1213"], expected: 2 },
-        { name: "Count the triple", input: ["count", "11112"], expected: 3 },
-        { name: "Count invalid", input: ["count", "0"], expected: 0 },
+        { name: "Count the classic", input: ["1213"], expected: 2 },
+        { name: "Count the triple", input: ["11112"], expected: 3 },
+        { name: "Count invalid", input: ["0"], expected: 0 },
+        { name: "Empty string has one original", input: [""], expected: 1 },
+        { name: "Single pair", input: ["21"], expected: 1 },
+        { name: "Too many parses to list", input: ["12".repeat(50)], expected: 670976837021 },
+        { name: "Two thousand characters", input: ["1".repeat(2000)], expected: 1 },
       ],
     },
   },

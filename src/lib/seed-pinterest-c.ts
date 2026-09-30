@@ -19,14 +19,7 @@ reservations = [(10,14,3), (11,13,2), (13.5,15,1), (16,20,2)]
 n = 2  =>  [[9,11], [13,13.5], [14,22]]
 n = 3  =>  [[9,10], [14,22]]
 n = 6  =>  []
-\`\`\`
-
-## Follow-ups
-
-- The party also needs a slot at least duration long — filter the intervals.
-- Book the party into the first feasible slot (now state mutates) — what structure keeps this fast?
-- Many queries with different n — precompute the occupancy step function once, answer each query in O(#segments).
-- Peak occupancy / max party size at time t — the classic Meeting Rooms II questions.`,
+\`\`\``,
     hints: [
       "Turn each reservation into two events: +ppl at start, −ppl at end. Occupancy only changes at events, so it is constant on each segment between consecutive event times.",
       "Walk the timeline once: open a free interval when capacity − occupied >= n, close it when that stops holding, and merge adjacent qualifying segments.",
@@ -62,7 +55,14 @@ def free_intervals(open_t, close_t, capacity, reservations, n):
     return out
 \`\`\`
 
-O(m log m) for the sort, O(m) for the walk. The half-open convention does the subtle work: a reservation ending at 14 and another starting at 14 never overlap, because the −ppl lands on the same event time as the +ppl and both are applied before the segment [14, …] is judged.`,
+O(m log m) for the sort, O(m) for the walk. The half-open convention does the subtle work: a reservation ending at 14 and another starting at 14 never overlap, because the −ppl lands on the same event time as the +ppl and both are applied before the segment [14, …] is judged.
+
+## Worth saying out loud
+
+- A minimum stay of d minutes is a filter on the output: keep intervals with b − a >= d.
+- Many queries with different n: build the occupancy step function once and answer each query with one O(#segments) walk.
+- Booking the party into the first feasible slot makes the data mutable; a balanced tree or segment tree over the event times keeps inserts and "first segment with room" queries logarithmic.
+- Peak occupancy, or the largest party that fits at time t, reads off the same sweep — the Meeting Rooms II family.`,
     judge: {
       starterCode: `/**
  * All maximal [a, b] within [openT, closeT] where free seats >= n.
@@ -82,7 +82,7 @@ function freeIntervals(openT, closeT, capacity, reservations, n) {
       entry: "freeIntervals",
       tests: [
         {
-          name: "Party of 2 from the write-up",
+          name: "Party of 2",
           input: [9, 22, 5, [[10, 14, 3], [11, 13, 2], [13.5, 15, 1], [16, 20, 2]], 2],
           expected: [[9, 11], [13, 13.5], [14, 22]],
         },
@@ -128,13 +128,7 @@ pins = [(1,4,"L"), (2,3,"R"), (4,8,"R"), (6,9,"L")], screenLen = 5  =>  2
 window [1,6] shows (1,4,L) and (2,3,R); window [4,9] shows (4,8,R) and (6,9,L)
 \`\`\`
 
-Up to 100,000 pins; coordinates up to 10^9 and possibly fractional; input unsorted.
-
-## Follow-ups
-
-- Return the scroll offset that achieves the maximum.
-- K columns instead of two.
-- Count pins with **any** overlap instead of full visibility — which technique replaces this one? (A +1/−1 sweep.)`,
+Up to 100,000 pins; coordinates up to 10^9 and possibly fractional; input unsorted.`,
     hints: [
       "An optimal window can always be slid down until its top edge touches some pin's top without losing a fully visible pin — so only the n pin tops matter as candidate offsets.",
       "Within one column, non-overlapping pins sorted by top are also sorted by bottom, so the fully visible ones for window [y, y + L] form one contiguous run.",
@@ -171,7 +165,13 @@ def max_visible_pins(pins, screen_len):
     return best
 \`\`\`
 
-O(n log n) — n candidate offsets, two binary searches each. The hi − lo count is exactly the run because lo is the first pin starting inside the window and hi is one past the last pin ending inside it; the same-column non-overlap guarantee is what makes those two indexes bracket a single run.`,
+O(n log n) — n candidate offsets, two binary searches each. The hi − lo count is exactly the run because lo is the first pin starting inside the window and hi is one past the last pin ending inside it; the same-column non-overlap guarantee is what makes those two indexes bracket a single run.
+
+## Worth saying out loud
+
+- Returning the best scroll offset is free: remember the y that produced the maximum.
+- Nothing above depends on there being two columns; K columns cost O(n log n) the same way.
+- Counting pins with *any* overlap instead of full visibility is a different shape: turn each pin into a +1/−1 event pair and sweep.`,
     judge: {
       starterCode: `/**
  * Max pins fully visible in any window of length screenLen.
@@ -187,7 +187,7 @@ function maxVisiblePins(pins, screenLen) {
       entry: "maxVisiblePins",
       tests: [
         {
-          name: "Feed from the write-up",
+          name: "Example feed",
           input: [[[1, 4, "L"], [2, 3, "R"], [4, 8, "R"], [6, 9, "L"]], 5],
           expected: 2,
         },
@@ -237,16 +237,10 @@ nums = [1, 1, 1], k = 5  =>  5
     [1], [1], [1], [1,1], [1,1]   ([1,1,1] = 3×3 = 9)
 \`\`\`
 
-n up to 10^5, values up to 10^5, k up to 10^15 — target O(n).
-
-## Follow-ups
-
-- Why does a sliding window work here, and what breaks if nums can contain zeros or negatives?
-- Reported from the same phone screen: LC 1235 Maximum Profit in Job Scheduling — sort by end time, DP with binary search over end times.`,
+n up to 10^5, values up to 10^5, k up to 10^15 — target O(n).`,
     hints: [
       "With positive values, fixing the right end and moving the left end rightward strictly shrinks both the sum and the length — so the score is monotone and valid left ends form a suffix.",
       "Keep a window [left, right] with score < k: for each right, shrink from the left while sum × length >= k, then every start in [left, right] works — add right − left + 1.",
-      "Zeros break strict monotonicity and negatives break it entirely — that is the follow-up answer.",
     ],
     solution: `## Approach
 
@@ -266,7 +260,12 @@ def count_subarrays(nums, k):
     return count
 \`\`\`
 
-O(n) time, O(1) space. The while loop can never push left past right + 1 — a single positive element has score value × 1, and if even that is >= k the window empties and contributes zero. Zeros would make the shrink non-strict (score stuck), negatives would break the suffix structure outright; both invalidate the window and push you toward prefix sums with different machinery.`,
+O(n) time, O(1) space. The while loop can never push left past right + 1 — a single positive element has score value × 1, and if even that is >= k the window empties and contributes zero.
+
+## Worth saying out loud
+
+- Say why the window is valid: positivity makes the score strictly monotone in both ends.
+- Zeros would make the shrink non-strict (the score can stall), and negatives break the suffix structure outright; both invalidate the window and push you toward prefix sums with different machinery.`,
     judge: {
       starterCode: `/**
  * Count non-empty subarrays with (sum × length) strictly less than k.
@@ -281,7 +280,7 @@ function countSubarrays(nums, k) {
 `,
       entry: "countSubarrays",
       tests: [
-        { name: "Example from the write-up", input: [[2, 1, 4, 3, 5], 10], expected: 6 },
+        { name: "Example", input: [[2, 1, 4, 3, 5], 10], expected: 6 },
         { name: "All ones", input: [[1, 1, 1], 5], expected: 5 },
         { name: "Nothing qualifies", input: [[5], 5], expected: 0 },
         { name: "Everything qualifies", input: [[1, 1], 100], expected: 3 },

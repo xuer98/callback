@@ -1,10 +1,10 @@
 import type { Problem, UiFile, UiWorkspace } from "./types";
 
-// Airbnb frontend tech-screen bank, part C: the widgets candidates report
-// building in vanilla HTML/CSS/JS — tabs with an initTabs(node) follow-up, a
-// star rating inside a form, and shuffle-and-deal cards. Each ships as an
-// HTML/CSS/JS template (the default, matching the reports) and a React one;
-// both carry complete reference files for the Solution tab.
+// Airbnb frontend bank, part C: vanilla HTML/CSS/JS widgets — tabs packaged
+// as initTabs(node), a star rating inside a form, and shuffle-and-deal cards.
+// Each ships as an HTML/CSS/JS template (the default) and a React one; both
+// carry complete reference files for the Solution tab. Classifying the dealt
+// hand is its own problem, in seed-airbnb-h.ts.
 
 // -- tabs ---------------------------------------------------------------------
 
@@ -671,7 +671,7 @@ button {
 
 const cardsHtml: UiFile = { name: "index.html", contents: `<div id="app" class="table"></div>\n` };
 
-const cardsLogicSolution = `// Cards: build a deck, shuffle (Fisher–Yates), deal N, evaluate a 5-card hand (follow-up).
+const cardsLogicSolution = `// Cards: build a deck, shuffle (Fisher–Yates), deal N.
 const SUITS = [
   { name: 'spades', symbol: '♠', color: 'black' },
   { name: 'hearts', symbol: '♥', color: 'red' },
@@ -699,25 +699,6 @@ function shuffle(deck, random = Math.random) {
 function deal(deck, n = 5) {
   if (deck.length < n) throw new Error(\`Only \${deck.length} cards left\`);
   return deck.splice(0, n);              // mutates: removes dealt cards from the deck
-}
-
-// Follow-up: classify a 5-card poker hand.
-function evaluateHand(hand) {
-  const values = hand.map((c) => c.value).sort((a, b) => a - b);
-  const counts = Object.values(values.reduce((m, v) => ((m[v] = (m[v] || 0) + 1), m), {}))
-    .sort((a, b) => b - a);
-  const flush = hand.every((c) => c.suit === hand[0].suit);
-  const distinct = new Set(values).size === 5;
-  const straight = distinct && (values[4] - values[0] === 4 || values.join() === '1,10,11,12,13'); // A-high
-  if (straight && flush) return 'Straight flush';
-  if (counts[0] === 4) return 'Four of a kind';
-  if (counts[0] === 3 && counts[1] === 2) return 'Full house';
-  if (flush) return 'Flush';
-  if (straight) return 'Straight';
-  if (counts[0] === 3) return 'Three of a kind';
-  if (counts[0] === 2 && counts[1] === 2) return 'Two pair';
-  if (counts[0] === 2) return 'One pair';
-  return 'High card';
 }
 `;
 
@@ -806,7 +787,7 @@ export default function App() {
     const cards = deal(deck.current, 5);
     setHand(cards);
     setDealCount((n) => n + 1);                  // part of each card's key → fresh nodes → the CSS animation restarts
-    setResult(\`\${evaluateHand(cards)} · \${deck.current.length} cards left\`);
+    setResult(\`\${deck.current.length} cards left\`);
   };
 
   return (
@@ -913,7 +894,7 @@ function mountDealer(root) {
     if (deck.length < 5) deck = shuffle(createDeck());   // reshuffle when the deck runs low
     const cards = deal(deck, 5);
     hand.replaceChildren(...cards.map(renderCard));      // replacing nodes re-triggers the CSS animation
-    result.textContent = \`\${evaluateHand(cards)} · \${deck.length} cards left\`;
+    result.textContent = \`\${deck.length} cards left\`;
   }
 
   button.addEventListener('click', dealHand);
@@ -941,8 +922,8 @@ export const airbnbProblemsC: Problem[] = [
     difficulty: "medium",
     companies: ["airbnb"],
     summary:
-      "The 15-minute tabs prompt, then the follow-up that matters: two independent instances from one initializer.",
-    prompt: `Create a tab UI that switches panels when the tabs are clicked — reported as a 15–20 minute HTML/CSS/JS task. The follow-up is the real test: package it as \`initTabs(node)\`, a jQuery-plugin-style initializer, so the **two** tab sets already on the page work independently. (Prefer React? Switch the template — the same exercise is there as a \`Tabs\` component rendered twice.)
+      "A tab UI packaged as an initializer — two independent instances from one function.",
+    prompt: `Create a tab UI that switches panels when the tabs are clicked, packaged as \`initTabs(node)\` — a jQuery-plugin-style initializer — so the **two** tab sets already on the page work independently. (Prefer React? Switch the template — the same exercise is there as a \`Tabs\` component rendered twice.)
 
 ## Requirements
 
@@ -951,14 +932,7 @@ export const airbnbProblemsC: Problem[] = [
 - \`initTabs(root)\` wires up one \`[data-tabs]\` element and returns a small API (\`activate(index)\`). Initializing the second set must not touch the first.
 - Use "the right ID pattern": each tab's \`aria-controls\` points at its panel's id and each panel's \`aria-labelledby\` points back — unique across instances.
 - Keep \`aria-selected\` in sync; hide inactive panels with the \`hidden\` attribute.
-
-## Follow-up
-
-Arrow-key navigation between tabs (WAI-ARIA tabs pattern: roving \`tabindex\`, Left/Right wrap around). URL-synced tabs. Lazy-rendering heavy panels.
-
-## Worth asking out loud
-
-Activate on click only, or also on arrow keys? Should inactive panels stay in the DOM or be removed? Is the markup given, or do I generate it?`,
+- Left/Right arrow keys move between tabs and wrap around, with a roving \`tabindex\` so only the active tab is in the tab order.`,
     hints: [
       "Scope every query to the root: `root.querySelector(':scope > [role=\"tablist\"]')` and `:scope > [role=\"tabpanel\"]` — that's what stops nested or sibling tab sets from hijacking each other.",
       "An instance counter (`tabs-1`, `tabs-2`, …) gives each set unique ids for aria-controls / aria-labelledby; one delegated click listener on the tablist replaces one listener per tab. In React, `useId()` is that counter.",
@@ -987,7 +961,7 @@ The React version keeps the same shape — one active index, \`useId()\` as the 
     companies: ["airbnb"],
     summary:
       "Real radio inputs behind the stars: the form submits itself, the keyboard works, N instances are N names.",
-    prompt: `Build a star-rating widget that lives **inside a form** and submits the right value — reported in both the phone screen and an onsite round. The form, basic CSS, and two mount points are given; you add the control. Two ratings share the page, so **multiple instances** must work. Available as an HTML/CSS/JS template and a React one.
+    prompt: `Build a star-rating widget that lives **inside a form** and submits the right value. The form, basic CSS, and two mount points are given; you add the control. Two ratings share the page, so **multiple instances** must work. Available as an HTML/CSS/JS template and a React one.
 
 ## Requirements
 
@@ -995,15 +969,7 @@ The React version keeps the same shape — one active index, \`useId()\` as the 
 - Submitting the form includes each rating as \`name → value\` (the page prints \`FormData\` under the button).
 - Keyboard users can pick a rating; screen readers hear a labelled group.
 - The two instances never interfere with each other.
-- Hovering previews a rating without committing it.
-
-## Follow-up
-
-Half stars. A read-only display for an average like 4.3. Making it a controlled component with \`value\`/\`onChange\`.
-
-## Worth asking out loud
-
-Does the value have to submit with **no** JavaScript? Is hover preview required? Should the control be clearable back to zero? Which value does an unselected rating submit — nothing, or 0?`,
+- Hovering previews a rating without committing it.`,
     hints: [
       "Say the key insight out loud: use real radio inputs. Then the form submits the value with zero JS, arrows/space work natively, screen readers get a radio group, and N instances are just N `name`s.",
       "Vanilla: render the radios 5 → 1 and lay the fieldset out with `flex-direction: row-reverse`, so `input:checked ~ label` lights every star to the left using only the sibling combinator. React: compute `star <= (hover || value)` per label instead.",
@@ -1029,26 +995,18 @@ Use real radio inputs. Then the form submits \`name=value\` with no JavaScript (
     companies: ["airbnb"],
     summary:
       "Fisher–Yates, a splice, and fresh nodes per deal — the reveal animation comes free.",
-    prompt: `With a deck of cards, shuffle, deal a five-card hand, and display it with a **reveal animation** — reported at Airbnb from 2019 through 2022 as "UI for a simple card game" / "dealing poker cards". The button, the hand container, and the card CSS (including the animation) are given, in an HTML/CSS/JS template and a React one.
+    prompt: `With a deck of cards, shuffle, deal a five-card hand, and display it with a **reveal animation**. The button, the hand container, and the card CSS (including the animation) are given, in an HTML/CSS/JS template and a React one.
 
 ## Requirements
 
 - Build a standard 52-card deck; \`Deal 5\` shuffles once and deals from the remaining deck, reshuffling when fewer than five cards remain.
 - Shuffle uniformly — \`arr.sort(() => Math.random() - 0.5)\` is the classic wrong answer.
 - Render each card with its rank and suit, red suits in red, and stagger the reveal animation across the five cards.
-- Show how many cards are left in the deck.
-
-## Follow-up
-
-Evaluate the hand (pair, two pair, … straight flush). Two players — who wins? A flip animation with two faces.
-
-## Worth asking out loud
-
-Jokers? Deal from the remaining deck or reshuffle every time? Stagger, flip, or fade for the reveal? Is hand evaluation in scope?`,
+- Show how many cards are left in the deck.`,
     hints: [
       "Pure logic first, no DOM: createDeck from SUITS × RANKS, an in-place Fisher–Yates shuffle (swap i with a random j ≤ i, from the end down), and deal via splice so the deck really shrinks.",
       "Make every deal produce fresh nodes so the CSS animation restarts: `hand.replaceChildren(...cards.map(renderCard))` in vanilla, or a deal counter folded into each card's `key` in React; set `animationDelay` per index for the stagger.",
-      "Hand evaluation is a count histogram: sort the values, count duplicates, check flush (all one suit) and straight (five distinct values spanning 4, plus the A-high case).",
+      "Keep the deck between deals — a closure variable in vanilla, a `useRef` in React, since it never needs to trigger a render — and rebuild and reshuffle it when fewer than five cards remain.",
     ],
     solution: `## Approach
 
@@ -1059,7 +1017,8 @@ Separate the game logic from the rendering. \`createDeck\` is a product of suits
 - Say why \`sort(() => Math.random() - 0.5)\` is wrong before anyone asks: the comparator is inconsistent, so the result is biased and engine-dependent. Fisher–Yates is O(n) and uniform.
 - New nodes restart the animation because they're new; toggling a class on the same nodes would need the reflow trick.
 - Two lines of \`console.assert\` (52 cards, no duplicates) beat a minute of hand-waving.
-- Hand evaluation is a count histogram plus two booleans; "two players — who wins?" maps categories to ranks and tie-breaks on the sorted values. Flip animation: two faces with \`backface-visibility: hidden\` and \`rotateY(180deg)\`.`,
+- Scoring the hand is its own problem — [Classify a Poker Hand](/problems/poker-hand-category). Two players is then a comparison: category first, then tie-breaks on the ranks.
+- A flip animation: two faces with \`backface-visibility: hidden\` and \`rotateY(180deg)\`.`,
     ui: cardsUi,
   },
 ];

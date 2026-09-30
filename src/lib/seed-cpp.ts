@@ -104,21 +104,14 @@ public:
   "round-numeric-strings": {
     entry: "__call",
     starterCode: `string roundNumericString(const string& s) {
-    // Part 1: round one numeric string to the nearest integer, rounding
-    // half away from zero. No leading zeros in the result, and never "-0".
+    // Round one numeric string to the nearest integer, rounding half away
+    // from zero. No leading zeros in the result, and never "-0".
     // Values can exceed any built-in numeric type - stay in string land.
     return s;
 }
-
-string roundAll(const string& csv) {
-    // Part 2: round every value in a comma-separated list.
-    return csv;
-}
 `,
     driverCode: `Json __call(const vector<Json>& a) {
-    const string& kind = a[0].str();
-    const string& value = a[1].str();
-    return Json::of(kind == "csv" ? roundAll(value) : roundNumericString(value));
+    return Json::of(roundNumericString(a[0].str()));
 }`,
   },
   "violation-log-analyzer": {
@@ -239,23 +232,14 @@ public:
         return false;
     }
 };
-
-int settleFromStream(function<string()> readChunk) {
-    // Part 2: lines are "payer,payee,amount" (integer amounts).
-    // Return the minimum number of transactions to settle all balances
-    // (use your LineReader).
-    return 0;
-}
 `,
     driverCode: `Json __call(const vector<Json>& a) {
-    const string& kind = a[0].str();
-    vector<string> chunks = a[1].strings();
-    int cap = a[2].asInt();
+    vector<string> chunks = a[0].strings();
+    int cap = a[1].asInt();
     size_t next = 0;
     function<string()> readChunk = [&next, &chunks]() -> string {
         return next < chunks.size() ? chunks[next++] : string();
     };
-    if (kind == "settle") return Json::of(settleFromStream(readChunk));
     LineReader reader(readChunk);
     vector<Json> out;
     for (int n = 0; n < cap; n++) {

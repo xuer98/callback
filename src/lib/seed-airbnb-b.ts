@@ -1,9 +1,8 @@
 import type { Problem } from "./types";
 
-// Airbnb frontend tech-screen bank, part B: the DSA/OOD wildcards a minority
-// of frontend candidates report in the screen — the in-memory file system
-// ("build a cloud storage mechanism") and Pour Water with its print-the-terrain
-// warm-up. Judged in JavaScript, since the screen is.
+// Airbnb frontend bank, part B: the in-memory file system, Pour Water, and
+// the terrain printer that draws its result. Judged in JavaScript and
+// TypeScript.
 
 export const airbnbProblemsB: Problem[] = [
   {
@@ -14,7 +13,7 @@ export const airbnbProblemsB: Problem[] = [
     companies: ["airbnb"],
     summary:
       "A tree of nodes keyed by path segment — the OOD-style prompt where the implementation is the test.",
-    prompt: `Build an in-memory file system keyed by slash-separated paths — reported at Airbnb as "build a cloud storage mechanism" and "an online storage system": an OOD-style prompt where the logic is simple and the implementation is what's graded.
+    prompt: `Build an in-memory file system keyed by slash-separated paths — an object-oriented design exercise where the logic is simple and a clean implementation is the point.
 
 \`\`\`
 fs.create(path, value?)   // true if created; false if it already exists; throws if the parent is missing
@@ -23,15 +22,7 @@ fs.set(path, value)       // overwrite; throws when the path doesn't exist
 fs.list(path = "")        // child names, sorted; [] for a missing path
 \`\`\`
 
-Paths look like \`"a/b/c"\`; leading and trailing slashes are ignored, so \`"/a/"\` names the same node as \`"a"\`. \`create\` is \`mkdir\` without \`-p\`: \`"a/b"\` needs \`"a"\` to exist first. Every node can hold a value **and** children.
-
-## Follow-ups to be ready for
-
-\`delete(path)\` recursively, \`move(src, dst)\`, quotas ("reject writes over N bytes"), TTLs, versioning.
-
-## Worth asking out loud
-
-Are files and directories different things, or is every node the same shape? Does a duplicate \`create\` return false or throw? Should \`set\` create missing intermediate nodes?`,
+Paths look like \`"a/b/c"\`; leading and trailing slashes are ignored, so \`"/a/"\` names the same node as \`"a"\`. \`create\` is \`mkdir\` without \`-p\`: \`"a/b"\` needs \`"a"\` to exist first. Every node can hold a value **and** children.`,
     hints: [
       "One node shape — {children: Map, value} — for everything; the root is a node with no name. Split the path on '/' and drop empty segments so slashes at either end are harmless.",
       "Write one private walk(path) that follows segments and returns the node or null; create, get, set, and list are each a few lines on top of it.",
@@ -48,7 +39,7 @@ Every operation is O(depth) for the walk; \`list\` adds O(k log k) for the sort.
 
 - Ask whether files and directories differ before you model them — one node shape with an optional value covers both and keeps every method tiny.
 - \`#walk\` already has a \`create\` option: that's \`mkdir -p\` for free if the interviewer relaxes the parent rule, and it's how \`set\` could auto-create.
-- Follow-ups fall out of the tree: \`delete\` removes a child from its parent's Map (recursive for free); \`move\` is delete plus re-attach; quotas track bytes on write; TTL stores \`expiresAt\` and checks on read; versioning keeps an array of \`{value, ts}\` per node.`,
+- Extensions fall out of the tree: \`delete(path)\` removes a child from its parent's Map (recursive for free); \`move(src, dst)\` is delete plus re-attach; quotas ("reject writes over N bytes") track bytes on write; TTL stores \`expiresAt\` and checks on read; versioning keeps an array of \`{value, ts}\` per node.`,
     judge: {
       solutionCode: `// In-memory file system: create(path) / get(path) / set(path, value) / list(path)
 // Paths look like "a/b/c". Tree of nodes; each node may hold a value and children.
@@ -182,15 +173,13 @@ class FileSystem {
   },
   {
     slug: "pour-water",
-    title: "Pour Water, Then Print the Terrain",
+    title: "Pour Water",
     category: "algorithms",
     difficulty: "medium",
     companies: ["airbnb"],
     summary:
-      "Simulate one unit at a time — left, then right, else stay — and draw it as ASCII rows.",
-    prompt: `Reported on a senior frontend loop as a two-parter: **first write a function that prints the terrain**, then pour the water (LeetCode 755, Airbnb-tagged).
-
-\`heights[i]\` is the terrain height at index \`i\`. \`volume\` units of water are dropped at index \`k\`, one unit at a time. Each unit:
+      "Simulate one unit at a time — left, then right, else stay — and land only on strictly lower ground.",
+    prompt: `\`heights[i]\` is the terrain height at index \`i\`. \`volume\` units of water are dropped at index \`k\`, one unit at a time. Each unit:
 
 1. moves **left** if it can reach a strictly lower resting spot without ever climbing;
 2. otherwise moves **right** under the same rule;
@@ -200,40 +189,26 @@ A unit settles on the lowest reachable spot (the first such spot in its directio
 
 \`\`\`
 pourWater([2,1,1,2,1,2,2], 4, 3)  ->  [2,2,2,3,2,2,2]
-\`\`\`
-
-## Part 1 — print the terrain
-
-\`printTerrain(heights, water)\` takes the ground and the final heights after pouring and returns the picture as rows from the top down, joined by \`"\\n"\`: \`#\` for ground, \`~\` for water, a space for air. Rows are as wide as the terrain (spaces are kept).
-
-\`\`\`
-   ~
-#~~#~##
-#######
-\`\`\`
-
-## Worth asking out loud
-
-Does water prefer left over right when both are lower? What if the lowest reachable spot ties — which one wins (the first encountered while walking)? Can \`k\` be at an edge?`,
+\`\`\``,
     hints: [
       "Simulate each unit: walk left while the next cell is not higher, remembering the lowest cell seen; if that lowest cell is lower than k, drop the water there. Otherwise repeat to the right. Otherwise it stays at k.",
-      "For the picture, iterate levels from max(water) down to 1 and emit one character per column: ground if level ≤ heights[i], water if level ≤ water[i], else space.",
+      "Walking continues over flat ground (the next column is not higher), but a unit only lands on a strictly lower column. Update the lowest column only on a strict improvement, so ties keep the column closest to k.",
     ],
     solution: `## Approach
 
-Direct simulation is the intended solution at this size: for each unit, walk left while the next column isn't higher, tracking the lowest column seen; if it's strictly lower than \`k\`, the unit lands there. Otherwise do the same to the right; otherwise it stays at \`k\`. The terrain printer iterates height levels from the top down, emitting ground, water, or air per column — the "write the printer first" ordering is the interviewer handing you a debugging tool.
+Direct simulation is the intended solution at this size: for each unit, walk left while the next column isn't higher, tracking the lowest column seen; if it's strictly lower than \`k\`, the unit lands there. Otherwise do the same to the right; otherwise it stays at \`k\`.
 
 ## Complexity
 
-O(volume · n) for the pour — each unit may scan the whole row — and O(n · maxHeight) for the picture.
+O(volume · n) — each unit may scan the whole row; O(n) for the copy of the heights.
 
 ## Worth saying out loud
 
 - The walk condition is "not higher" (\`<=\`), but the landing condition is "strictly lower" (\`<\`) — flat ground is traversable, not a destination. Say that distinction; it's where most bugs live.
 - Left-before-right and first-lowest-wins are conventions from the problem statement — confirm them before coding.
-- The printer is a test harness in disguise: run it after every unit while debugging.`,
+- Draw the terrain after every unit while debugging — [Print Terrain and Water](/problems/print-terrain) is exactly that tool.`,
     judge: {
-      solutionCode: `// Pour Water (LeetCode 755, Airbnb-tagged)
+      solutionCode: `// Pour Water
 // heights[i] = terrain height; drop \`volume\` units at index k, one unit at a time.
 // Each unit tries to move LEFT to a strictly lower final resting spot, then RIGHT, else stays.
 function pourWater(heights, volume, k) {
@@ -253,8 +228,63 @@ function pourWater(heights, volume, k) {
   }
   return h;
 }
+`,
+      starterCode: `/** Final heights after dropping volume units at index k, one unit at a time. */
+function pourWater(heights, volume, k) {
+  return heights;
+}
+`,
+      entry: "pourWater",
+      tests: [
+        { name: "Classic example", input: [[2, 1, 1, 2, 1, 2, 2], 4, 3], expected: [2, 2, 2, 3, 2, 2, 2] },
+        { name: "Water flows left downhill", input: [[1, 2, 3, 4], 2, 2], expected: [2, 3, 3, 4] },
+        { name: "A basin fills then overflows both ways", input: [[3, 1, 3], 5, 1], expected: [4, 4, 4] },
+        { name: "No volume, no change", input: [[1, 2, 3], 0, 1], expected: [1, 2, 3] },
+        { name: "A single column just stacks", input: [[5], 3, 0], expected: [8] },
+        { name: "Right only when left can't go lower", input: [[2, 2, 1], 1, 1], expected: [2, 2, 2] },
+        { name: "Flat ground is walkable but not a destination", input: [[3, 2, 1, 2, 3], 2, 2], expected: [3, 2, 3, 2, 3] },
+        { name: "Ties keep the column closest to k", input: [[1, 1, 3, 1, 1], 1, 2], expected: [1, 2, 3, 1, 1] },
+      ],
+    },
+  },
+  {
+    slug: "print-terrain",
+    title: "Print Terrain and Water",
+    category: "algorithms",
+    difficulty: "easy",
+    companies: ["airbnb"],
+    summary:
+      "Levels from the top down, one character per column — ground, water, or air.",
+    prompt: `Draw a terrain and the water resting on it as ASCII art. \`heights[i]\` is the ground height at column \`i\`, and \`water[i]\` is the surface height there once the water has settled (\`water[i] >= heights[i]\`).
 
-// Follow-up that was reported alongside it: print the terrain + water as ASCII rows.
+\`printTerrain(heights, water)\` returns one row per level, from \`max(water)\` down to 1, joined by \`"\\n"\`: \`#\` for ground, \`~\` for water, and a space for air. Every row is as wide as the terrain — keep trailing spaces. An empty terrain prints the empty string.
+
+\`\`\`
+printTerrain([2, 1, 1, 2, 1, 2, 2], [2, 2, 2, 3, 2, 2, 2])  ->  "   ~   \\n#~~#~##\\n#######"
+
+   ~
+#~~#~##
+#######
+\`\`\``,
+    hints: [
+      "Iterate levels from max(water) down to 1 and emit one character per column: ground if level ≤ heights[i], water if level ≤ water[i], otherwise a space.",
+      "Build each row with map + join, then join the rows with newlines — no trailing newline, and no trimming.",
+    ],
+    solution: `## Approach
+
+Scan the picture the way it is printed: top level first. For each level from \`max(water)\` down to 1, each column is ground when the level is at or below its ground height, water when it is at or below its surface, and air otherwise. Ground is checked first, so a column with no water above it prints \`#\` all the way down.
+
+## Complexity
+
+O(n · max(water)) — one character per column per level.
+
+## Worth saying out loud
+
+- It pairs with [Pour Water](/problems/pour-water): print after every unit while debugging the simulation, and the bug is usually visible at a glance.
+- Keep the trailing spaces — rows of equal width are what make the picture a grid, and the tests compare exact strings.
+- \`Math.max(...[])\` is \`-Infinity\`, so an empty terrain prints no rows without a special case.`,
+    judge: {
+      solutionCode: `// Draw terrain + water as ASCII rows, top level first.
 function printTerrain(heights, water) {
   const top = Math.max(...water);
   const rows = [];
@@ -268,25 +298,15 @@ function printTerrain(heights, water) {
 function printTerrain(heights, water) {
   return "";
 }
-
-/** Final heights after dropping volume units at index k, one unit at a time. */
-function pourWater(heights, volume, k) {
-  return heights;
-}
 `,
-      entry: "__judgeWater",
-      driverCode: `function __judgeWater(kind, heights, a, b) {
-  return kind === "print" ? printTerrain(heights, a) : pourWater(heights, a, b);
-}`,
+      entry: "printTerrain",
       tests: [
-        { name: "Classic example", input: ["pour", [2, 1, 1, 2, 1, 2, 2], 4, 3], expected: [2, 2, 2, 3, 2, 2, 2] },
-        { name: "Water flows left downhill", input: ["pour", [1, 2, 3, 4], 2, 2], expected: [2, 3, 3, 4] },
-        { name: "A basin fills then overflows both ways", input: ["pour", [3, 1, 3], 5, 1], expected: [4, 4, 4] },
-        { name: "No volume, no change", input: ["pour", [1, 2, 3], 0, 1], expected: [1, 2, 3] },
-        { name: "A single column just stacks", input: ["pour", [5], 3, 0], expected: [8] },
-        { name: "Right only when left can't go lower", input: ["pour", [2, 2, 1], 1, 1], expected: [2, 2, 2] },
-        { name: "Print the classic", input: ["print", [2, 1, 1, 2, 1, 2, 2], [2, 2, 2, 3, 2, 2, 2]], expected: "   ~   \n#~~#~##\n#######" },
-        { name: "Print with no water", input: ["print", [1, 2], [1, 2]], expected: " #\n##" },
+        { name: "Print the classic", input: [[2, 1, 1, 2, 1, 2, 2], [2, 2, 2, 3, 2, 2, 2]], expected: "   ~   \n#~~#~##\n#######" },
+        { name: "No water", input: [[1, 2], [1, 2]], expected: " #\n##" },
+        { name: "Trailing spaces are kept", input: [[3, 1], [3, 1]], expected: "# \n# \n##" },
+        { name: "A basin", input: [[3, 1, 3], [3, 3, 3]], expected: "#~#\n#~#\n###" },
+        { name: "Water on flat ground", input: [[0, 0], [1, 1]], expected: "~~" },
+        { name: "An empty terrain", input: [[], []], expected: "" },
       ],
     },
   },

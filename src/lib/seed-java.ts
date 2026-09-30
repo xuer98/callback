@@ -114,22 +114,15 @@ export const javaJudges: Record<string, JudgeLanguage> = {
     entry: "__call",
     starterCode: `class Solution {
     String roundNumericString(String s) {
-        // Part 1: round one numeric string to the nearest integer, rounding
-        // half away from zero. No leading zeros in the result, and never "-0".
+        // Round one numeric string to the nearest integer, rounding half
+        // away from zero. No leading zeros in the result, and never "-0".
         // Values can exceed any built-in numeric type - stay in string land.
         return s;
-    }
-
-    String roundAll(String csv) {
-        // Part 2: round every value in a comma-separated list.
-        return csv;
     }
 }
 `,
     driverCode: `    static Json __call(List<Json> a) {
-        Solution s = new Solution();
-        String value = a.get(1).str();
-        return Json.of(a.get(0).str().equals("csv") ? s.roundAll(value) : s.roundNumericString(value));
+        return Json.of(new Solution().roundNumericString(a.get(0).str()));
     }`,
   },
   "violation-log-analyzer": {
@@ -261,28 +254,16 @@ class ViolationLog {
         return null;
     }
 }
-
-class Solution {
-    int settleFromStream(Supplier<String> readChunk) {
-        // Part 2: lines are "payer,payee,amount" (integer amounts).
-        // Return the minimum number of transactions to settle all balances
-        // (use your LineReader).
-        return 0;
-    }
-}
 `,
     driverCode: `    static Json __call(List<Json> a) {
-        final List<String> chunks = a.get(1).stringList();
+        final List<String> chunks = a.get(0).stringList();
         final int[] at = new int[] {0};
         Supplier<String> readChunk = new Supplier<String>() {
             public String get() {
                 return at[0] < chunks.size() ? chunks.get(at[0]++) : "";
             }
         };
-        if (a.get(0).str().equals("settle")) {
-            return Json.of(new Solution().settleFromStream(readChunk));
-        }
-        int cap = a.get(2).asInt();
+        int cap = a.get(1).asInt();
         LineReader reader = new LineReader(readChunk);
         List<Json> out = new ArrayList<Json>();
         for (int n = 0; n < cap; n++) {

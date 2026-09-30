@@ -1,8 +1,7 @@
 import type { Problem } from "./types";
 
-// Anduril phone-screen bank, part D: the no-built-ins string question (with
-// the reported "Encode String" / "Digit Encoder" RLE variants) and the
-// drone-zone OOD class.
+// Anduril bank, part D: string scans without built-ins (replace-all, a
+// run-length codec, in-place compression) and the drone-zone OOD class.
 
 export const andurilProblemsD: Problem[] = [
   {
@@ -13,41 +12,24 @@ export const andurilProblemsD: Problem[] = [
     companies: ["anduril"],
     summary:
       "Two-pointer scans with no library calls — the point is proving you can.",
-    prompt: `Given a string like \`"amaaba"\`, replace **every occurrence** of \`"aa"\` with another string — **without using built-in string methods** (no \`replace\`, \`find\`, \`split\`).
+    prompt: `Given a string like \`"amaaba"\`, replace **every occurrence** of a pattern such as \`"aa"\` with another string — **without using built-in string methods** (no \`replace\`, \`find\`/\`indexOf\`, \`split\`).
 
 \`\`\`
 replace_all("amaaba", "aa", "x")   ->  "amxba"
 replace_all("aaa",    "aa", "x")   ->  "xa"      (non-overlapping, left to right)
 \`\`\`
 
-## Phase 2 — Encode String / Digit Encoder
-
-Run-length encode a string, and decode it back (counts can be multi-digit):
-
-\`\`\`
-encode("aaabcc")   ->  "a3b1c2"
-decode("a3b1c12")  ->  "aaab" + "c" * 12
-\`\`\`
-
-## Phase 3
-
-Compress **in place**: given a list of characters, rewrite it as char + count (count omitted when 1) and return the new length, using O(1) extra space.
-
-## Worth asking out loud
-
-Overlapping matches (\`"aaa"\` against \`"aa"\` — one replacement or two)? Empty pattern? Case sensitivity? Multi-digit counts? Can the source contain digits (RLE then needs an escape scheme)?`,
+Matches are non-overlapping and found left to right, and an empty pattern leaves the string unchanged.`,
     hints: [
-      "Outer pointer walks the text; at each position, an inner pointer checks the pattern character by character. On a full match, emit the replacement and jump the pattern's length; otherwise emit one character and step once.",
-      "RLE both ways is the same two-pointer scan: find the run's end (or the number's end), emit, jump. In-place compression is a read pointer and a write pointer over the same list — write never overtakes read.",
+      "Outer pointer walks the text; at each position, an inner pointer checks the pattern character by character.",
+      "On a full match, emit the replacement and jump the pattern's length; otherwise emit one character and step once.",
     ],
     solution: `## Approach
 
-All three phases are the same discipline: an index-walking scan with explicit pointers, building output as you go. The interviewer has banned the standard library precisely to watch loop hygiene — off-by-ones at the boundary, the jump after a match, and the final partial run.
+An index-walking scan with explicit pointers, building output as you go. With the standard library off the table, what matters is loop hygiene — off-by-ones at the boundary, the jump after a match, and the case where the pattern runs past the end of the text.
 
 \`\`\`python
-from typing import List
-
-def replace_all(s: str, old: str, new: str) -> str:
+def replace_all(s, old, new):
     """non-overlapping, left-to-right; no str.replace / find / split"""
     if not old:
         return s
@@ -63,8 +45,66 @@ def replace_all(s: str, old: str, new: str) -> str:
             out.append(s[i])
             i += 1
     return ''.join(out)                     # if even join is banned: build a list and index
+\`\`\`
 
-def rle_encode(s: str) -> str:              # 'aaabcc' -> 'a3b1c2'
+## Complexity
+
+O(n·m) worst case — mention KMP for O(n + m) and move on rather than writing it.
+
+## Worth saying out loud
+
+- State the overlap rule before coding — \`"aaa"\` → \`"xa"\` under non-overlapping left-to-right.
+- Edge cases to volunteer: pattern longer than the text, a match ending exactly at the last character, an empty pattern.`,
+    judge: {
+      starterCode: `/**
+ * Replace every non-overlapping, left-to-right occurrence of pattern with
+ * replacement — no String.prototype helpers (no replace/indexOf/split).
+ * @param {string} s
+ * @param {string} pattern
+ * @param {string} replacement
+ * @returns {string}
+ */
+function replaceAll(s, pattern, replacement) {
+  // Your code here
+  return s;
+}
+`,
+      entry: "replaceAll",
+      tests: [
+        { name: "Prompt example", input: ["amaaba", "aa", "x"], expected: "amxba" },
+        { name: "Non-overlapping, left to right", input: ["aaa", "aa", "x"], expected: "xa" },
+        { name: "Match at the very end", input: ["baa", "aa", "yz"], expected: "byz" },
+        { name: "Pattern longer than the text", input: ["aa", "aaa", "x"], expected: "aa" },
+        { name: "Empty pattern changes nothing", input: ["abc", "", "x"], expected: "abc" },
+        { name: "Replacement contains the pattern", input: ["abab", "ab", "abab"], expected: "abababab" },
+      ],
+    },
+  },
+  {
+    slug: "run-length-encode-decode",
+    title: "Run-Length Encode and Decode",
+    category: "algorithms",
+    difficulty: "easy",
+    companies: ["anduril"],
+    summary: "Find the end of each run (or each number), emit, jump.",
+    prompt: `Run-length encode a string as each character followed by the length of its run, and decode such a string back. Counts can be more than one digit.
+
+\`\`\`
+encode("aaabcc")   ->  "a3b1c2"
+decode("a3b1c12")  ->  "aaab" + "c" * 12
+\`\`\`
+
+Source strings contain letters only, so every digit in an encoded string belongs to a count.`,
+    hints: [
+      "Encoding: from each position, walk forward while the character repeats; emit the character and the run length, then jump to the end of the run.",
+      "Decoding: read one character, then every digit after it as the count — counts can be longer than one digit.",
+    ],
+    solution: `## Approach
+
+Both directions are the same two-pointer scan: find where the current run (or number) ends, emit, and jump there.
+
+\`\`\`python
+def rle_encode(s):              # 'aaabcc' -> 'a3b1c2'
     out, i = [], 0
     while i < len(s):
         j = i
@@ -74,7 +114,8 @@ def rle_encode(s: str) -> str:              # 'aaabcc' -> 'a3b1c2'
         i = j
     return ''.join(out)
 
-def rle_decode(s: str) -> str:              # 'a3b1c12' -> 'aaab' + 'c'*12
+
+def rle_decode(s):              # 'a3b1c12' -> 'aaab' + 'c'*12
     out, i = [], 0
     while i < len(s):
         ch, i = s[i], i + 1
@@ -84,8 +125,73 @@ def rle_decode(s: str) -> str:              # 'a3b1c12' -> 'aaab' + 'c'*12
         out.append(ch * int(s[i:j]))
         i = j
     return ''.join(out)
+\`\`\`
 
-def compress_inplace(chars: List[str]) -> int:   # O(1) extra space
+O(n) for encoding, O(output) for decoding.
+
+## Worth saying out loud
+
+- Multi-digit counts are why decoding reads digits until the next non-digit instead of taking one character.
+- If the source could contain digits, "a12" would be ambiguous — an escape scheme or a fixed-width count is needed.
+- Always writing the count (even 1) keeps decoding unambiguous; dropping 1s saves space but only works when the source has no digits.`,
+    judge: {
+      starterCode: `/**
+ * "aaabcc" -> "a3b1c2"
+ * @param {string} s
+ * @returns {string}
+ */
+function rleEncode(s) {
+  // Your code here
+  return "";
+}
+
+/**
+ * "a3b1c12" -> "aaab" followed by twelve c's (counts can be multi-digit).
+ * @param {string} s
+ * @returns {string}
+ */
+function rleDecode(s) {
+  // Your code here
+  return "";
+}
+`,
+      entry: "__judgeRle",
+      driverCode: `function __judgeRle(direction, s) {
+  return direction === "encode" ? rleEncode(s) : rleDecode(s);
+}`,
+      tests: [
+        { name: "Encode runs", input: ["encode", "aaabcc"], expected: "a3b1c2" },
+        { name: "Encode single characters", input: ["encode", "abc"], expected: "a1b1c1" },
+        { name: "Encode an empty string", input: ["encode", ""], expected: "" },
+        { name: "Encode a long run", input: ["encode", "zzzzzzzzzzzzz"], expected: "z13" },
+        { name: "Decode multi-digit counts", input: ["decode", "a3b1c12"], expected: "aaabcccccccccccc" },
+        { name: "Decode an empty string", input: ["decode", ""], expected: "" },
+      ],
+    },
+  },
+  {
+    slug: "string-compression-in-place",
+    title: "String Compression in Place",
+    category: "algorithms",
+    difficulty: "medium",
+    companies: ["anduril"],
+    summary: "A read pointer and a write pointer over the same array — write never passes read.",
+    prompt: `Given a list of characters, compress it **in place**: each run becomes the character followed by the digits of its length, with the length omitted when the run is a single character. Return the new length; the first that many entries of the list hold the result. Use O(1) extra space.
+
+\`\`\`
+["a","a","b","b","b","c"]   ->  5, list starts ["a","2","b","3","c"]
+["z"] * 12                  ->  3, list starts ["z","1","2"]
+\`\`\``,
+    hints: [
+      "Keep a read pointer that finds the end of each run and a write pointer where the compressed output goes.",
+      "The compressed form of a run is never longer than the run itself, so the write pointer can never overtake the read pointer.",
+    ],
+    solution: `## Approach
+
+Two pointers over the same list. \`read\` finds the end of each run; \`write\` lays down the character and, for runs longer than one, the digits of the length. A run of k characters compresses to at most k entries, so writing never clobbers input that hasn't been read yet.
+
+\`\`\`python
+def compress_inplace(chars):
     write = read = 0
     while read < len(chars):
         ch, start = chars[read], read
@@ -100,80 +206,40 @@ def compress_inplace(chars: List[str]) -> int:   # O(1) extra space
     return write
 \`\`\`
 
-The reported **"File Validation"** title is the same family: a stack for bracket balance, or a line-oriented state machine (header → records → footer) that reports *which line* failed and *why*.
-
-\`\`\`python
-def valid_brackets(s: str) -> bool:
-    pairs, stack = {')': '(', ']': '[', '}': '{'}, []
-    for ch in s:
-        if ch in pairs.values():
-            stack.append(ch)
-        elif ch in pairs:
-            if not stack or stack.pop() != pairs[ch]:
-                return False
-    return not stack
-\`\`\`
-
-## Complexity
-
-All O(n); \`replace_all\` is O(n·m) worst case — mention KMP for O(n + m) and move on rather than writing it.
+O(n) time, O(1) extra space (the digits of one count aside).
 
 ## Worth saying out loud
 
-- State the overlap rule before coding — \`"aaa"\` → \`"xa"\` under non-overlapping left-to-right is the case the interviewer will test.
-- Edge cases to volunteer: pattern longer than the text, a match ending exactly at the last character, digits in the RLE source (needs an escape scheme — ask).
-- The in-place version's invariant — the write pointer never passes the read pointer — is worth one spoken sentence; it's why counts of 1 dropping a digit is safe.`,
+- The invariant — the write pointer never passes the read pointer — is worth one spoken sentence; it's why dropping the count for single characters is safe.
+- A count of 12 is two entries, "1" and "2"; converting it with \`str\` is fine, or peel digits off with division and reverse them.`,
     judge: {
       starterCode: `/**
- * Replace every non-overlapping, left-to-right occurrence of pattern with
- * replacement — no String.prototype helpers (no replace/indexOf/split).
- */
-function replaceAll(s, pattern, replacement) {
-  // Your code here
-  return s;
-}
-
-/** Phase 2: "aaabcc" -> "a3b1c2" */
-function rleEncode(s) {
-  return "";
-}
-
-/** Phase 2: "a3b1c12" -> "aaab" followed by twelve c's (counts can be multi-digit). */
-function rleDecode(s) {
-  return "";
-}
-
-/**
- * Phase 3: rewrite chars in place as char + count (count omitted when 1),
- * using O(1) extra space. Return the new length.
+ * Rewrite chars in place as char + count (count omitted when 1), using O(1)
+ * extra space. Return the new length.
+ * @param {string[]} chars
+ * @returns {number}
  */
 function compressInPlace(chars) {
+  // Your code here
   return chars.length;
 }
 `,
-      entry: "__judgeStrings",
-      driverCode: `function __judgeStrings(kind, a, b, c) {
-  if (kind === "replace") return replaceAll(a, b, c);
-  if (kind === "encode") return rleEncode(a);
-  if (kind === "decode") return rleDecode(a);
-  const chars = [...a];
+      entry: "__judgeCompress",
+      driverCode: `function __judgeCompress(input) {
+  const chars = [...input];
   const n = compressInPlace(chars);
   return [n, chars.slice(0, n)];
 }`,
       tests: [
-        { name: "Prompt example", input: ["replace", "amaaba", "aa", "x"], expected: "amxba" },
-        { name: "Non-overlapping, left to right", input: ["replace", "aaa", "aa", "x"], expected: "xa" },
-        { name: "Match at the very end", input: ["replace", "baa", "aa", "yz"], expected: "byz" },
-        { name: "Pattern longer than the text", input: ["replace", "aa", "aaa", "x"], expected: "aa" },
-        { name: "Empty pattern changes nothing", input: ["replace", "abc", "", "x"], expected: "abc" },
-        { name: "Encode runs", input: ["encode", "aaabcc"], expected: "a3b1c2" },
-        { name: "Decode multi-digit counts", input: ["decode", "a3b1c12"], expected: "aaabcccccccccccc" },
-        { name: "Compress in place", input: ["compress", ["a", "a", "b", "b", "b", "c"]], expected: [5, ["a", "2", "b", "3", "c"]] },
+        { name: "Compress in place", input: [["a", "a", "b", "b", "b", "c"]], expected: [5, ["a", "2", "b", "3", "c"]] },
         {
           name: "Compress a long run",
-          input: ["compress", ["z", "z", "z", "z", "z", "z", "z", "z", "z", "z", "z", "z"]],
+          input: [["z", "z", "z", "z", "z", "z", "z", "z", "z", "z", "z", "z"]],
           expected: [3, ["z", "1", "2"]],
         },
+        { name: "Nothing repeats", input: [["a", "b", "c"]], expected: [3, ["a", "b", "c"]] },
+        { name: "One character", input: [["q"]], expected: [1, ["q"]] },
+        { name: "Runs come back", input: [["a", "a", "b", "a", "a"]], expected: [5, ["a", "2", "b", "a", "2"]] },
       ],
     },
   },
@@ -185,20 +251,27 @@ function compressInPlace(chars) {
     companies: ["anduril"],
     summary:
       "Injected transport, upserts keyed by id, a dirty set — a small class with senior signals.",
-    prompt: `A drone senses objects in a zone and reports that data. **Create a class with two methods**: one to retrieve the data, one to send it to an external source.
+    prompt: `A drone senses objects in zones and reports that data to an external system. Build a \`DroneZoneSensor\` class:
 
-That's the entire reported prompt — the underspecification is the test. Decide (out loud) what the data looks like, what "external source" means, and what each method guarantees.
+\`\`\`
+DroneZoneSensor(transport)     transport is anything with a send(payload) method
+sense(zone, objectId, attrs)   record a detection; detecting the same object in
+                               the zone again replaces the earlier record
+retrieve(zone)                 every detection in the zone, each {id, ...attrs};
+                               an unknown zone is empty
+send(zone?)                    send every zone changed since the last send — or
+                               just zone when given — as transport.send({zone, objects});
+                               return the number of zones sent
+\`\`\`
 
-## Worth asking out loud
-
-Is an object re-detected an update or a new record? Retrieve per zone or everything? What does the external source look like — can I inject it? Should \`send\` clear what it sent, or resend everything each time?`,
+A zone that hasn't changed since it was last sent isn't sent again.`,
     hints: [
       "A hashmap of hashmaps — zone → object id → latest detection — makes re-detections upserts instead of duplicates. That single choice answers half the follow-ups.",
       "Take the transport as a constructor argument (anything with a send method) and track which zones changed since the last send — injected dependency and incremental sends are the two senior signals in a five-minute class.",
     ],
     solution: `## Approach
 
-The reported answer is "hashmap", but what separates seniors is the shape around it: detections keyed by object id so a re-detection is an upsert; the transport injected rather than hard-coded (testable with a fake); and a dirty set so \`send\` ships only zones that changed. The class stays small enough for a phone screen while leaving hooks for every follow-up.
+A hashmap is the core, but the shape around it is what matters: detections keyed by object id so a re-detection is an upsert; the transport injected rather than hard-coded (testable with a fake); and a dirty set so \`send\` ships only zones that changed. The class stays small enough to write in a few minutes while leaving hooks for every extension.
 
 \`\`\`python
 from collections import defaultdict

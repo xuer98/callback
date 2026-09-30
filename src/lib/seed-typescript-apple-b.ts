@@ -56,8 +56,8 @@ function cloneDeep<T>(value: T): T {
 }
 `,
   },
-  "memoize-curry-once": {
-    entry: "__judgeFunctional",
+  "implement-memoize": {
+    entry: "__judgeMemoize",
     starterCode: `type AnyFn = (this: any, ...args: any[]) => any;
 
 /** Cache fn's results per resolver(...args); JSON.stringify(args) by default. */
@@ -65,18 +65,6 @@ function memoize<F extends AnyFn>(
   fn: F,
   resolver: (...args: Parameters<F>) => unknown = (...args) => JSON.stringify(args),
 ): F {
-  // Your code here
-  return fn;
-}
-
-/** Collect arguments until fn.length have arrived, then call fn. */
-function curry(fn: AnyFn): AnyFn {
-  // Your code here
-  return fn;
-}
-
-/** Call fn once; later calls return the first result. */
-function once<F extends AnyFn>(fn: F): F {
   // Your code here
   return fn;
 }
@@ -92,27 +80,6 @@ function memoize<F extends AnyFn>(
     const key = resolver(...args);
     if (!cache.has(key)) cache.set(key, fn.apply(this, args)); // has, not truthiness
     return cache.get(key);
-  } as F;
-}
-
-function curry(fn: AnyFn): AnyFn {
-  return function curried(this: unknown, ...args: unknown[]): unknown {
-    if (args.length >= fn.length) return fn.apply(this, args);
-    return function (this: unknown, ...more: unknown[]) {
-      return curried.apply(this, [...args, ...more]); // a new array: partials stay independent
-    };
-  };
-}
-
-function once<F extends AnyFn>(fn: F): F {
-  let called = false;
-  let result: ReturnType<F> | undefined;
-  return function (this: unknown, ...args: Parameters<F>) {
-    if (!called) {
-      called = true;
-      result = fn.apply(this, args);
-    }
-    return result;
   } as F;
 }
 `,
@@ -141,18 +108,12 @@ function get(obj: unknown, path: string | string[], fallback?: unknown): unknown
 }
 `,
   },
-  "chunk-and-group-by": {
-    entry: "__judgeCollections",
+  "implement-chunk": {
+    entry: "__judgeChunk",
     starterCode: `/** Split array into arrays of \`size\` (rounded down); [] when size < 1. */
 function chunk<T>(array: T[], size: number): T[][] {
   // Your code here
   return [];
-}
-
-/** Map each key (iteratee function or property name) to its items, in input order. */
-function groupBy<T>(array: T[], iteratee: ((item: T) => unknown) | string): Record<string, T[]> {
-  // Your code here
-  return {};
 }
 `,
     solutionCode: `function chunk<T>(array: T[], size: number): T[][] {
@@ -160,18 +121,6 @@ function groupBy<T>(array: T[], iteratee: ((item: T) => unknown) | string): Reco
   if (!(step >= 1)) return []; // also catches NaN; a size of 0 would loop forever
   const out: T[][] = [];
   for (let i = 0; i < array.length; i += step) out.push(array.slice(i, i + step));
-  return out;
-}
-
-function groupBy<T>(array: T[], iteratee: ((item: T) => unknown) | string): Record<string, T[]> {
-  const keyOf =
-    typeof iteratee === "function" ? iteratee : (item: T) => (item as any)[iteratee];
-  const out: Record<string, T[]> = Object.create(null); // no inherited keys like "constructor"
-  for (const item of array) {
-    const key = String(keyOf(item));
-    if (!(key in out)) out[key] = [];
-    out[key].push(item);
-  }
   return out;
 }
 `,

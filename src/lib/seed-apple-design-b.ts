@@ -1,9 +1,8 @@
 import type { Problem } from "./types";
 
-// Apple system-design prompts reported for Software Engineer loops (PracHub's
-// Apple list, 2025–2026), part B: cloud photo sync, centralized logging, and
-// cross-device wallpaper sync. Prompts are restated in our own words; each
-// carries a rubric for the AI design review and a worked answer.
+// Apple system-design prompts, part B: cloud photo sync, centralized logging,
+// and cross-device wallpaper sync. Each carries a rubric for the AI design
+// review and a worked answer.
 
 export const appleDesignProblemsB: Problem[] = [
   {
@@ -20,8 +19,6 @@ export const appleDesignProblemsB: Problem[] = [
       "Assume 200M active users with about three devices each, ~4 new photos per user per day at ~3 MB (so petabytes of new bytes daily), libraries of 10k+ assets, and devices that spend hours or weeks offline. A new photo should appear on the user's other online devices within seconds as a thumbnail; originals may arrive later or on demand.",
       "",
       "Cover: the upload path and where an asset atomically comes into existence; the sync protocol between the server and a device that has been offline; the metadata model and how it is partitioned; conflicts between devices (edit vs edit, edit vs delete); failure recovery for interrupted uploads; and what you would measure.",
-      "",
-      "*Reported as: a cloud photo-storage service with upload, download, and multi-device synchronization (PracHub, Apple Software Engineer onsite, Aug 2026).*",
     ].join("\n"),
     hints: [
       "Separate the planes before anything else: photo bytes go from the device straight to object storage through a resumable upload session; your API tier only handles small metadata records. The asset exists when its metadata commits, which happens after the bytes are durable.",
@@ -103,8 +100,6 @@ export const appleDesignProblemsB: Problem[] = [
       "Assume ~2M log events per second at peak, ~1 KB each. Recent logs (7–30 days) must be searchable within seconds of being written; older logs are kept a year for audit at much lower cost. Emitting a log line must never slow down or take down the service that emits it, and one noisy service must not starve everyone else.",
       "",
       "Cover: collection on the host, the ingestion path, how producers are decoupled from consumers, partitioning, storage tiers and indexing strategy, the query path, delivery guarantees, multi-tenancy and sensitive data, and how you monitor the logging system itself.",
-      "",
-      "*Reported as: a centralized logging system covering ingestion, storage, indexing and query serving (PracHub, Apple Software Engineer onsite, Jun 2026); a logging-system design also appears in a reported 2026 Apple onsite.*",
     ].join("\n"),
     hints: [
       "Do the arithmetic: 2M events/s × 1 KB is ~2 GB/s, roughly 170 TB a day before compression. That number rules out indexing every token of every line forever and forces tiers.",
@@ -183,8 +178,6 @@ export const appleDesignProblemsB: Problem[] = [
       "A local change must apply immediately, even offline. Remote changes apply eventually. Devices may be offline for weeks, and two devices may change the wallpaper at nearly the same time. Wallpaper images are large; devices have different screens, limited cache space, batteries, and metered networks; and the user interface must never stutter because of sync.",
       "",
       "Cover: the data model and why image assets are immutable; the conflict policy; the local-change and remote-change flows; authentication; retries; cache limits; battery and network controls; image decoding; and how the interface stays responsive throughout.",
-      "",
-      "*Reported as: cross-device wallpaper synchronization with offline devices and concurrent edits (PracHub, Apple Software Engineer onsite, Jun 2026).*",
     ].join("\n"),
     hints: [
       "Split the state in two: a tiny mutable configuration record (which asset, crop, version) and large immutable assets addressed by content hash. Only the small record ever conflicts.",

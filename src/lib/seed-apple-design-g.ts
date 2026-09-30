@@ -1,12 +1,8 @@
 import type { Problem } from "./types";
 
-// Apple front-end system-design prompts (the JavaScript interview guide,
-// 2026): the three front-end system design questions GreatFrontEnd lists
-// under Apple, with no date or role: autocomplete, music streaming and photo
-// sharing. The guide names them without detail, so the prompts are framed
-// here as client-architecture questions, in our own words.
+// Apple front-end system-design prompts: autocomplete, music streaming and
+// photo sharing, framed as client-architecture questions.
 
-const REPORTED = "*Listed under Apple by GreatFrontEnd as a front-end system design question, with no date or role.*";
 
 export const appleDesignProblemsG: Problem[] = [
   {
@@ -21,8 +17,6 @@ export const appleDesignProblemsG: Problem[] = [
       "Design a reusable autocomplete component: the search box that suggests results as you type, as on a large site's global search. Several product teams will use it, with different result types (plain text, rich rows with images, grouped sections), so it must be configurable. Focus on the client: its architecture, its API, how it talks to the server, and how it behaves on slow networks, on phones and with assistive technology.",
       "",
       "Cover the requirements and scope, the component's architecture, its props and the server API, the data layer (debouncing, cancellation, caching, race conditions), rendering performance, and accessibility and internationalization.",
-      "",
-      REPORTED,
       "",
       "To build the component itself, see [Typeahead with Keyboard Navigation](/problems/typeahead-keyboard-nav).",
     ].join("\n"),
@@ -106,8 +100,6 @@ export const appleDesignProblemsG: Problem[] = [
       "Design the web client of a music streaming service. Users browse and search a large catalog, build playlists, and play music. **Playback must continue while they navigate** the app, and the same account may be open in several tabs or on other devices. Focus on the client.",
       "",
       "Cover the core flows and non-functional requirements, the application architecture (how the player survives navigation), playback (streaming, buffering, preloading the next track, gapless playback, protected content, lock-screen and media-key controls), the client data model (catalog entities, the queue, playlists), syncing state across tabs and devices, performance, and accessibility.",
-      "",
-      REPORTED,
     ].join("\n"),
     hints: [
       "Mount the player in the app shell, outside the routed pages, so a route change never unmounts it. Pages talk to it through a small store or service, never by owning the audio element.",
@@ -187,8 +179,6 @@ export const appleDesignProblemsG: Problem[] = [
       "Design the web client of a photo sharing app: an infinite feed of posts (photo, caption, likes, comments), a post detail view, a profile grid, and uploading a new photo with a caption. Focus on the client.",
       "",
       "Cover the requirements, the component architecture, the data model and API for a paginated feed, feed rendering (infinite scroll, image loading, no layout shift, memory on long sessions), interactions (likes and comments), the upload flow, and performance, accessibility and privacy.",
-      "",
-      REPORTED,
     ].join("\n"),
     hints: [
       "Page the feed with a cursor, not offsets: new posts arriving at the top shouldn't make the next page repeat or skip items.",

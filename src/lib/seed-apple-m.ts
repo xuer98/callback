@@ -1,7 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part M: the idempotent REST create method reported
-// in PracHub's Apple list (technical screen, Jul 2025). Same conventions as
+// Apple coding bank, part M: the idempotent REST create method. Same
+// conventions as
 // seed-apple-a.ts; the Python variant lives in seed-python-apple-b.ts.
 
 const TOKENS = {
@@ -25,7 +25,7 @@ export const appleProblemsM: Problem[] = [
     summary:
       "Authenticate, validate, sanitise — then make POST safe to retry with an Idempotency-Key scoped to the caller.",
     prompt: [
-      "Implement the handler behind `POST /orders`. It must be safe to retry: a client that times out and sends the same request again must not create a second order. Answer in code — `OrdersApi(tokens)` with `createOrder(request)` returning `{ status, body }`, where `request` is `{ headers, body }` — and be ready to discuss logging, rate limiting, tests, and what changes when two identical requests arrive at the same instant.",
+      "Implement the handler behind `POST /orders`. It must be safe to retry: a client that times out and sends the same request again must not create a second order. Answer in code — `OrdersApi(tokens)` with `createOrder(request)` returning `{ status, body }`, where `request` is `{ headers, body }`.",
       "",
       "`tokens` maps a bearer token to `{ userId, scopes }`. Header names are case-insensitive. Apply the checks **in this order**; the first failure wins:",
       "",
@@ -48,10 +48,6 @@ export const appleProblemsM: Problem[] = [
       "  ->  { status: 201, body: { id: \"ord_1\", sku: \"ABC-1\", quantity: 2, note: null, createdBy: \"ann\" } }",
       "the same call again  ->  the same response; count() is still 1",
       "```",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Is the key scoped per user, per endpoint, or global? What should a reused key with a different payload return? How long are keys remembered? Does a replay return the original status code? Are validation failures stored against the key? What happens when the first request is still in flight?",
     ].join("\n"),
     hints: [
       "Write the pipeline as a sequence of early returns in the stated order. Look headers up case-insensitively once, at the top, so the rest of the code never thinks about casing.",

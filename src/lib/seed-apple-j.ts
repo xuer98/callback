@@ -1,8 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part J: recurring classics reported in Apple
-// screens — Group Anagrams, Basic Calculator II, sorted list to balanced BST.
-// Same sourcing and conventions as seed-apple-a.ts.
+// Apple coding bank, part J: Group Anagrams, Basic Calculator II, and a sorted
+// list to a balanced BST. Same conventions as seed-apple-a.ts.
 
 export const appleProblemsJ: Problem[] = [
   {
@@ -21,11 +20,7 @@ export const appleProblemsJ: Problem[] = [
       "  ->  [[\"ate\", \"eat\", \"tea\"], [\"bat\"], [\"nat\", \"tan\"]]",
       "```",
       "",
-      "Duplicates stay in their group. Reported in an Apple phone screen (solved in 15 minutes, with the rest of the slot behavioural) and again in a full-stack loop.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Lowercase ASCII only, or Unicode? Is the output order specified? How long are the words — does O(L) per word versus O(L log L) matter?",
+      "Duplicates stay in their group.",
     ].join("\n"),
     hints: [
       "Anagrams share a canonical key. Sorting each word gives one in O(L log L); a 26-slot letter count gives one in O(L).",
@@ -106,12 +101,6 @@ function groupAnagrams(words) {
       "calculate(\" 3+5 / 2 \")  ->  5",
       "calculate(\"1-7/2\")      ->  -2      // -7/2 truncates to -3, not -4",
       "```",
-      "",
-      "Reported for an Apple Senior Software Engineer technical phone screen with a senior engineer, on WebEx plus CoderPad.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Are parentheses or unary minus possible? Does division truncate toward zero or floor? Can a number have leading spaces or multiple digits? Should an invalid expression throw?",
     ].join("\n"),
     hints: [
       "Scan once, building the current number digit by digit. When an operator (or the end) arrives, apply the previous operator: push the number for +, its negation for -, and for * or / pop the last term and push the product or quotient.",
@@ -129,7 +118,7 @@ function groupAnagrams(words) {
       "## Worth saying out loud",
       "",
       "- The stack collapses to two variables — the running total and the last term — which is the follow-up if they ask for O(1) space.",
-      "- Parentheses turn this into LeetCode 224: recurse or push the running state on `(` and pop on `)`.",
+      "- Parentheses turn this into the full calculator: recurse or push the running state on `(` and pop on `)`.",
     ].join("\n"),
     judge: {
       solutionCode: `// One pass over the string with a stack of signed terms.
@@ -200,12 +189,6 @@ function calculate(s) {
       "```",
       "",
       "Return the root node; nodes have `val`, `left` and `right`. The harness serialises the tree in level order with `null` for missing children (trailing nulls trimmed): `[6, 2, 10, 1, 5, 8, 19]`.",
-      "",
-      "Reported in an Apple phone screen with exactly that example and expected root.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Can I traverse the list more than once? Is copying to an array acceptable (O(n) extra space) or is the point to avoid it? Which middle for an even count?",
     ].join("\n"),
     hints: [
       "Simulate an in-order traversal: build(lo, hi) recursively builds the left subtree for [lo, mid − 1], then takes the next value from the iterator as the root, then builds the right subtree — the values arrive in exactly in-order sequence.",

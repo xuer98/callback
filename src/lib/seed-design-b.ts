@@ -15,13 +15,11 @@ export const designProblemsB: Problem[] = [
     summary:
       "Tries with precomputed top-k, prefix sharding, and freshness by atomic swap.",
     prompt: [
-      '"Design the autocomplete box for Pinterest search. As the user types, show the top ten suggestions. It should feel instant, work for hundreds of millions of users, and reflect what\'s trending, not just what was popular last year."',
+      "Design the autocomplete box for Pinterest search. As the user types, show the top ten suggestions. It should feel instant, work for hundreds of millions of users, and reflect what's trending, not just what was popular last year.",
       "",
       "Assume prefix matching on the whole query plus the last token, no spell-correction in v1. Suggestions come from real user queries, ranked by a popularity score with time decay; blocked terms must never appear (a hard filter, not a ranking signal). Base popularity refreshes hourly; trending spikes should be visible within minutes. Latency budget: p99 under 100 ms end to end, which leaves ~20 ms in the service. Multi-language, per-locale suggestions.",
       "",
       "Cover: the data structure and its top-k tradeoff, how you shard, how snapshots roll out without downtime, and where trending freshness comes from.",
-      "",
-      "*Reported as: \"Design an Autocomplete feature for Pinterest\" (Roundz IC15 write-up — the candidate self-rated below average for missing \"social media scale specifics\"), \"Design Typeahead\" (1point3acres VO), \"typeahead box for a search engine\" (Exponent).*",
     ].join("\n"),
     hints: [
       "Size it before choosing a structure: ~100M distinct suggestible queries × 40 B ≈ 4 GB of strings, times 3–4 for per-node top-k lists. Tens of GB fits in RAM across a few shards — disk never belongs on the read path.",
@@ -71,7 +69,7 @@ export const designProblemsB: Problem[] = [
       "",
       "## What \"social media scale specifics\" means",
       "",
-      "The gap the IC15 candidate named: tens of locales with separate indexes; the blocklist applied at serve time so a takedown is immediate without a rebuild; near-duplicate collapsing (\"cake recipe\" / \"cake recipes\") at build time; click-through weighting so typed-but-never-clicked queries decay faster; personalization as a rerank of the global top-k against the user's own history (a KV row fetched in parallel; a merge of two short lists, never a per-user index and no model call in the 20 ms budget). Pinterest's Dogmatix generates suggestion candidates from a term–query graph and a query–pin graph in parallel with the main search call, so suggestions never add latency to results.",
+      "The scale specifics that separate a generic answer from a Pinterest one: tens of locales with separate indexes; the blocklist applied at serve time so a takedown is immediate without a rebuild; near-duplicate collapsing (\"cake recipe\" / \"cake recipes\") at build time; click-through weighting so typed-but-never-clicked queries decay faster; personalization as a rerank of the global top-k against the user's own history (a KV row fetched in parallel; a merge of two short lists, never a per-user index and no model call in the 20 ms budget). Pinterest's Dogmatix generates suggestion candidates from a term–query graph and a query–pin graph in parallel with the main search call, so suggestions never add latency to results.",
       "",
       "## Probes to expect",
       "",
@@ -89,13 +87,11 @@ export const designProblemsB: Problem[] = [
     summary:
       "Streaming for dashboards, batch for billing truth — and hot keys from viral ads.",
     prompt: [
-      '"Design the system that ingests ad impression, click, and conversion events and serves advertiser reporting: impressions, clicks, spend, and conversions by campaign, ad group, and ad, over time, with near-real-time dashboards. Billing has to be exact."',
+      "Design the system that ingests ad impression, click, and conversion events and serves advertiser reporting: impressions, clicks, spend, and conversions by campaign, ad group, and ad, over time, with near-real-time dashboards. Billing has to be exact.",
       "",
       "Two consumers with different contracts: dashboards want minute-level freshness and tolerate small later corrections; billing wants exactness and can wait hours. Dedup rules (one billable click per impression within 24 h, duplicate event ids dropped) change over time, so raw events must be kept. Mobile clients batch and retry, so events arrive hours late — conversions up to 30 days (the attribution window). Dimensions: advertiser → campaign → ad group → ad, plus time, country, device, placement. Ingestion must never block ad serving.",
       "",
       "Cover: where exactly-once actually matters and how you get it, event time and lateness, the click-to-impression join, hot keys from viral promoted pins, and how a billing bug gets backfilled.",
-      "",
-      '*Reported as: "Design an ads event reporting system — scalable, reliable event ingestion and analytics" (PracHub). Ads is Pinterest\'s revenue, and the ads marketplace is a named domain round.*',
     ].join("\n"),
     hints: [
       "Say the two-consumer split first — it is the whole design. Streaming feeds dashboards within a minute and may be slightly wrong; batch over exactly-once raw data owns billing truth and periodically overwrites the streaming aggregates.",

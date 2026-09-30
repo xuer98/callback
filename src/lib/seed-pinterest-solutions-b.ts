@@ -5,8 +5,6 @@ export const streamLineReaderSolution = `## Approach
 
 Two pieces of state carry the whole reader: a queue of **complete lines** ready to serve, and the **fragments** of the current unterminated line. A chunk's \`split("\\n")\` tells you everything — every piece except the last completes a line (the first of them joined with the pending fragments), and the last piece is the new partial. Pull chunks only while the queue is empty (the lazy requirement), and at end-of-stream flush any pending fragments as the final, newline-less line.
 
-Part 2 layers the settle logic on top: net every balance from the parsed lines, drop the zeros, and search for the fewest transactions.
-
 \`\`\`python
 class LineReader:
     def __init__(self, read_chunk):
@@ -32,54 +30,22 @@ class LineReader:
             if pieces[-1]:
                 self.partial.append(pieces[-1])
         return self.lines.pop(0) if self.lines else None
-
-
-def settle_from_stream(read_chunk):
-    reader = LineReader(read_chunk)
-    balance = {}
-    while True:
-        line = reader.read_line()
-        if line is None:
-            break
-        if not line:
-            continue
-        payer, payee, amount = line.split(",")
-        balance[payer] = balance.get(payer, 0) + int(amount)
-        balance[payee] = balance.get(payee, 0) - int(amount)
-    balances = [b for b in balance.values() if b != 0]
-
-    def settle_from(i):
-        while i < len(balances) and balances[i] == 0:
-            i += 1
-        if i == len(balances):
-            return 0
-        best = float("inf")
-        seen = set()
-        for j in range(i + 1, len(balances)):
-            if balances[i] * balances[j] < 0 and balances[j] not in seen:
-                seen.add(balances[j])
-                balances[j] += balances[i]
-                best = min(best, 1 + settle_from(i + 1))
-                balances[j] -= balances[i]
-        return best
-
-    return settle_from(0) if balances else 0
 \`\`\`
 
 ## Complexity
 
-Reading is O(total characters) — each character is split once and joined once. The settle search is exponential in the number of *nonzero* balances (with same-value pruning via \`seen\`); that's expected and worth saying plainly — few distinct people stay nonzero, and minimizing transfers is NP-hard in general.
+O(total characters) — each character is split once and joined once, and each chunk is read once.
 
 ## Worth saying out loud
 
-- The empty-string subtleties are the interview: \`"a\\n\\nb"\` must yield an empty middle line (the loop produces it naturally), while a stream ending in \`"\\n"\` must *not* yield a trailing empty line — which is why the tail piece is only buffered when non-empty.
+- The empty-string subtleties are the whole problem: \`"a\\n\\nb"\` must yield an empty middle line (the loop produces it naturally), while a stream ending in \`"\\n"\` must *not* yield a trailing empty line — which is why the tail piece is only buffered when non-empty.
 - Join fragments **once, when the line completes** — concatenating the partial on every chunk makes a line spanning k chunks cost O(k²).
 - \`lines.pop(0)\` is O(n) on a list; \`collections.deque\` with \`popleft\` is the production container — one sentence, free points.
 - Laziness is graded behavior, not style: \`read_line\` pulls at most until it owns one complete line, so a huge stream costs only what you consume.`;
 
 export const escapeRoomLeaderboardSolution = `## Approach
 
-A "bucket per room" whose arrival order matters is a doubly-linked list per room — exactly the LRU-cache trick. \`advance()\` unlinks the player's node from room \`r\` and appends it to the tail of room \`r + 1\`, both O(1); because movement is forward-only, nobody ever enters a room twice, so each room's list head→tail *is* its earliest-entry order — no timestamps needed. \`leaderboard()\` walks rooms from the highest occupied one down, reading each list head→tail. Sorting on every call is the stated auto-fail: O(N log N) per query for an answer the structure already holds.
+A "bucket per room" whose arrival order matters is a doubly-linked list per room — exactly the LRU-cache trick. \`advance()\` unlinks the player's node from room \`r\` and appends it to the tail of room \`r + 1\`, both O(1); because movement is forward-only, nobody ever enters a room twice, so each room's list head→tail *is* its earliest-entry order — no timestamps needed. \`leaderboard()\` walks rooms from the highest occupied one down, reading each list head→tail. Sorting on every call is exactly what the O(N + k) bound rules out: O(N log N) per query for an answer the structure already holds.
 
 One integer, \`_top\`, tracks the highest occupied room. It never decreases (forward-only again), so maintaining it is a single \`max\` on advance — no heap.
 
@@ -150,7 +116,7 @@ class EscapeRoomGame:
         return out
 \`\`\`
 
-## The R >> N follow-up
+## When R >> N
 
 The walk above visits empty rooms between clusters, so a sparse board costs O(R) per query. Fix: keep a *second* doubly-linked list — of non-empty rooms, ordered by room index. When a player moves \`r → r + 1\` and \`r + 1\` was empty, splice \`r + 1\` in right above \`r\` (\`r\` is non-empty at that instant — the player was just there): O(1). If \`r\` then became empty, unlink it: O(1). \`leaderboard()\` now hops only occupied rooms, so it's O(k). Building on the class above:
 
@@ -201,7 +167,7 @@ class EscapeRoomGameSparse(EscapeRoomGame):
 
 - Forward-only movement is what makes "earliest entry" free: append order *is* entry order, and \`_top\` only ever grows. Say that invariant — it's the whole design.
 - The no-op at room R must not re-append the node: the player keeps their original arrival slot. Whether a re-\`advance\` at the cap should refresh tie order is genuinely ambiguous — ask, then codify (here: unchanged).
-- Backward moves break both halves of the invariant: \`_top\` can shrink and a room can be re-entered, so "earliest entry" needs per-entry timestamps or re-append semantics — and the non-empty-room list stops being optional. Naming that is the point of the follow-up.
+- Backward moves break both halves of the invariant: \`_top\` can shrink and a room can be re-entered, so "earliest entry" needs per-entry timestamps or re-append semantics — and the non-empty-room list stops being optional.
 - Python's insertion-ordered \`dict\` per room (\`del\` is O(1), iteration is insertion order) gives the same behavior without hand-rolling the links — a \`LinkedHashSet\` in Java. Offer it as the pragmatic version; write the nodes to show you can.
 - Many readers: \`leaderboard\` is pure read, so an RW-lock works — or have writers maintain a small immutable top-k snapshot readers grab without locking.`;
 

@@ -1,11 +1,8 @@
 import type { Problem } from "./types";
 
-// Apple front-end bank (the JavaScript interview guide, 2026), part D: the
-// utility rewrites the guide lists as "have cold". None is confirmed for
-// Apple by name: two candidates were asked to "implement a Lodash method"
-// without being told which, and GreatFrontEnd's Apple guide says to practice
-// utilities. This part holds cloneDeep and memoize/curry/once. TypeScript
-// variants live in seed-typescript-apple.ts.
+// Apple front-end bank, part D: utility rewrites — cloneDeep and memoize
+// (curry and once are in seed-apple-js-j.ts). TypeScript variants live in
+// seed-typescript-apple-b.ts.
 
 export const appleJsProblemsD: Problem[] = [
   {
@@ -17,7 +14,7 @@ export const appleJsProblemsD: Problem[] = [
     summary:
       "Cycles, shared references, `Date`, `RegExp`, `Map`, `Set`, prototypes and symbol keys: everything spread and JSON get wrong.",
     prompt: [
-      "Write `cloneDeep(value)`: a copy that shares no mutable state with the original. It is the natural follow-up after showing that `{ ...obj }` is only a shallow copy.",
+      "Write `cloneDeep(value)`: a copy that shares no mutable state with the original. A spread like `{ ...obj }` copies one level; this copy goes all the way down.",
       "",
       "## Rules",
       "",
@@ -29,8 +26,6 @@ export const appleJsProblemsD: Problem[] = [
       "- **Cycles and shared references survive.** An object that refers to itself yields a clone that refers to *itself*. Two properties pointing at one object point at one copy.",
       "",
       "`structuredClone` is switched off while your code runs. It would also fail two of the rules above.",
-      "",
-      "*The guide lists this as the follow-up to its shallow-copy output question. Utility rewrites like this come from reports of \"implement a Lodash method\" rounds that don't name the method, so treat it as likely rather than confirmed.*",
     ].join("\n"),
     hints: [
       "Keep a `WeakMap` from each original object to its copy. Check it first, and register the new copy **before** recursing into the object's children, or a cycle recurses forever.",
@@ -238,62 +233,43 @@ function cloneDeep(value) {
     },
   },
   {
-    slug: "memoize-curry-once",
-    title: "memoize, curry, and once",
+    slug: "implement-memoize",
+    title: "Implement memoize",
     category: "frontend",
     difficulty: "medium",
     companies: ["apple"],
-    summary:
-      "Closure questions in code form: a cache keyed on all arguments, currying by `fn.length`, and a function that runs once.",
+    summary: "A closure over a Map keyed on every argument — and `has`, not truthiness, so 0 and undefined still hit.",
     prompt: [
-      "Three utilities that are really closure questions.",
+      "Write `memoize(fn, resolver)`: return a function that caches `fn`'s result per key.",
       "",
-      "## `memoize(fn, resolver)`",
+      "- The key is `resolver(...args)`, and by default `JSON.stringify(args)`, so all arguments count.",
+      "- A cached result is reused even when it is `0` or `undefined`.",
+      "- The wrapper forwards `this`, and each memoized function has its own cache.",
       "",
-      "Return a function that caches `fn`'s result per key. The key is `resolver(...args)`, and by default `JSON.stringify(args)`, so all arguments count. A cached result is reused even when it is `0` or `undefined`. The wrapper forwards `this`, and each memoized function has its own cache.",
-      "",
-      "## `curry(fn)`",
-      "",
-      "Collect arguments across calls until at least `fn.length` of them have arrived, then call `fn` with all of them. Any call may pass several arguments, and extra ones are passed through. Partial applications are reusable: `const add1 = add(1)` can be called many times without the calls affecting each other. A function with no parameters is called on the first call, and `this` is forwarded.",
-      "",
-      "## `once(fn)`",
-      "",
-      "Call `fn` on the first call only, with that call's arguments and `this`. Every later call returns the first result without calling `fn` again, even when that result was `undefined`.",
-      "",
-      "*The guide lists these as closure questions in code form. Utility rewrites like this come from reports of \"implement a Lodash method\" rounds that don't name the method, so treat them as likely rather than confirmed.*",
+      "```js",
+      "const add = memoize((a, b) => a + b);",
+      "add(1, 2); add(1, 2);   // fn runs once",
+      "add(2, 1);              // a different key: fn runs again",
+      "```",
     ].join("\n"),
     hints: [
       "`memoize` closes over a `Map`. Test membership with `cache.has(key)`, not a truthy lookup, so cached `0` and `undefined` results count as hits.",
-      "`curry` returns a function that compares the arguments collected so far against `fn.length`. With too few, it returns a new function that closes over the arguments so far. Never mutate a shared array, or partials start affecting each other.",
-      "`once` needs a flag, not a check on the result: `if (!called)`, never `if (result === undefined)`.",
+      "Return a `function`, not an arrow, and call `fn.apply(this, args)` so a memoized method still sees its object.",
     ],
     solution: [
       "## Approach",
       "",
-      "Each utility is a closure over private state. `memoize` keeps a `Map` from key to result. `curry` keeps the arguments seen so far, and builds a new array on every call so partials stay independent. `once` keeps a `called` flag and the first result. All three return a `function` rather than an arrow and invoke `fn` with `apply(this, ...)`, so a method stays a method.",
+      "A closure over a private `Map` from key to result. The returned `function` computes the key with the resolver, calls `fn.apply(this, args)` on a miss, and returns the cached value — using `has` so falsy results still count.",
       "",
       "## Worth saying out loud",
       "",
       "- Lodash's `memoize` keys on the **first argument only** unless you pass a resolver. Keying on `JSON.stringify(args)` covers every argument, but it fails for arguments that don't serialize, such as functions, and treats two distinct objects with the same content as one key.",
       "- **Check with `cache.has`, not truthiness**, so a cached `0` or `undefined` is still a hit.",
       "- An unbounded cache is a memory leak with a nicer name. Mention an LRU bound, or a `WeakMap` when the key is an object.",
-      "- `curry` depends on `fn.length`, which doesn't count rest parameters or parameters with defaults. `curry((a, b = 1) => a + b)` fires after one argument.",
     ].join("\n"),
     judge: {
       starterCode: `/** Cache fn's results per resolver(...args); JSON.stringify(args) by default. */
 function memoize(fn, resolver = (...args) => JSON.stringify(args)) {
-  // Your code here
-  return fn;
-}
-
-/** Collect arguments until fn.length have arrived, then call fn. */
-function curry(fn) {
-  // Your code here
-  return fn;
-}
-
-/** Call fn once; later calls return the first result. */
-function once(fn) {
   // Your code here
   return fn;
 }
@@ -306,30 +282,9 @@ function once(fn) {
     return cache.get(key);
   };
 }
-
-function curry(fn) {
-  return function curried(...args) {
-    if (args.length >= fn.length) return fn.apply(this, args);
-    return function (...more) {
-      return curried.apply(this, [...args, ...more]); // a new array: partials stay independent
-    };
-  };
-}
-
-function once(fn) {
-  let called = false;
-  let result;
-  return function (...args) {
-    if (!called) {
-      called = true;
-      result = fn.apply(this, args);
-    }
-    return result;
-  };
-}
 `,
-      entry: "__judgeFunctional",
-      driverCode: `function __judgeFunctional(kind) {
+      entry: "__judgeMemoize",
+      driverCode: `function __judgeMemoize(kind) {
   var calls = 0;
   if (kind === "memoByArgs") {
     var add = memoize(function (a, b) { calls++; return a + b; });
@@ -359,42 +314,6 @@ function once(fn) {
     m1(3);
     return calls;
   }
-  if (kind === "curryShapes") {
-    var add3 = curry(function (a, b, c) { return a + b + c; });
-    return [add3(1)(2)(3), add3(1, 2)(3), add3(1)(2, 3), add3(1, 2, 3)];
-  }
-  if (kind === "curryPartials") {
-    var sum3 = curry(function (a, b, c) { return a + b + c; });
-    var plus1 = sum3(1);
-    var plus3 = plus1(2);
-    return [plus3(3), plus1(10)(20), plus3(100)];
-  }
-  if (kind === "curryZeroArity") return curry(function () { return 42; })();
-  if (kind === "curryExtraArgs") {
-    var count = curry(function (a, b) { return arguments.length; });
-    return count(1)(2, 3, 4);
-  }
-  if (kind === "curryThis") {
-    var obj = { base: 100, add: curry(function (a, b) { return this.base + a + b; }) };
-    return obj.add(1, 2);
-  }
-  if (kind === "onceCallsOnce") {
-    var init = once(function () { calls++; return calls; });
-    return { results: [init(), init(), init()], calls: calls };
-  }
-  if (kind === "onceFirstCall") {
-    var greet = once(function (name) { return "hi " + name + " from " + this.who; });
-    var ctx = { who: "a", greet: greet };
-    var first = ctx.greet("ann");
-    var second = greet.call({ who: "b" }, "bo");
-    return [first, second];
-  }
-  if (kind === "onceUndefined") {
-    var noop = once(function () { calls++; });
-    noop();
-    noop();
-    return calls;
-  }
   throw new Error("unknown case " + kind);
 }`,
       tests: [
@@ -403,14 +322,6 @@ function once(fn) {
         { name: "A resolver chooses the key", input: ["memoResolver"], expected: { results: ["ANN", "ANN", "BO"], calls: 2 } },
         { name: "memoize forwards this", input: ["memoThis"], expected: 15 },
         { name: "Each memoized function has its own cache", input: ["memoSeparate"], expected: 2 },
-        { name: "curry takes arguments in any grouping", input: ["curryShapes"], expected: [6, 6, 6, 6] },
-        { name: "Partials are reusable", input: ["curryPartials"], expected: [6, 31, 103] },
-        { name: "A zero-parameter function runs at once", input: ["curryZeroArity"], expected: 42 },
-        { name: "Extra arguments are passed through", input: ["curryExtraArgs"], expected: 4 },
-        { name: "curry forwards this", input: ["curryThis"], expected: 103 },
-        { name: "once calls fn a single time", input: ["onceCallsOnce"], expected: { results: [1, 1, 1], calls: 1 } },
-        { name: "once uses the first call's arguments and this", input: ["onceFirstCall"], expected: ["hi ann from a", "hi ann from a"] },
-        { name: "An undefined result still counts as called", input: ["onceUndefined"], expected: 1 },
       ],
     },
   },

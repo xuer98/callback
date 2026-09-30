@@ -1,7 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple phone-screen bank, part H: Implement MapReduce and the hotel booking
-// system. Same sourcing and conventions as seed-apple-a.ts.
+// Apple coding bank, part H: Implement MapReduce and the hotel booking
+// system. Same conventions as seed-apple-a.ts.
 
 export const appleProblemsH: Problem[] = [
   {
@@ -13,9 +13,7 @@ export const appleProblemsH: Problem[] = [
     summary:
       "Map, combine, partition, sort, reduce — the three parts a groupby does not have are the whole grade.",
     prompt: [
-      "> \"Implement MapReduce using Python or other language of choice.\"",
-      "",
-      "Reported as the first technical round for an Apple Data Engineer, over Zoom with a team member. Build a single-machine model of the real thing, with the parts named explicitly:",
+      "Implement MapReduce as a single-machine model of the real thing, with the parts named explicitly:",
       "",
       "```",
       "mapReduce(records, mapper, reducer, combiner, partition, numReducers, chunkSize)",
@@ -36,10 +34,6 @@ export const appleProblemsH: Problem[] = [
       "```",
       "",
       "The harness supplies jobs (word count, max word length by first letter, mean by group) and a partitioner, wraps your reducer to record how many values it received per key, and reports `{ results, reducers, reducerInputs }`.",
-      "",
-      "## Worth asking out loud",
-      "",
-      "When is a combiner safe — must the reducer be commutative and associative? How are keys partitioned, and what happens with a hot key? Should map tasks be independent so a failed one can re-run? Is the sort within a partition part of the contract?",
     ].join("\n"),
     hints: [
       "Keep one map-of-lists per reducer. For each chunk: run the mapper over its records, optionally fold the chunk's pairs through the combiner grouped by key, then append each value to partitions[partition(key) % numReducers][key].",
@@ -176,18 +170,14 @@ function mapReduce(records, mapper, reducer, combiner, partition, numReducers, c
   },
   {
     slug: "hotel-booking-system",
-    title: "Hotel Booking System, Then Make It Concurrent",
+    title: "Hotel Booking System",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],
     summary:
       "Half-open intervals per room, only neighbours can clash — and check-then-book must be one atomic step.",
     prompt: [
-      "> \"OOD Coding: design a Hotel Booking System. Interface roughly `checkAvailability(dateRange)` and `bookRoom(customerName, roomId, dateRange)`. Follow-up: under concurrency, how do you guarantee bookings do not conflict?\"",
-      "",
-      "This was the entire first round of an Apple loop that ended in an offer. Build it for the follow-up from the start.",
-      "",
-      "Dates are integers and every range is **half-open** `[start, end)` with `0 <= start < end`, so a checkout at 14 and a check-in at 14 do not collide. Implement `HotelBookingSystem(roomIds)`:",
+      "Design a hotel booking system. Dates are integers and every range is **half-open** `[start, end)` with `0 <= start < end`, so a checkout at 14 and a check-in at 14 do not collide. Implement `HotelBookingSystem(roomIds)`:",
       "",
       "- `checkAvailability(start, end)` — the ids of rooms with no booking overlapping the range, sorted ascending; `[]` for an invalid range.",
       "- `bookRoom(customer, roomId, start, end)` — book and return a new id `\"B1\"`, `\"B2\"`, … (numbered by successful bookings), or `null` when the room is unknown, the range is invalid, or it overlaps an existing booking for that room.",
@@ -201,14 +191,6 @@ function mapReduce(records, mapper, reducer, combiner, partition, numReducers, c
       "hotel.bookRoom(\"bob\", \"101\", 3, 5)   ->  \"B2\"      // half-open: 3 is free",
       "hotel.cancel(\"B1\")                  ->  true",
       "```",
-      "",
-      "## Follow-up",
-      "",
-      "Two threads book the same room and slot at once. Where exactly is the race, what is the smallest lock that closes it, and what does the answer become when the store is a database rather than a dictionary?",
-      "",
-      "## Worth asking out loud",
-      "",
-      "Closed or half-open ranges? Are room ids unique and known up front? Should availability accept an invalid range or reject it? Is concurrency in scope now or as a follow-up — and one process or many?",
     ].join("\n"),
     hints: [
       "Keep each room's bookings sorted by start. Two half-open ranges overlap when a.start < b.end and b.start < a.end; in a sorted, non-overlapping list only the neighbours of the insertion point can clash, so a binary search plus two checks decides a booking.",
@@ -226,7 +208,7 @@ function mapReduce(records, mapper, reducer, combiner, partition, numReducers, c
       "## Worth saying out loud",
       "",
       "- **Why not one lock?** Correct, and it serialises the whole hotel. Per-room locking is the minimum granularity that still makes the invariant hold, since bookings for different rooms never interact.",
-      "- **Now it is a database, not a dictionary.** This is where the round is won: a unique constraint on an exclusion range (Postgres `tstzrange` with `EXCLUDE USING gist`, so the database enforces it), or `SELECT … FOR UPDATE` on the room row, or an optimistic version column with retry on conflict. Naming the exclusion constraint specifically is unusual and lands well.",
+      "- **Now it is a database, not a dictionary.** The race moves into the database, and so does the fix: a unique constraint on an exclusion range (Postgres `tstzrange` with `EXCLUDE USING gist`, so the database enforces it), or `SELECT … FOR UPDATE` on the room row, or an optimistic version column with retry on conflict. Naming the exclusion constraint specifically is unusual and lands well.",
       "- **Multiple rooms in one transaction?** Now you can deadlock. Acquire locks in a total order, such as sorted room id, and say why.",
       "- **How do you know the concurrency works?** Forty threads on a barrier racing the same slot, assert exactly one wins. Offering to write that test is a strong close.",
     ].join("\n"),

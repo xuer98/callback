@@ -1,25 +1,22 @@
 import type { Problem } from "./types";
 
-// Apple design-lite prompts reported inside technical phone screens: the
-// 200 TB media migration (AI/ML full-stack) and the voice-only ML-evaluation
-// platform design. Each carries the reported wording, a rubric for the AI
-// design review, and a worked answer. Same sourcing as seed-apple-a.ts.
+// Apple design-lite prompts: the 200 TB media migration that feeds GPU hosts,
+// and an ML-evaluation platform presented as a spoken walkthrough. Each
+// carries a rubric for the AI design review and a worked answer.
 
 export const appleDesignProblems: Problem[] = [
   {
     slug: "design-media-migration-gpu-pipeline",
-    title: "200 TB Media Migration, Then Feed the GPUs",
+    title: "Move 200 TB of Media to GPU Training Hosts",
     category: "system-design",
     difficulty: "hard",
     companies: ["apple"],
     summary:
       "Do the bandwidth arithmetic out loud, land in object storage, and never let the GPUs read small files.",
     prompt: [
-      "> \"You have 200 TB of media data — images and video — and you need to get it onto the compute hosts that will preprocess, run inference, and train on it. How would you design that?\"",
+      "You have 200 TB of media data — images and video — and you need to get it onto the compute hosts that will preprocess, run inference, and train on it. Design that, end to end: from the source, to storage, to GPUs that never sit idle waiting for data.",
       "",
-      "Reported for an Apple AI/ML full-stack role, open-ended, with the interviewer explicitly crediting the clarifying questions. A 200 TB media-migration design also appears in an independent Apple question list.",
-      "",
-      "Cover: the questions you would ask first; the transfer arithmetic and the network-versus-shipping decision; where the data lands and why; how the transfer survives failure; and the follow-up that always comes — how the training and inference hosts consume the data without starving the GPUs. Assume the interviewer will ask what changes if the transfer becomes recurring.",
+      "Cover: the questions you would ask first; the transfer arithmetic and the network-versus-shipping decision; where the data lands and why; how the transfer survives failure; how the training and inference hosts consume the data without starving the GPUs; and what changes if the transfer becomes recurring.",
     ].join("\n"),
     hints: [
       "200 TB is 1.6 × 10^15 bits: about 18.5 days at 1 Gbps, 1.85 days at 10 Gbps, 4.4 hours at 100 Gbps — and roughly 40% worse at a realistic 70% of line rate. When the transfer takes longer than shipping disks, ship the disks.",
@@ -59,7 +56,7 @@ export const appleDesignProblems: Problem[] = [
       "",
       "## Feeding the GPUs",
       "",
-      "The AI/ML follow-up that always comes: do not let the GPUs starve. Never read millions of small files at train time — preprocess offline into large sharded archives (WebDataset tar shards, TFRecord) to turn random reads into sequential ones. Stream shards from object storage with prefetch instead of staging 200 TB locally. Overlap decode with compute across worker processes. Use a shuffle buffer rather than a global shuffle. Then say which resource you would profile first — storage throughput, decode CPU, or PCIe — to find the bottleneck.",
+      "Do not let the GPUs starve. Never read millions of small files at train time — preprocess offline into large sharded archives (WebDataset tar shards, TFRecord) to turn random reads into sequential ones. Stream shards from object storage with prefetch instead of staging 200 TB locally. Overlap decode with compute across worker processes. Use a shuffle buffer rather than a global shuffle. Then say which resource you would profile first — storage throughput, decode CPU, or PCIe — to find the bottleneck.",
       "",
       "## If it becomes recurring",
       "",
@@ -67,23 +64,21 @@ export const appleDesignProblems: Problem[] = [
       "",
       "## Worth saying out loud",
       "",
-      "- Two or three clarifying questions, then commit: the reported interviewer credited the clarifying step, and endless clarifying reads as stalling.",
+      "- Two or three clarifying questions, then commit: clarifying earns credit, and endless clarifying reads as stalling.",
       "- Give the bandwidth numbers before being asked; the arithmetic is the signal.",
       "- \"Landing zone\" and \"sharded archives\" are the two phrases that show you have done this rather than read about it.",
     ].join("\n"),
   },
   {
     slug: "design-ml-evaluation-platform",
-    title: "Design an ML Evaluation Platform, Out Loud",
+    title: "Design an ML Evaluation Platform",
     category: "system-design",
     difficulty: "hard",
     companies: ["apple"],
     summary:
-      "A voice-only design round: a fixed spoken structure, versioned benchmarks, cached (model, item) runs, and confidence intervals.",
+      "Versioned benchmarks, cached (model, item) runs, and confidence intervals — presented as a spoken walkthrough.",
     prompt: [
-      "Two reported Apple technical phone screens had no coding at all. One, with a senior engineer on ML Infrastructure, was a verbal discussion of designing an ML infrastructure system; another, with a senior manager, was a feed design conducted as a voice call with no whiteboard and no CoderPad.",
-      "",
-      "Design the evaluation platform for an AIML organisation: it runs benchmarks across many model versions, scores results with both automatic scorers and human raters, and produces comparisons people make ship decisions on. Present it as you would on a voice call — a fixed spoken structure that substitutes for a diagram: requirements and scale numbers → the API → the data model → the write path → the read path → the bottleneck → what you would trade.",
+      "Design the evaluation platform for an AIML organisation: it runs benchmarks across many model versions, scores results with both automatic scorers and human raters, and produces comparisons people make ship decisions on. Present it without relying on a diagram — a fixed spoken structure that a listener can follow: requirements and scale numbers → the API → the data model → the write path → the read path → the bottleneck → what you would trade.",
       "",
       "Cover: benchmark and dataset versioning; a run orchestrator that fans work across models; the scorer interface; result storage keyed for reproducibility; aggregation with confidence intervals; human-annotation intake with agreement tracking; and the two hard parts — caching so an unchanged (model, item) pair is never re-run, and versioning so a scorer change does not silently invalidate history.",
     ].join("\n"),

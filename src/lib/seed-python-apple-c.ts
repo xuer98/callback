@@ -7,17 +7,11 @@ import type { JudgeLanguage } from "./types";
 
 export const applePythonJudgesC: Record<string, JudgeLanguage> = {
   "first-duplicate-character": {
-    entry: "__judge_duplicate",
+    entry: "first_duplicate",
     starterCode: `def first_duplicate(s):
     """The first character whose second occurrence comes earliest, or None."""
     # Your code here
     return None
-
-
-def first_duplicate_index(s):
-    """The index of that second occurrence, or -1."""
-    # Your code here
-    return -1
 `,
     solutionCode: `def first_duplicate(s):
     seen = set()
@@ -26,84 +20,23 @@ def first_duplicate_index(s):
             return ch
         seen.add(ch)
     return None
-
-
-def first_duplicate_index(s):
-    seen = set()
-    for i, ch in enumerate(s):
-        if ch in seen:
-            return i
-        seen.add(ch)
-    return -1
-`,
-    driverCode: `def __judge_duplicate(kind, s):
-    if kind == "char":
-        return first_duplicate(s)
-    if kind == "index":
-        return first_duplicate_index(s)
-    raise ValueError("unknown case " + kind)
 `,
   },
   "merge-arrays-unique-values": {
-    entry: "__judge_merge",
+    entry: "union",
     starterCode: `def union(a, b):
     """Every value once, in first-seen order."""
-    # Your code here
-    return []
-
-
-def appear_once(a, b):
-    """The values that occur exactly once across both lists, in first-seen order."""
-    # Your code here
-    return []
-
-
-def union_by(a, b, key):
-    """Deduplicate dicts by item[key]; the first dict with each key wins."""
     # Your code here
     return []
 `,
     solutionCode: `def union(a, b):
     return list(dict.fromkeys(a + b))  # dicts keep insertion order
-
-
-def appear_once(a, b):
-    counts = {}
-    for v in a + b:
-        counts[v] = counts.get(v, 0) + 1
-    return [v for v, n in counts.items() if n == 1]
-
-
-def union_by(a, b, key):
-    seen = set()
-    out = []
-    for item in a + b:
-        if item[key] in seen:
-            continue
-        seen.add(item[key])
-        out.append(item)
-    return out
-`,
-    driverCode: `def __judge_merge(kind, a, b, key=None):
-    if kind == "union":
-        return union(a, b)
-    if kind == "once":
-        return appear_once(a, b)
-    if kind == "unionBy":
-        return union_by(a, b, key)
-    raise ValueError("unknown case " + kind)
 `,
   },
-  "array-products-two-readings": {
-    entry: "__judge_products",
+  "product-of-others": {
+    entry: "product_of_others",
     starterCode: `def product_of_others(nums):
     """Each position gets the product of every other element, without division."""
-    # Your code here
-    return []
-
-
-def product_of_next_two(nums):
-    """Each position gets the product of the next two elements, wrapping around."""
     # Your code here
     return []
 `,
@@ -118,30 +51,12 @@ def product_of_next_two(nums):
         out[i] *= right  # times everything after i
         right *= nums[i]
     return out
-
-
-def product_of_next_two(nums):
-    n = len(nums)
-    return [nums[(i + 1) % n] * nums[(i + 2) % n] for i in range(n)]
-`,
-    driverCode: `def __judge_products(kind, nums):
-    if kind == "others":
-        return product_of_others(nums)
-    if kind == "nextTwo":
-        return product_of_next_two(nums)
-    raise ValueError("unknown case " + kind)
 `,
   },
   "run-length-compress": {
     entry: "__judge_compress",
     starterCode: `def compress_runs(s):
     """Each run as its length then its character: "AAABBAA" -> "3A2B2A"."""
-    # Your code here
-    return ""
-
-
-def compress_totals(s):
-    """Each character's total count, in first-seen order: "AAABBAA" -> "5A2B"."""
     # Your code here
     return ""
 
@@ -163,13 +78,6 @@ def decode_runs(encoded):
     return "".join(parts)
 
 
-def compress_totals(s):
-    counts = {}  # dicts keep insertion order: first-seen order
-    for ch in s:
-        counts[ch] = counts.get(ch, 0) + 1
-    return "".join(str(n) + ch for ch, n in counts.items())
-
-
 def decode_runs(encoded):
     parts = []
     count = 0
@@ -184,8 +92,6 @@ def decode_runs(encoded):
     driverCode: `def __judge_compress(kind, s):
     if kind == "runs":
         return compress_runs(s)
-    if kind == "totals":
-        return compress_totals(s)
     if kind == "decode":
         return decode_runs(s)
     if kind == "roundTrip":
@@ -224,8 +130,8 @@ def decode_runs(encoded):
     return out
 `,
   },
-  "min-stack-and-multiply": {
-    entry: "__judge_stack_and_multiply",
+  "min-stack": {
+    entry: "__run_stack",
     starterCode: `class MinStack:
     def push(self, x):
         # Your code here
@@ -240,12 +146,6 @@ def decode_runs(encoded):
         """The smallest value on the stack (None when empty)."""
         # Your code here
         return None
-
-
-def multiply(a, b):
-    """a times b without *, /, ** or a multiplying helper."""
-    # Your code here
-    return 0
 `,
     solutionCode: `class MinStack:
     def __init__(self):
@@ -264,66 +164,26 @@ def multiply(a, b):
 
     def get_min(self):
         return self.mins[-1] if self.mins else None
-
-
-def multiply(a, b):
-    negative = (a < 0) != (b < 0)
-    n, m = abs(a), abs(b)
-    out = 0
-    while m > 0:
-        if m & 1:
-            out += n  # this bit of m is set: add the current power-of-two multiple
-        n += n  # double
-        m >>= 1  # halve
-    return -out if negative else out
 `,
-    driverCode: `def __judge_stack_and_multiply(kind, a, b=None):
-    if kind == "multiply":
-        return multiply(a, b)
-    if kind == "stack":
-        names = {"push": "push", "pop": "pop", "getMin": "get_min"}
-        stack = None
-        out = []
-        for op, args in zip(a, b):
-            if op == "MinStack":
-                stack = MinStack()
-                out.append(None)
-                continue
-            out.append(getattr(stack, names[op])(*args))
-        return out
-    raise ValueError("unknown case " + kind)
+    driverCode: `def __run_stack(operations, args):
+    names = {"push": "push", "pop": "pop", "getMin": "get_min"}
+    stack = None
+    out = []
+    for op, a in zip(operations, args):
+        if op == "MinStack":
+            stack = MinStack()
+            out.append(None)
+            continue
+        out.append(getattr(stack, names[op])(*a))
+    return out
 `,
   },
-  "screen-warm-ups": {
-    entry: "__judge_warmups",
+  "string-to-integer": {
+    entry: "__judge_to_int",
     starterCode: `def to_int(s):
     """"1234" -> 1234 without int() or float() on the string; float("nan") when invalid."""
     # Your code here
     return float("nan")
-
-
-def sum_to(n):
-    """n + (n - 1) + ... + 1, recursively; 0 when n <= 0."""
-    # Your code here
-    return 0
-
-
-def sqrt(x):
-    """The square root without math.sqrt or ** 0.5; float("nan") when x < 0."""
-    # Your code here
-    return 0.0
-
-
-def two_sum(nums, target):
-    """Indices [i, j], i < j, of the pair that sums to target, or None."""
-    # Your code here
-    return None
-
-
-def fibonacci():
-    """Yield 0, 1, 1, 2, 3, 5, ... forever, exactly."""
-    # Your code here
-    yield 0
 `,
     solutionCode: `DIGITS = {str(d): d for d in range(10)}
 
@@ -341,80 +201,10 @@ def to_int(s):
             return float("nan")
         n = n * 10 + DIGITS[ch]
     return sign * n
-
-
-def sum_to(n):
-    return 0 if n <= 0 else n + sum_to(n - 1)
-
-
-def sqrt(x):
-    if x < 0:
-        return float("nan")
-    lo, hi = 0.0, max(1.0, float(x))  # the root of x < 1 is larger than x
-    for _ in range(200):  # a fixed count: an epsilon loop never ends for large x
-        mid = (lo + hi) / 2
-        if mid * mid > x:
-            hi = mid
-        else:
-            lo = mid
-    return lo
-
-
-def two_sum(nums, target):
-    seen = {}  # value -> index
-    for i, v in enumerate(nums):
-        if target - v in seen:
-            return [seen[target - v], i]
-        seen[v] = i
-    return None
-
-
-def fibonacci():
-    a, b = 0, 1  # Python integers never overflow
-    while True:
-        yield a
-        a, b = b, a + b
 `,
-    driverCode: `import math as __math
-
-
-def __judge_warmups(kind, a=None, b=None):
-    def is_nan(v):
-        return isinstance(v, float) and v != v
-
-    if kind == "toInt":
-        result = to_int(a)
-        return "NaN" if is_nan(result) else result
-    if kind == "sumTo":
-        return sum_to(a)
-    if kind == "sqrt":
-        saved = (__math.sqrt, __math.pow, __math.isqrt)
-
-        def banned(*args):
-            raise RuntimeError("Write it yourself: math.sqrt is off limits here")
-
-        __math.sqrt = __math.pow = __math.isqrt = banned
-        try:
-            root = sqrt(a)
-        finally:
-            __math.sqrt, __math.pow, __math.isqrt = saved
-        if not isinstance(root, (int, float)):
-            return root
-        return "NaN" if is_nan(root) else "%.6f" % root
-    if kind == "twoSum":
-        return two_sum(a, b)
-    if kind in ("fibonacci", "fibonacciNth"):
-        it = fibonacci()
-        values = []
-        for _ in range(a):
-            try:
-                values.append(str(next(it)))
-            except StopIteration:
-                break
-        if kind == "fibonacci":
-            return values
-        return values[-1] if values else None
-    raise ValueError("unknown case " + kind)
+    driverCode: `def __judge_to_int(s):
+    result = to_int(s)
+    return "NaN" if isinstance(result, float) and result != result else result
 `,
   },
 };

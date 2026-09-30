@@ -1,10 +1,9 @@
 import type { Problem } from "./types";
 
-// Airbnb bank, part E: the general-track phone screen's string slot (boxed
-// sentence, URL query parser, review token tagging — 1point3acres, Aug 2026),
-// the AI-coding round's retry wrapper, and the FIFO order allocator from the
-// same loop's coding round. Judged in JavaScript and TypeScript, with a
-// reference implementation in each.
+// Airbnb bank, part E: string problems (boxed sentence, URL query parser,
+// review token tagging), a retry wrapper, and a FIFO order allocator. Judged
+// in JavaScript and TypeScript, with a reference implementation in each. The
+// mixed-width boxed sentences live in seed-airbnb-h.ts.
 
 export const airbnbProblemsE: Problem[] = [
   {
@@ -14,8 +13,8 @@ export const airbnbProblemsE: Problem[] = [
     difficulty: "easy",
     companies: ["airbnb"],
     summary:
-      "Greedy word wrap inside ASCII borders — the phone-screen string slot's most-reported prompt.",
-    prompt: `Given a sentence and a width: **(1)** print the sentence in a box, **(2)** wrap it at the width, **(3)** bonus: several sentences with *different* widths in the same box. Reported on an Airbnb general-track phone screen (Aug 2026); the 2016 frontend onsite asked it as "text justification".
+      "Greedy word wrap inside ASCII borders — never split a word, never start a line with punctuation.",
+    prompt: `Given a sentence and a width, wrap the sentence at the width and print it inside an ASCII box.
 
 \`\`\`
 renderBox("one two three four", 8)
@@ -31,39 +30,28 @@ renderBox("one two three four", 8)
 - Wrap greedily: keep appending words while the line stays within the width. **Never split a word** — a word longer than the width gets a line of its own.
 - **A line must never start with punctuation** (\`. , ; : ! ?\`): a punctuation "word" joins the current line even if that overflows the width.
 - Borders are \`+---+\` (width + 2 dashes) and \`| … |\`; body lines are padded to the width. Return the picture as lines joined by \`"\\n"\`.
-- The bonus box is as wide as its widest block; blocks are separated by a \`| ---- |\` line of dashes.
 
-\`\`\`
-renderMultiBox([{ text: "one two three four", width: 8 }, { text: "a much longer sentence here", width: 16 }])
-+------------------+
-| one two          |
-| three            |
-| four             |
-| ---------------- |
-| a much longer    |
-| sentence here    |
-+------------------+
-\`\`\`
-
-## Worth asking out loud
-
-Multiple spaces between words? What about a word longer than the width? Ragged right, or full justification with spread spaces? Does the separator line count toward anything?`,
+Write the wrapping as its own function, \`wrapWords(sentence, width)\`, returning the lines; the grader checks it as well as \`renderBox\`.`,
     hints: [
       "Split on whitespace and accumulate greedily: start a new line only when `line.length + 1 + word.length` would exceed the width.",
       "The punctuation rule is one extra OR in that fit check — a word matching `^[.,;:!?]` is appended no matter what.",
-      "For the multi-width bonus, every block wraps at its *own* width but pads to the widest one; the separator is a line of dashes as wide as the inner box.",
     ],
     solution: `## Approach
 
-Wrapping is a greedy scan: append a word while the line still fits, otherwise start a new line — and never split a word, so an oversized word simply owns its line. The punctuation rule is a second clause in the same fit check: a word that starts with punctuation is appended even when it overflows, because the alternative (a line beginning with a comma) is the thing the prompt forbids. Boxing is \`padEnd\` inside \`| … |\` between two \`+---+\` rules. The multi-width bonus wraps each block at its own width but pads to the widest block, with a dashed separator line between blocks.
+Wrapping is a greedy scan: append a word while the line still fits, otherwise start a new line — and never split a word, so an oversized word simply owns its line. The punctuation rule is a second clause in the same fit check: a word that starts with punctuation is appended even when it overflows, because the alternative (a line beginning with a comma) is the thing the prompt forbids. Boxing is \`padEnd\` inside \`| … |\` between two \`+---+\` rules.
+
+## Complexity
+
+O(length of the sentence) to wrap and draw.
 
 ## Worth saying out loud
 
 - Say the greedy invariant before coding: "a line holds the most words that fit, in order" — that's what makes the output deterministic.
 - \`padEnd\` is the whole alignment story; hand-rolled space counting is where box drawings go wrong.
-- Full justification (LeetCode 68) is the cousin question: distribute the slack across the gaps, left-heavy, last line left-justified. Name it if the interviewer asks about "even spacing".`,
+- Full justification is the cousin question: distribute the slack across the gaps, left-heavy, with the last line left-justified. Name it if even spacing comes up.
+- Several sentences with their own widths in one box: [Boxed Sentences, Mixed Widths](/problems/boxed-sentences-mixed-widths).`,
     judge: {
-      solutionCode: `// Word wrap → boxed sentence (phone screen, Aug 2026; FE onsite 2016 as "text justification")
+      solutionCode: `// Word wrap → boxed sentence.
 // Greedy: append words while they fit; never split a word; a line never starts with punctuation.
 const LEADING_PUNCT = /^[.,;:!?]/;
 
@@ -79,24 +67,11 @@ function wrapWords(sentence, width) {
   return lines;
 }
 
-// Part 1/2: one sentence in a box, wrapped at \`width\`.
+// One sentence in a box, wrapped at \`width\`.
 function renderBox(sentence, width) {
   const rule = \`+\${'-'.repeat(width + 2)}+\`;
   const body = wrapWords(sentence, width).map((l) => \`| \${l.padEnd(width)} |\`);
   return [rule, ...body, rule].join('\\n');
-}
-
-// Part 3 (bonus): several sentences, each with its OWN wrap width, inside one aligned outer box.
-function renderMultiBox(blocks /* [{ text, width }] */) {
-  const inner = Math.max(...blocks.map((b) => b.width));
-  const rule = \`+\${'-'.repeat(inner + 2)}+\`;
-  const out = [rule];
-  blocks.forEach((b, i) => {
-    if (i > 0) out.push(\`| \${'-'.repeat(inner)} |\`);              // separator between sentences
-    wrapWords(b.text, b.width).forEach((l) => out.push(\`| \${l.padEnd(inner)} |\`));
-  });
-  out.push(rule);
-  return out.join('\\n');
 }
 `,
       starterCode: `/** Greedy word wrap: never split a word; a line never starts with punctuation. */
@@ -109,17 +84,10 @@ function wrapWords(sentence, width) {
 function renderBox(sentence, width) {
   return "";
 }
-
-/** Bonus: several sentences, each with its own wrap width, in one aligned box. blocks: [{ text, width }] */
-function renderMultiBox(blocks) {
-  return "";
-}
 `,
       entry: "__judgeBox",
-      driverCode: `function __judgeBox(kind, a, b) {
-  if (kind === "wrap") return wrapWords(a, b);
-  if (kind === "box") return renderBox(a, b);
-  return renderMultiBox(a);
+      driverCode: `function __judgeBox(kind, sentence, width) {
+  return kind === "wrap" ? wrapWords(sentence, width) : renderBox(sentence, width);
 }`,
       tests: [
         { name: "Wrap the example", input: ["wrap", "one two three four", 8], expected: ["one two", "three", "four"] },
@@ -135,23 +103,9 @@ function renderMultiBox(blocks) {
         },
         { name: "An empty sentence is an empty box", input: ["box", "", 4], expected: "+------+\n+------+" },
         {
-          name: "Two widths in one box",
-          input: ["multi", [{ text: "one two three four", width: 8 }, { text: "a much longer sentence here", width: 16 }]],
-          expected:
-            "+------------------+\n| one two          |\n| three            |\n| four             |\n| ---------------- |\n| a much longer    |\n| sentence here    |\n+------------------+",
-        },
-        {
-          name: "Three widths in one box",
-          input: [
-            "multi",
-            [
-              { text: "check in after three", width: 15 },
-              { text: "no parties or smoking", width: 16 },
-              { text: "quiet hours from ten to eight", width: 32 },
-            ],
-          ],
-          expected:
-            "+----------------------------------+\n| check in after                   |\n| three                            |\n| -------------------------------- |\n| no parties or                    |\n| smoking                          |\n| -------------------------------- |\n| quiet hours from ten to eight    |\n+----------------------------------+",
+          name: "Lines can fill the width exactly",
+          input: ["box", "check in , then relax", 10],
+          expected: "+------------+\n| check in , |\n| then relax |\n+------------+",
         },
       ],
     },
@@ -164,7 +118,7 @@ function renderMultiBox(blocks) {
     companies: ["airbnb"],
     summary:
       "Split first, decode second — the ordering that makes the encoded-ampersand case work.",
-    prompt: `Parse the query string of a URL into an object — one of the three prompts rotating through Airbnb's general-track phone-screen string slot (last reported Aug 2026).
+    prompt: `Parse the query string of a URL into an object.
 
 \`\`\`
 parseQuery("?a=b&c=d")   ->  { a: "b", c: "d" }
@@ -176,11 +130,7 @@ parseQuery("?a=b&c=d")   ->  { a: "b", c: "d" }
 - A repeated key collects its values into an array, in order.
 - Percent-decode keys and values **after** splitting on \`&\` and \`=\`, so \`%26\` inside a value stays a literal \`&\`. \`+\` decodes to a space.
 - Ignore everything from \`#\` on (the fragment) and empty segments (\`a=1&&b=2&\`).
-- No \`?\` in the URL → \`{}\`. A value that fails to decode is returned as-is rather than throwing.
-
-## Worth asking out loud
-
-Typed values (\`"2"\` → \`2\`, \`"true"\` → \`true\`)? Bracket syntax like \`a[]=1\`? Should a repeated key keep only the last value instead? Is the input a full URL or just the query?`,
+- No \`?\` in the URL → \`{}\`. A value that fails to decode is returned as-is rather than throwing.`,
     hints: [
       "Slice from the first `?`, cut at `#`, then split on `&` and then on the first `=` per part — decoding only after both splits is what keeps `%26` from being treated as a separator.",
       "Wrap `decodeURIComponent` in a try/catch (malformed input like `%E0%A4%A` throws) and replace `+` with a space before decoding.",
@@ -196,7 +146,7 @@ Cut the string down before doing anything clever: everything from the first \`?\
 - \`decodeURIComponent\` throws on malformed sequences — a query parser that can crash on user input is a bug, hence the try/catch pass-through.
 - Typed values (numbers, booleans, \`!flag\`) and bracket syntax (\`a[]=1\`) are real variants; clarify which dialect you're parsing before adding either.`,
     judge: {
-      solutionCode: `// URL query-string parser (phone screen, Aug 2026)
+      solutionCode: `// URL query-string parser
 // ?a=b&c=d → {a:'b', c:'d'}; bare key → true; repeated key → array; percent-decoding after splitting.
 const decode = (s) => { try { return decodeURIComponent(s.replace(/\\+/g, ' ')); } catch { return s; } };
 
@@ -251,7 +201,7 @@ function parseQuery(url) {
     companies: ["airbnb"],
     summary:
       "Case-insensitive, longest match wins, original text preserved — a trie walk from every offset.",
-    prompt: `Tag the tokens in a guest review — reported on an Airbnb senior phone screen (Aug 2026). Given the review text and a map of token → label, wrap each **case-insensitive** occurrence of a token as \`[label]{original text}\`, keeping the review's original casing inside the braces.
+    prompt: `Tag the tokens in a guest review. Given the review text and a map of token → label, wrap each **case-insensitive** occurrence of a token as \`[label]{original text}\`, keeping the review's original casing inside the braces.
 
 \`\`\`
 tagTokens("Great WiFi here", { wifi: "amenity" })   ->  "Great [amenity]{WiFi} here"
@@ -261,11 +211,7 @@ tagTokens("Great WiFi here", { wifi: "amenity" })   ->  "Great [amenity]{WiFi} h
 
 - Multi-word tokens (\`"hot tub"\`) match across the space.
 - When several tokens match at the same position, the **longest** wins: with \`pool\` and \`pool view\` both defined, \`"pool view"\` is tagged once, as the longer token.
-- Every occurrence is tagged; text that matches nothing is passed through unchanged. An empty token map returns the review untouched.
-
-## Worth asking out loud
-
-Should matches respect word boundaries (does \`pool\` match inside \`carpool\`)? Can tagged regions overlap or nest? Tens of thousands of tokens — does the algorithm need to be linear in the review length?`,
+- Every occurrence is tagged; text that matches nothing is passed through unchanged. An empty token map returns the review untouched.`,
     hints: [
       "Build a trie over the lowercased tokens and store the label on each token's final node. Then walk from every offset of the lowercased review.",
       "Don't stop at the first terminal node — keep walking while the trie still has a path and remember the last terminal you passed. That's what makes the longest match win.",
@@ -281,7 +227,7 @@ A trie over the lowercased tokens, walked from every offset of the lowercased re
 - Word boundaries are a real question (\`pool\` inside \`carpool\`) — ask before assuming either way.
 - Tens of thousands of tokens and long reviews: Aho–Corasick gives one linear pass; say the name, don't write it.`,
     judge: {
-      solutionCode: `// Review token tagging (senior phone screen, Aug 2026)
+      solutionCode: `// Review token tagging
 // Wrap each case-insensitive occurrence of a token as [label]{original text}; multi-word tokens
 // match across whitespace; longest match wins at a given offset. Trie over lowercased tokens.
 function tagTokens(review, tokens) {
@@ -337,12 +283,12 @@ function tagTokens(review, tokens) {
     title: "Retry Wrapper",
     category: "algorithms",
     difficulty: "medium",
-    // Apple: the guide's promise helpers include retry with backoff, as a
-    // likely answer to a senior round's "more advanced promise" ask.
+    // Apple: retry with backoff is among the promise helpers in the Apple
+    // JavaScript guide.
     companies: ["airbnb", "apple"],
     summary:
-      "Pluggable backoff, a retryable filter, hooks, and an abort signal — the AI-coding round's prompt.",
-    prompt: `Implement a retry wrapper — the prompt of Airbnb's new (2026) AI-coding round, where Claude Code is available but you still own the code: *"verify exception boundaries, attempt counting, sleep placement, and tests instead of accepting a generated wrapper as-is."*
+      "Pluggable backoff, a retryable filter, hooks, and an abort signal around one loop.",
+    prompt: `Implement a retry wrapper. The loop is short; the grading is in the details — where exceptions are caught, how attempts are counted, and where the sleep goes.
 
 \`\`\`
 const retryer = new Retryer({ maxAttempts: 3, backoff: backoff.exponentialJitter(200), isRetryable: (err) => err.status >= 500 });
@@ -355,11 +301,7 @@ const safeFetch = retryer.wrap(fetchJson);              // decorator form
 - \`backoff\` strategies map an attempt number (0-based) to a delay in ms: \`fixed(ms)\`, \`linear(ms)\` (ms × (attempt + 1)), \`exponential(base, cap)\` (min(cap, base × 2^attempt)), and \`exponentialJitter(base, cap, random)\` (the exponential delay × [0.5, 1.5), using the injected \`random\`).
 - \`new Retryer({ maxAttempts = 3, backoff, isRetryable = () => true, onAttempt, onFailure, sleep })\`. \`sleep(ms)\` defaults to a real timer; the grader injects one that only records the delay.
 - \`run(fn, { signal })\`: call \`fn(attempt)\` up to \`maxAttempts\` times. Before each attempt call \`signal?.throwIfAborted?.()\`, then \`onAttempt(attempt)\`. On failure call \`onFailure(err, attempt)\`; rethrow immediately if the error isn't retryable or this was the last attempt; otherwise \`await sleep(backoff(attempt))\` and try again. Resolve with \`fn\`'s value.
-- \`wrap(fn)\` returns \`(...args) => run(() => fn(...args))\`.
-
-## Worth asking out loud
-
-Is the operation idempotent — should the caller pass an idempotency key? Must cancellation be honored mid-sleep as well as between attempts? Which errors are retryable by default? Where do logging and metrics hook in?`,
+- \`wrap(fn)\` returns \`(...args) => run(() => fn(...args))\`.`,
     hints: [
       "Loop over attempts; put the `await fn(attempt)` *inside* the try so async rejections are caught, and rethrow when the error fails `isRetryable` or you're on the last attempt.",
       "Sleep only *between* attempts — after a failure that will be retried — never after the last one. The injected `sleep` makes that ordering observable.",
@@ -371,12 +313,12 @@ Compose three pluggable pieces — a backoff strategy, a retryable-error filter,
 
 ## Worth saying out loud
 
-- The signal in an AI-assisted round is the review and the tests, not the generation: write the failure-path tests yourself (non-retryable → one call; exhausted → last error rethrown; the backoff sequence) and fix what the tool got wrong out loud.
+- Test the failure paths yourself: a non-retryable error makes one call, exhaustion rethrows the last error, and the backoff sequence is exact. If a tool generated the wrapper, those tests are how you check it.
 - Retrying a non-idempotent operation is the discussion edge case — surface an idempotency key in the API rather than pretending retries are free.
 - Don't swallow cancellation: an abort should propagate as its own error, never be retried, and ideally interrupt a sleep in progress.
 - Extensions that fit the shape: a circuit breaker in front of \`run\`, a retry budget shared across callers, and metrics from the two hooks.`,
     judge: {
-      solutionCode: `// Retryer (onsite "AI coding" round, Aug 2026 — Claude Code available; you still own the code).
+      solutionCode: `// Retryer: run an async function with retries, backoff, and hooks.
 // Composes three pluggable pieces: backoff strategy, retryable-error filter, hooks.
 const backoff = {
   fixed: (ms) => () => ms,
@@ -547,7 +489,7 @@ class Retryer {
     companies: ["airbnb"],
     summary:
       "Consume the oldest stock first and say which lots an order drew from — an implementation prompt with tie-break rules.",
-    prompt: `Reported from an Airbnb general-track coding round (Aug 2026) as: *"quantity in, existing stock, consume the oldest stock first, output with reference ids — implementation plus tie-break rules, no algorithm."* The report was one line; the exact rules below are Callback's, chosen to be the natural ones.
+    prompt: `Allocate stock to orders first in, first out: each order consumes the oldest stock first, and the result says which lots it drew from and how much from each.
 
 \`\`\`
 allocator.receive(lotId, quantity, receivedAt)   // add stock
@@ -562,11 +504,7 @@ allocator.lots()                                 // -> remaining lots in consump
 - A lot may be consumed partially; the remainder stays at the front. Exhausted lots disappear from \`lots()\`.
 - Allocation is **all-or-nothing**: if stock can't cover the whole order, return \`null\` and change nothing.
 - \`allocate\` returns the lots drawn from, in consumption order, with the quantity taken from each. A quantity of 0 allocates nothing and returns \`[]\`.
-- Lots can arrive out of \`receivedAt\` order.
-
-## Worth asking out loud
-
-Partial fills or all-or-nothing? What breaks a tie on \`receivedAt\`? Can the same \`lotId\` be received twice? Do we need an order → allocations ledger for auditing, or reversals when an order is cancelled?`,
+- Lots can arrive out of \`receivedAt\` order.`,
     hints: [
       "Keep the lots as an array sorted by (receivedAt, arrival sequence) — a stamp you assign on receive() makes the tie-break explicit rather than relying on sort stability.",
       "Check `available() >= quantity` before touching anything, so all-or-nothing falls out naturally; then walk from the front taking min(lot.quantity, remaining) until remaining hits zero.",
@@ -577,7 +515,7 @@ Keep the lots in one array sorted by \`(receivedAt, arrival sequence)\` — the 
 
 ## Worth saying out loud
 
-- Ask the two rule questions before coding — partial vs all-or-nothing and the tie-break — they're what the interviewer is grading on an "implementation, no algorithm" prompt.
+- Ask the two rule questions before coding — partial vs all-or-nothing, and the tie-break. On a prompt with no algorithmic trick, the rules are what's being graded.
 - The sorted-on-insert array is O(n log n) per receive; a heap keyed by \`(receivedAt, seq)\` makes receive O(log n) and keeps allocate a front-pop loop. Name it, don't switch unless asked.
 - A ledger (\`orderId → allocations\`) is one Map away and is what makes cancellations and audits possible — the \`orderId\` parameter is the hook for it.`,
     judge: {

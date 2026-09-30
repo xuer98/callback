@@ -1,8 +1,7 @@
 import type { Problem } from "./types";
 
-// Apple system-design prompts reported for Software Engineer loops (PracHub's
-// Apple list, 2025–2026), part E: a marketplace catalog and a local-business
-// reviews platform. Prompts are restated in our own words.
+// Apple system-design prompts, part E: a marketplace catalog and a
+// local-business reviews platform.
 
 export const appleDesignProblemsE: Problem[] = [
   {
@@ -19,8 +18,6 @@ export const appleDesignProblemsE: Problem[] = [
       "The catalog must model categories, per-category attributes and product variants (one shirt, many sizes and colours); ingest items through APIs and bulk feeds; keep versions; detect duplicates of the same product from different sellers; and moderate what is published. Search and browse are served from an index, not from the source of truth.",
       "",
       "Cover: the data model; read and write APIs; ingestion, validation, versioning, deduplication and moderation; how the search and browse index is built and kept up to date, including partial updates; localization; caching; consistency between the source of truth and the index; schema evolution; multi-tenant isolation; and backfill and reprocessing.",
-      "",
-      "*Reported as: a large marketplace catalog system, one of two systems in a single onsite round (PracHub, Apple Software Engineer onsite, Sep 2025).*",
     ].join("\n"),
     hints: [
       "Separate the canonical product (what the thing is) from the offer (who sells it, at what price, with what stock). Deduplication merges products; offers stay per seller. Variants hang off a parent product along declared axes.",
@@ -117,10 +114,6 @@ export const appleDesignProblemsE: Problem[] = [
       "Design a local-business reviews platform in the shape of Yelp: people search for businesses near a location, open a business page, read and write reviews, rate, upload photos and check in.",
       "",
       "Define the core data model — users, businesses with coordinates and categories, reviews, ratings, photos, check-ins, and the indexes. Then explain how you scale **reads** (replication, caches, CDN, search indexes) and **writes** (sharding, queues, consistency, backfills), how search and geospatial queries work, how caches are invalidated, and what you do for performance.",
-      "",
-      "The same reported round also asked for a URL shortener; practise that separately at [Design a URL Shortener](/problems/design-url-shortener).",
-      "",
-      "*Reported as: a Yelp-like local-business reviews platform plus a URL shortener in one onsite round (PracHub, Apple Software Engineer onsite, Sep 2025).*",
     ].join("\n"),
     hints: [
       "The defining query is 'category or keyword near a point'. Pick a spatial index you can explain — geohash prefixes, S2 cells or a quadtree — and describe covering the search radius with cells, fetching candidates, then filtering by true distance and ranking.",
