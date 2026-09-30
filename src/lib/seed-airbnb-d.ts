@@ -1022,7 +1022,9 @@ export const airbnbProblemsD: Problem[] = [
     title: "Typeahead with Keyboard Navigation",
     category: "frontend",
     difficulty: "hard",
-    companies: ["airbnb"],
+    // Apple: an autocomplete search bar "as on apple.com" and a search bar
+    // from scratch are both reported UI builds in the Apple JavaScript guide.
+    companies: ["airbnb", "apple"],
     summary:
       "Debounce the query, abort the stale request, cache by query, wrap the arrow keys, wire the combobox.",
     prompt: `Build a typeahead: an input connected to a suggestions endpoint, with **keyboard navigation**. The endpoint is mocked in the starter (\`fetchSuggestions(query, signal)\` resolves after a jittered delay and honors an \`AbortSignal\`), so a slow old response really can arrive after a newer one. Available as a React template and an HTML/CSS/JS one.

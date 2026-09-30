@@ -23,6 +23,23 @@ import { appleDesignProblemsE } from "./seed-apple-design-e";
 import { appleDesignProblemsF } from "./seed-apple-design-f";
 import { appleProblemsL } from "./seed-apple-l";
 import { appleProblemsM } from "./seed-apple-m";
+import { appleJsProblemsA } from "./seed-apple-js-a";
+import { appleJsProblemsB } from "./seed-apple-js-b";
+import { appleJsProblemsC } from "./seed-apple-js-c";
+import { appleJsProblemsD } from "./seed-apple-js-d";
+import { appleJsProblemsE } from "./seed-apple-js-e";
+import { appleJsProblemsF } from "./seed-apple-js-f";
+import { appleJsProblemsG } from "./seed-apple-js-g";
+import { appleUiProblemsA } from "./seed-apple-ui-a";
+import { appleUiProblemsB } from "./seed-apple-ui-b";
+import { appleUiProblemsC } from "./seed-apple-ui-c";
+import { appleUiProblemsD } from "./seed-apple-ui-d";
+import { appleUiProblemsE } from "./seed-apple-ui-e";
+import { appleUiProblemsF } from "./seed-apple-ui-f";
+import { appleUiProblemsG } from "./seed-apple-ui-g";
+import { appleQuizProblems } from "./seed-apple-js-quiz";
+import { appleConceptProblems } from "./seed-apple-js-concepts";
+import { appleDesignProblemsG } from "./seed-apple-design-g";
 import { andurilProblemsA } from "./seed-anduril-a";
 import { andurilProblemsB } from "./seed-anduril-b";
 import { andurilProblemsC } from "./seed-anduril-c";
@@ -2765,6 +2782,23 @@ function debounce(fn, wait) {
   ...appleDesignProblemsD,
   ...appleDesignProblemsE,
   ...appleDesignProblemsF,
+  ...appleJsProblemsA,
+  ...appleJsProblemsB,
+  ...appleJsProblemsC,
+  ...appleJsProblemsD,
+  ...appleJsProblemsE,
+  ...appleJsProblemsF,
+  ...appleJsProblemsG,
+  ...appleUiProblemsA,
+  ...appleUiProblemsB,
+  ...appleUiProblemsC,
+  ...appleUiProblemsD,
+  ...appleUiProblemsE,
+  ...appleUiProblemsF,
+  ...appleUiProblemsG,
+  ...appleQuizProblems,
+  ...appleConceptProblems,
+  ...appleDesignProblemsG,
   ...airbnbProblemsA,
   ...airbnbProblemsB,
   ...airbnbProblemsC,

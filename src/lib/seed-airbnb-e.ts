@@ -337,7 +337,9 @@ function tagTokens(review, tokens) {
     title: "Retry Wrapper",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["airbnb"],
+    // Apple: the guide's promise helpers include retry with backoff, as a
+    // likely answer to a senior round's "more advanced promise" ask.
+    companies: ["airbnb", "apple"],
     summary:
       "Pluggable backoff, a retryable filter, hooks, and an abort signal — the AI-coding round's prompt.",
     prompt: `Implement a retry wrapper — the prompt of Airbnb's new (2026) AI-coding round, where Claude Code is available but you still own the code: *"verify exception boundaries, attempt counting, sleep placement, and tests instead of accepting a generated wrapper as-is."*

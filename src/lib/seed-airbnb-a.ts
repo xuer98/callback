@@ -628,7 +628,9 @@ async function __runPromiseScenario(kind) {
     title: "Debounce II and Throttle",
     category: "frontend",
     difficulty: "medium",
-    companies: ["airbnb"],
+    // Apple: debounce and throttle top the utility list in the Apple
+    // JavaScript guide (2026), per GreatFrontEnd's Apple guide.
+    companies: ["airbnb", "apple"],
     summary:
       "Debounce waits for silence, throttle guarantees a rate — plus the cancel() and flush() follow-ups.",
     prompt: `Write \`debounce\` from scratch, then the follow-ups Airbnb adds: \`cancel()\` and \`flush()\`, and a \`throttle\` — and be ready to say where you'd use each.
