@@ -106,7 +106,8 @@ export function QuestionFilters({
   );
 }
 
-function Select({
+/** A labelled native select; also used by the problem side menu. */
+export function Select({
   label,
   value,
   placeholder,

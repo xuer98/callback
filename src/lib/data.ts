@@ -19,6 +19,7 @@ import type {
   CompanyQuestion,
   Difficulty,
   Problem,
+  ProblemIndex,
   Timeframe,
   Track,
 } from "./types";
@@ -67,6 +68,55 @@ export async function listProblems(category?: Category): Promise<Problem[]> {
     orderBy: (problems, { asc }) => [asc(problems.id)],
   });
   return rows.map(toProblem);
+}
+
+/**
+ * The slim list behind the problem side menu. Selects only what a row shows
+ * and derives the format in SQL, so the judge and UI blobs never leave the
+ * database.
+ */
+export async function getProblemIndex(): Promise<ProblemIndex> {
+  const rows = await db.query.problems.findMany({
+    columns: { slug: true, title: true, category: true, difficulty: true },
+    extras: (problems) => ({
+      hasJudge: sql<boolean>`${problems.judge} is not null`.as("has_judge"),
+      hasUi: sql<boolean>`${problems.ui} is not null`.as("has_ui"),
+    }),
+    with: {
+      problemCompanies: {
+        with: { company: { columns: { slug: true, name: true } } },
+      },
+    },
+    orderBy: (problems, { asc }) => [asc(problems.id)],
+  });
+
+  const companyNames = new Map<string, string>();
+  for (const row of rows) {
+    for (const { company } of row.problemCompanies) {
+      companyNames.set(company.slug, company.name);
+    }
+  }
+
+  return {
+    problems: rows.map((row) => ({
+      slug: row.slug,
+      title: row.title,
+      category: row.category,
+      difficulty: row.difficulty,
+      companies: row.problemCompanies.map((link) => link.company.slug),
+      // The same order the problem page picks its workspace in.
+      format: row.hasJudge
+        ? "code"
+        : row.hasUi
+          ? "ui"
+          : row.category === "system-design"
+            ? "design"
+            : "quiz",
+    })),
+    companies: [...companyNames]
+      .map(([slug, name]) => ({ slug, name }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  };
 }
 
 export async function getProblem(slug: string): Promise<Problem | undefined> {

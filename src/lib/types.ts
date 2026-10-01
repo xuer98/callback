@@ -50,6 +50,39 @@ export interface Problem {
   ui?: UiWorkspace;
 }
 
+/**
+ * How a problem is worked on, which is also the page it gets: the code
+ * editor, the live-preview UI workspace, the design whiteboard, or a prompt
+ * to read and answer.
+ */
+export const PROBLEM_FORMATS = ["code", "ui", "design", "quiz"] as const;
+
+export type ProblemFormat = (typeof PROBLEM_FORMATS)[number];
+
+export const PROBLEM_FORMAT_LABELS: Record<ProblemFormat, string> = {
+  code: "Coding",
+  ui: "UI coding",
+  design: "System design",
+  quiz: "Quiz",
+};
+
+/** One row of the problem side menu: enough to list, filter, and link. */
+export interface ProblemIndexEntry {
+  slug: string;
+  title: string;
+  category: Category;
+  difficulty: Difficulty;
+  /** Slugs of the companies the problem is tagged with. */
+  companies: string[];
+  format: ProblemFormat;
+}
+
+export interface ProblemIndex {
+  problems: ProblemIndexEntry[];
+  /** Every company at least one problem is tagged with, by name. */
+  companies: { slug: string; name: string }[];
+}
+
 /** One starter file in a UI (frontend) workspace. */
 export interface UiFile {
   /** Shown on the editor tab and used as the module id, e.g. "App.jsx". */

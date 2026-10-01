@@ -6,6 +6,7 @@ import { DesignWorkspace } from "@/components/design-workspace";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { MarkDoneButton } from "@/components/progress";
 import { RichText } from "@/components/markdown";
+import { ProblemMenuButton } from "@/components/problem-menu";
 import { ProblemPanes } from "@/components/problem-panes";
 import { JudgeSolution, UiSolution } from "@/components/solution-panel";
 import { UiWorkspace } from "@/components/ui-workspace";
@@ -148,6 +149,7 @@ export default async function ProblemPage({
  * Where the problem sits: Problems, then its category (the list, filtered
  * to it), then the problem itself. Built from the problem alone rather than
  * from the page it was opened from, so the page stays statically generated.
+ * The button in front opens the side menu of every problem.
  */
 function Breadcrumb({
   problem,
@@ -164,28 +166,31 @@ function Breadcrumb({
     },
   ];
   return (
-    <nav aria-label="Breadcrumb" className={className}>
-      <ol className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
-        {trail.map((crumb) => (
-          <li key={crumb.href} className="flex shrink-0 items-center gap-1.5">
-            <Link
-              href={crumb.href}
-              className="transition-colors hover:text-zinc-200"
-            >
-              {crumb.label}
-            </Link>
-            <span aria-hidden className="text-zinc-700">
-              /
+    <div className={`flex min-w-0 items-center gap-2.5 ${className}`}>
+      <ProblemMenuButton />
+      <nav aria-label="Breadcrumb" className="min-w-0">
+        <ol className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">
+          {trail.map((crumb) => (
+            <li key={crumb.href} className="flex shrink-0 items-center gap-1.5">
+              <Link
+                href={crumb.href}
+                className="transition-colors hover:text-zinc-200"
+              >
+                {crumb.label}
+              </Link>
+              <span aria-hidden className="text-zinc-700">
+                /
+              </span>
+            </li>
+          ))}
+          <li className="min-w-0">
+            <span aria-current="page" className="block truncate text-zinc-300">
+              {problem.title}
             </span>
           </li>
-        ))}
-        <li className="min-w-0">
-          <span aria-current="page" className="block truncate text-zinc-300">
-            {problem.title}
-          </span>
-        </li>
-      </ol>
-    </nav>
+        </ol>
+      </nav>
+    </div>
   );
 }
 

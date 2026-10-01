@@ -51,7 +51,8 @@ export function CompanyProblems({
   );
 }
 
-function Chip({
+/** A toggle chip; also used by the problem side menu's filters. */
+export function Chip({
   label,
   active,
   onClick,
@@ -62,6 +63,8 @@ function Chip({
 }) {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
         active

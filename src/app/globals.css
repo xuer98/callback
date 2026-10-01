@@ -41,3 +41,16 @@ body {
     display: none;
   }
 }
+
+/* The problem side menu is a modal drawer: the page behind it holds still
+   while it is open, and it slides in (closing is instant). */
+body:has(dialog[data-problem-menu][open]) {
+  overflow: hidden;
+}
+
+@keyframes problem-menu-in {
+  from {
+    transform: translateX(-2rem);
+    opacity: 0;
+  }
+}

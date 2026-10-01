@@ -357,6 +357,7 @@ async function companyIds(
 function refreshAfterWrite(slug: string) {
   revalidatePath(`/problems/${slug}`);
   revalidatePath("/problems");
+  revalidatePath("/api/problems");
   revalidatePath("/companies/[slug]", "page");
   revalidatePath("/tracks/[slug]", "page");
 }
