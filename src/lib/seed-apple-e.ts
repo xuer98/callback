@@ -173,7 +173,7 @@ function kthGrammar(level, position) {
     title: "Sliding-Window Rate Limiter",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["apple"],
+    companies: ["apple", "snowflake"],
     summary:
       "A queue of admitted timestamps per key: evict what aged out, admit while under the limit.",
     prompt: [

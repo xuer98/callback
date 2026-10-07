@@ -10,7 +10,7 @@ export const airbnbProblemsB: Problem[] = [
     title: "In-Memory File System",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["airbnb"],
+    companies: ["airbnb", "snowflake"],
     summary:
       "A tree of nodes keyed by path segment — the OOD-style prompt where the implementation is the test.",
     prompt: `Build an in-memory file system keyed by slash-separated paths — an object-oriented design exercise where the logic is simple and a clean implementation is the point.

@@ -169,7 +169,7 @@ function braceExpansionNested(expression) {
     title: "Nested-Transaction KV Store",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["anduril"],
+    companies: ["anduril", "snowflake"],
     summary:
       "An undo log per open transaction: rollback replays it, commit hands it to the parent.",
     prompt: `Build an in-memory key-value store:
@@ -254,7 +254,9 @@ class TransactionalKV:
 
 - Name the alternative: a stack of **overlay dicts** where \`get\` walks from the top — O(depth) reads, O(1) rollback, O(writes) commit. The undo log flips those costs toward reads, which is usually what a store wants.
 - The MISSING sentinel matters: "key didn't exist" and "key was empty-string" must roll back differently.
-- \`count(value)\` follow-up → maintain a \`Counter\` updated through the same undo log. "Commit all" → loop \`commit\` until the stack empties. Durability → append-only write-ahead log, the same idea aimed at disk.`,
+- \`count(value)\` follow-up → maintain a \`Counter\` updated through the same undo log. "Commit all" → loop \`commit\` until the stack empties. Durability → append-only write-ahead log, the same idea aimed at disk.
+- Thread safety: one transaction stack per thread, and a single lock around the base-store mutation at commit. Per-key locks are harder than they look — a commit must apply many keys atomically, so the locks need a global order to avoid deadlock.
+- Large values on disk: hold a per-key lock around the whole read-modify-write, not around each call, and let a read-write lock share among readers. A crash mid-commit: append the transaction to a write-ahead log and fsync before applying, then replay on restart.`,
     judge: {
       starterCode: `class TransactionalKV {
   constructor() {

@@ -1322,6 +1322,19 @@ export const companies: Company[] = ([] = [
     ],
   },
   {
+    slug: "snowflake",
+    name: "Snowflake",
+    blurb:
+      "A small, bank-driven loop: a handful of coding families recur, and the follow-ups plus your own test cases decide a round more than the base problem does. Prompts often start on a blank page with no signature, so clarify, pick the interface and write the tests yourself. System design is infrastructure — a job scheduler, a key-value store, an ACL service — and the interviewer drills one mechanism until the hour ends.",
+    process: [
+      "Recruiter screen: ~30 min — background, location, work authorization",
+      "Some applicants: a ~20 min AI-conducted voice pre-screen on two projects, a conflict, and how you use AI tools",
+      "Technical phone screen: two 45–60 min CoderPad rounds — usually both coding, sometimes one coding and one system design",
+      "Onsite, often in person: three to four 60 min rounds — one or two coding, one system design, one behavioral; some loops add a project deep dive or an AI-augmented coding round",
+      "Team matching: hiring-manager and teammate chats, still evaluative",
+    ],
+  },
+  {
     slug: "sofi",
     name: "SoFi",
     blurb:

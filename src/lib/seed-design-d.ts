@@ -66,7 +66,7 @@ export const designProblemsD: Problem[] = [
     title: "Design a Blob Storage Service",
     category: "system-design",
     difficulty: "medium",
-    companies: ["pinterest"],
+    companies: ["pinterest", "snowflake"],
     summary:
       "Metadata plane vs data plane, chunk replication, and the atomic-commit moment.",
     prompt: [
@@ -117,6 +117,7 @@ export const designProblemsD: Problem[] = [
       "- *Consistency model?* Strong per-key metadata; immutable chunks are trivially consistent; the only ambiguous window is pre-commit, and it's invisible to readers by construction.",
       "- *Hot object?* Chunks are immutable → replicate hot chunks wider and let the CDN absorb public traffic; the metadata row caches with a short TTL.",
       "- *Version and delete semantics?* Metadata versions are cheap (new chunk list, shared unchanged chunks); delete drops references and GC does the rest — which also gives trash/undelete for free within the GC window.",
+      "- *Store duplicate files once?* Content-address by cryptographic hash and keep reference counts: whole-file dedup is simple, chunk-level dedup catches more; inline dedup costs upload latency, background dedup costs temporary storage; delete a chunk only when its count reaches zero.",
     ].join("\n"),
   },
 ];

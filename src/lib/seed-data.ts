@@ -6,6 +6,29 @@ import { airbnbProblemsE } from "./seed-airbnb-e";
 import { airbnbProblemsF } from "./seed-airbnb-f";
 import { airbnbProblemsG } from "./seed-airbnb-g";
 import { airbnbProblemsH } from "./seed-airbnb-h";
+import { snowflakeProblemsA } from "./seed-snowflake-a";
+import { snowflakeProblemsB } from "./seed-snowflake-b";
+import { snowflakeProblemsC } from "./seed-snowflake-c";
+import { snowflakeProblemsD } from "./seed-snowflake-d";
+import { snowflakeProblemsE } from "./seed-snowflake-e";
+import { snowflakeProblemsF } from "./seed-snowflake-f";
+import { snowflakeProblemsG } from "./seed-snowflake-g";
+import { snowflakeProblemsH } from "./seed-snowflake-h";
+import { snowflakeProblemsI } from "./seed-snowflake-i";
+import { snowflakeProblemsJ } from "./seed-snowflake-j";
+import { snowflakeProblemsK } from "./seed-snowflake-k";
+import { snowflakeProblemsL } from "./seed-snowflake-l";
+import { snowflakeProblemsM } from "./seed-snowflake-m";
+import { snowflakeProblemsN } from "./seed-snowflake-n";
+import { snowflakeProblemsO } from "./seed-snowflake-o";
+import { snowflakeProblemsP } from "./seed-snowflake-p";
+import { snowflakeProblemsQ } from "./seed-snowflake-q";
+import { snowflakeProblemsR } from "./seed-snowflake-r";
+import { snowflakeDesignProblemsA } from "./seed-snowflake-design-a";
+import { snowflakeDesignProblemsB } from "./seed-snowflake-design-b";
+import { snowflakeDesignProblemsC } from "./seed-snowflake-design-c";
+import { snowflakeBehavioralProblems } from "./seed-snowflake-behavioral";
+import { snowflakeConceptProblems } from "./seed-snowflake-concepts";
 import { appleProblemsA } from "./seed-apple-a";
 import { appleProblemsB } from "./seed-apple-b";
 import { appleProblemsC } from "./seed-apple-c";
@@ -164,7 +187,7 @@ function pairSum(numbers, target) {
     category: "algorithms",
     difficulty: "medium",
     // Apple: a 2026 phone screen asked merge then insert-interval (offer).
-    companies: ["google", "meta", "apple"],
+    companies: ["google", "meta", "apple", "snowflake"],
     summary: "Sort, then sweep — the pattern behind a dozen calendar problems.",
     prompt:
       "Given a list of intervals [start, end], merge all overlapping intervals and return the result sorted by start time. Intervals that touch, such as [1, 4] and [4, 5], overlap.",
@@ -351,7 +374,7 @@ Every operation is O(1); space is O(capacity).
     title: "Course Schedule",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["netflix", "stripe"],
+    companies: ["netflix", "stripe", "snowflake"],
     summary: "Cycle detection dressed up as a scheduling question.",
     prompt:
       "There are n courses labeled 0 to n-1, and a list of prerequisite pairs [a, b] meaning you must take course b before course a. Determine whether it is possible to finish all courses.",
@@ -2744,7 +2767,7 @@ function debounce(fn, wait) {
     title: "Top Earners per Department",
     category: "sql",
     difficulty: "medium",
-    companies: ["amazon", "netflix"],
+    companies: ["amazon", "netflix", "snowflake"],
     summary: "Window functions beat self-joins — know why.",
     prompt:
       "Given tables employees(id, name, salary, department_id) and departments(id, name), write a query returning each department's name alongside its highest-paid employees, including ties.",
@@ -2940,6 +2963,29 @@ ORDER BY department, employee;
   ...airbnbProblemsF,
   ...airbnbProblemsG,
   ...airbnbProblemsH,
+  ...snowflakeProblemsA,
+  ...snowflakeProblemsB,
+  ...snowflakeProblemsC,
+  ...snowflakeProblemsD,
+  ...snowflakeProblemsE,
+  ...snowflakeProblemsF,
+  ...snowflakeProblemsG,
+  ...snowflakeProblemsH,
+  ...snowflakeProblemsI,
+  ...snowflakeProblemsJ,
+  ...snowflakeProblemsK,
+  ...snowflakeProblemsL,
+  ...snowflakeProblemsM,
+  ...snowflakeProblemsN,
+  ...snowflakeProblemsO,
+  ...snowflakeProblemsP,
+  ...snowflakeProblemsQ,
+  ...snowflakeProblemsR,
+  ...snowflakeDesignProblemsA,
+  ...snowflakeDesignProblemsB,
+  ...snowflakeDesignProblemsC,
+  ...snowflakeBehavioralProblems,
+  ...snowflakeConceptProblems,
 ];
 
 export const tracks: Track[] = [

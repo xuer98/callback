@@ -107,7 +107,7 @@ export const appleDesignProblemsE: Problem[] = [
     title: "Design and Scale a Yelp-like Reviews Platform",
     category: "system-design",
     difficulty: "hard",
-    companies: ["apple"],
+    companies: ["apple", "snowflake"],
     summary:
       "Geo plus text search over a read-heavy model, with review writes fanned out through queues to aggregates and the index.",
     prompt: [

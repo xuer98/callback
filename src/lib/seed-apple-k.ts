@@ -9,7 +9,7 @@ export const appleProblemsK: Problem[] = [
     title: "Word Search on a Letter Grid",
     category: "algorithms",
     difficulty: "hard",
-    companies: ["apple"],
+    companies: ["apple", "snowflake"],
     summary:
       "Build the trie first and say why: it prunes the DFS the moment a prefix does not exist.",
     prompt: [
