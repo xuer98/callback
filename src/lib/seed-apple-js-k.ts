@@ -1,7 +1,8 @@
 import type { Problem } from "./types";
 
 // Apple front-end bank, part K: the two readings of [3, 4, 5] -> [20, 15, 12]
-// and run-length compression with its character-totals variant. Python
+// and per-character totals in first-seen order. (Apple's run-length codec is
+// run-length-encode-decode in the Anduril bank, tagged for both.) Python
 // variants live in seed-python-apple-c.ts and seed-python-apple-e.ts.
 
 export const appleJsProblemsK: Problem[] = [
@@ -137,96 +138,6 @@ function productOfNextTwo(nums) {
     },
   },
   {
-    slug: "run-length-compress",
-    title: "Run-Length Compress and Decode",
-    category: "algorithms",
-    difficulty: "easy",
-    companies: ["apple"],
-    summary: "Two pointers mark each run; decoding reads counts of any length.",
-    prompt: [
-      "Write a run-length codec:",
-      "",
-      "- `compressRuns(s)` writes each run as its length and character: `\"AAABBAA\"` gives `\"3A2B2A\"`.",
-      "- `decodeRuns(encoded)` reverses it, with counts of any length: `\"12A1B\"` gives twelve `A`s and a `B`.",
-      "",
-      "Inputs contain letters only, so a digit in `encoded` is always part of a count.",
-    ].join("\n"),
-    hints: [
-      "For runs, keep two indices: `i` at the start of a run, and `j` walking forward while `s[j] === s[i]`. Append `(j - i) + s[i]`, then jump `i` to `j`.",
-      "For decoding, build the count digit by digit (`count * 10 + digit`) until you hit a letter, then repeat that letter.",
-    ],
-    solution: [
-      "## Approach",
-      "",
-      "Compressing: two pointers mark each run, and its length and character are appended. Decoding: read digits into a number until a letter arrives, then write the letter that many times.",
-      "",
-      "## Worth saying out loud",
-      "",
-      "- Counts can have several digits. Reading one digit at a time is the classic decoding bug.",
-      "- Building a string with `+=` in a loop is fine in modern engines. For very large inputs, push parts into an array and `join` once.",
-      "- Run-length encoding only saves space on runs: `\"ABC\"` grows to `\"1A1B1C\"`. The classic variant writes a count only when it is above 1, which is still decodable.",
-      "- A per-character *total* (`\"5A2B\"` for `\"AAABBAA\"`) can't be decoded back — it throws away the order.",
-    ].join("\n"),
-    judge: {
-      starterCode: `/** Each run as its length then its character: "AAABBAA" -> "3A2B2A". */
-function compressRuns(s) {
-  // Your code here
-  return "";
-}
-
-/** Undo compressRuns; counts may have several digits: "12A1B". */
-function decodeRuns(encoded) {
-  // Your code here
-  return "";
-}
-`,
-      solutionCode: `function compressRuns(s) {
-  let out = "";
-  for (let i = 0; i < s.length; ) {
-    let j = i;
-    while (j < s.length && s[j] === s[i]) j++;
-    out += j - i + s[i];
-    i = j;
-  }
-  return out;
-}
-
-function decodeRuns(encoded) {
-  let out = "";
-  let count = 0;
-  for (const ch of encoded) {
-    if (ch >= "0" && ch <= "9") {
-      count = count * 10 + (ch.charCodeAt(0) - 48); // counts may have several digits
-    } else {
-      out += ch.repeat(count);
-      count = 0;
-    }
-  }
-  return out;
-}
-`,
-      entry: "__judgeCompress",
-      driverCode: `function __judgeCompress(kind, s) {
-  if (kind === "runs") return compressRuns(s);
-  if (kind === "decode") return decodeRuns(s);
-  if (kind === "roundTrip") return decodeRuns(compressRuns(s)) === s;
-  throw new Error("unknown case " + kind);
-}`,
-      tests: [
-        { name: "Runs of AAABB", input: ["runs", "AAABB"], expected: "3A2B" },
-        { name: "Runs of AAABBAA", input: ["runs", "AAABBAA"], expected: "3A2B2A" },
-        { name: "Runs of an empty string", input: ["runs", ""], expected: "" },
-        { name: "A single character", input: ["runs", "A"], expected: "1A" },
-        { name: "No repeats", input: ["runs", "ABC"], expected: "1A1B1C" },
-        { name: "A run of twelve", input: ["runs", "AAAAAAAAAAAA"], expected: "12A" },
-        { name: "Decode 3A2B2A", input: ["decode", "3A2B2A"], expected: "AAABBAA" },
-        { name: "Decode a two-digit count", input: ["decode", "12A1B"], expected: "AAAAAAAAAAAAB" },
-        { name: "Decode an empty string", input: ["decode", ""], expected: "" },
-        { name: "Runs round-trip", input: ["roundTrip", "WWWWWWWWWWWWBWWWWWWWWWWWWBBBWWWWWWWWWWWWWWWWWWWWWWWWBWWWWWWWWWWWWWW"], expected: true },
-      ],
-    },
-  },
-  {
     slug: "character-totals-in-order",
     title: "Count Each Character in First-Seen Order",
     category: "algorithms",
@@ -253,7 +164,7 @@ function decodeRuns(encoded) {
       "",
       "## Worth saying out loud",
       "",
-      "- Unlike run-length encoding, totals can't be decoded back: `\"5A2B\"` could have come from `\"AAABBAA\"` or `\"AAAAABB\"`.",
+      "- Unlike [run-length encoding](/problems/run-length-encode-decode), totals can't be decoded back: `\"5A2B\"` could have come from `\"AAABBAA\"` or `\"AAAAABB\"`.",
       "- A plain object would also keep insertion order for these letter keys, but integer-like keys jump to the front — a `Map` never reorders.",
     ].join("\n"),
     judge: {

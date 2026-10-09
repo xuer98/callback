@@ -8,6 +8,18 @@ const nextConfig: NextConfig = {
     // /questions merged into /problems; query strings carry over unchanged.
     return [
       { source: "/questions", destination: "/problems", permanent: true },
+      // Duplicate problems folded into their survivors (MERGED_SLUGS in
+      // src/db/seed.ts).
+      {
+        source: "/problems/conflict-with-colleague-or-stakeholder",
+        destination: "/problems/conflict-with-teammate",
+        permanent: true,
+      },
+      {
+        source: "/problems/run-length-compress",
+        destination: "/problems/run-length-encode-decode",
+        permanent: true,
+      },
     ];
   },
 };

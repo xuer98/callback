@@ -85,7 +85,7 @@ function replaceAll(s, pattern, replacement) {
     title: "Run-Length Encode and Decode",
     category: "algorithms",
     difficulty: "easy",
-    companies: ["anduril"],
+    companies: ["anduril", "apple"],
     summary: "Find the end of each run (or each number), emit, jump.",
     prompt: `Run-length encode a string as each character followed by the length of its run, and decode such a string back. Counts can be more than one digit.
 
@@ -97,7 +97,7 @@ decode("a3b1c12")  ->  "aaab" + "c" * 12
 Source strings contain letters only, so every digit in an encoded string belongs to a count.`,
     hints: [
       "Encoding: from each position, walk forward while the character repeats; emit the character and the run length, then jump to the end of the run.",
-      "Decoding: read one character, then every digit after it as the count — counts can be longer than one digit.",
+      "Decoding: read one character, then build the count digit by digit (`count * 10 + digit`) until the next letter — counts can be longer than one digit.",
     ],
     solution: `## Approach
 
@@ -133,7 +133,10 @@ O(n) for encoding, O(output) for decoding.
 
 - Multi-digit counts are why decoding reads digits until the next non-digit instead of taking one character.
 - If the source could contain digits, "a12" would be ambiguous — an escape scheme or a fixed-width count is needed.
-- Always writing the count (even 1) keeps decoding unambiguous; dropping 1s saves space but only works when the source has no digits.`,
+- Always writing the count (even 1) keeps decoding unambiguous; dropping 1s saves space but only works when the source has no digits.
+- Run-length encoding only saves space on runs: "abc" grows to "a1b1c1".
+- A per-character *total* ("a5b2" for "aaabbaa") can't be decoded back — it throws away the order. That variant is [Count Each Character in First-Seen Order](/problems/character-totals-in-order).
+- Building the output with \`+=\` in a loop is fine in modern engines; for very large inputs, push parts into a list and join once.`,
     judge: {
       starterCode: `/**
  * "aaabcc" -> "a3b1c2"
@@ -155,8 +158,31 @@ function rleDecode(s) {
   return "";
 }
 `,
+      solutionCode: `function rleEncode(s) {
+  const out = [];
+  for (let i = 0; i < s.length; ) {
+    let j = i;
+    while (j < s.length && s[j] === s[i]) j++;
+    out.push(s[i] + (j - i));
+    i = j;
+  }
+  return out.join("");
+}
+
+function rleDecode(s) {
+  const out = [];
+  for (let i = 0; i < s.length; ) {
+    const ch = s[i++];
+    let count = 0;
+    while (i < s.length && s[i] >= "0" && s[i] <= "9") count = count * 10 + (s.charCodeAt(i++) - 48);
+    out.push(ch.repeat(count));
+  }
+  return out.join("");
+}
+`,
       entry: "__judgeRle",
       driverCode: `function __judgeRle(direction, s) {
+  if (direction === "roundTrip") return rleDecode(rleEncode(s)) === s;
   return direction === "encode" ? rleEncode(s) : rleDecode(s);
 }`,
       tests: [
@@ -164,8 +190,11 @@ function rleDecode(s) {
         { name: "Encode single characters", input: ["encode", "abc"], expected: "a1b1c1" },
         { name: "Encode an empty string", input: ["encode", ""], expected: "" },
         { name: "Encode a long run", input: ["encode", "zzzzzzzzzzzzz"], expected: "z13" },
+        { name: "Encode a single character", input: ["encode", "a"], expected: "a1" },
         { name: "Decode multi-digit counts", input: ["decode", "a3b1c12"], expected: "aaabcccccccccccc" },
+        { name: "Decode runs of one", input: ["decode", "a1b1c1"], expected: "abc" },
         { name: "Decode an empty string", input: ["decode", ""], expected: "" },
+        { name: "Round trip", input: ["roundTrip", "wwwwwwwwwwwwbwwwwwwwwwwwwbbbwwwwwwwwwwwwwwwwwwwwwwwwbwwwwwwwwwwwwww"], expected: true },
       ],
     },
   },

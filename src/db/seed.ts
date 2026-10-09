@@ -2,7 +2,7 @@ import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
 import {
@@ -90,12 +90,72 @@ const RENAMED_SLUGS: Record<string, string> = {
   "debounce-cancel-flush-throttle": "debounce-cancel-flush",
 };
 
+/**
+ * Problems that turned out to duplicate an existing one and were folded
+ * into it: duplicate slug -> surviving slug. The duplicate's progress,
+ * drafts, boards and submissions move to the survivor before its row is
+ * deleted, so nothing a user did on either page is lost. A console-edited
+ * duplicate is left alone, like a renamed one.
+ */
+const MERGED_SLUGS: Record<string, string> = {
+  "conflict-with-colleague-or-stakeholder": "conflict-with-teammate",
+  "run-length-compress": "run-length-encode-decode",
+};
+
+type Tx = Parameters<
+  Parameters<NodePgDatabase<typeof schema>["transaction"]>[0]
+>[0];
+
+/**
+ * Re-points every per-user row from one problem to another. Where a user
+ * already has a row on the survivor, "solved" beats "attempted" and the
+ * newer draft or board wins; history tables simply move.
+ */
+async function moveUserData(tx: Tx, from: number, to: number) {
+  await tx.execute(sql`
+    insert into problem_progress (user_id, problem_id, status, updated_at)
+    select user_id, ${to}::int, status, updated_at
+    from problem_progress where problem_id = ${from}
+    on conflict (user_id, problem_id) do update set
+      status = case
+        when excluded.status = 'solved' or problem_progress.status = 'solved'
+        then 'solved'::progress_status else 'attempted'::progress_status end,
+      updated_at = greatest(problem_progress.updated_at, excluded.updated_at)`);
+  await tx.execute(sql`
+    insert into solutions (user_id, problem_id, language, code, updated_at)
+    select user_id, ${to}::int, language, code, updated_at
+    from solutions where problem_id = ${from}
+    on conflict (user_id, problem_id, language) do update set
+      code = case when excluded.updated_at > solutions.updated_at
+        then excluded.code else solutions.code end,
+      updated_at = greatest(solutions.updated_at, excluded.updated_at)`);
+  await tx.execute(sql`
+    insert into boards (user_id, problem_id, scene, updated_at)
+    select user_id, ${to}::int, scene, updated_at
+    from boards where problem_id = ${from}
+    on conflict (user_id, problem_id) do update set
+      scene = case when excluded.updated_at > boards.updated_at
+        then excluded.scene else boards.scene end,
+      updated_at = greatest(boards.updated_at, excluded.updated_at)`);
+  for (const table of [
+    schema.designSubmissions,
+    schema.designChatMessages,
+    schema.algoSubmissions,
+  ]) {
+    await tx
+      .update(table)
+      .set({ problemId: to })
+      .where(eq(table.problemId, from));
+  }
+}
+
 // Idempotent: upserts rows by slug and rebuilds the join tables, so it is
 // safe to run after every content edit in src/lib/seed-data.ts.
 async function main() {
   let questionCount = 0;
   let skippedEdited = 0;
   let renamed = 0;
+  let merged = 0;
   const pool = new Pool({
     connectionString:
       process.env.DATABASE_URL ?? "postgres://localhost:5432/callback",
@@ -132,6 +192,31 @@ async function main() {
         )
         .returning({ id: schema.problems.id });
       renamed += moved.length;
+    }
+
+    // Fold duplicates into their survivors: move the user data across, then
+    // drop the duplicate row. With no survivor yet it is just a rename.
+    for (const [from, to] of Object.entries(MERGED_SLUGS)) {
+      const [dup] = await tx
+        .select({ id: schema.problems.id, editedAt: schema.problems.editedAt })
+        .from(schema.problems)
+        .where(eq(schema.problems.slug, from));
+      if (!dup || dup.editedAt !== null) continue;
+      const [survivor] = await tx
+        .select({ id: schema.problems.id })
+        .from(schema.problems)
+        .where(eq(schema.problems.slug, to));
+      if (!survivor) {
+        await tx
+          .update(schema.problems)
+          .set({ slug: to })
+          .where(eq(schema.problems.id, dup.id));
+        renamed += 1;
+        continue;
+      }
+      await moveUserData(tx, dup.id, survivor.id);
+      await tx.delete(schema.problems).where(eq(schema.problems.id, dup.id));
+      merged += 1;
     }
 
     for (const problem of seedProblems) {
@@ -313,6 +398,9 @@ async function main() {
   );
   if (renamed > 0) {
     console.log(`Moved ${renamed} renamed problem(s) to their new slugs.`);
+  }
+  if (merged > 0) {
+    console.log(`Merged ${merged} duplicate problem(s) into their survivors.`);
   }
   if (skippedEdited > 0) {
     console.log(

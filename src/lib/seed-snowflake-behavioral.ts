@@ -66,28 +66,6 @@ export const snowflakeBehavioralProblems: Problem[] = [
     ],
   ),
   behavioral(
-    "conflict-with-colleague-or-stakeholder",
-    "A Conflict With a Colleague or Stakeholder",
-    "A disagreement where you changed the outcome, or changed your mind.",
-    [
-      "Tell me about a conflict or disagreement with a colleague or a stakeholder.",
-      "",
-      "Describe what each side wanted and why, how you found out what the disagreement was really about, what you did, and how it ended — including what the relationship was like afterwards.",
-    ],
-    [
-      "Choose a disagreement about substance — a design, a priority, a deadline — not a personality clash.",
-      "The strongest endings are either that you changed the outcome with evidence, or that you changed your mind; both show how you handle being wrong.",
-    ],
-    [
-      "## What a strong answer contains",
-      "",
-      "- Both positions stated fairly, including the legitimate reason behind the one you disagreed with.",
-      "- The move that resolved it: data you gathered, a prototype, a smaller experiment, a conversation that surfaced the real constraint.",
-      "- The outcome and what you learned about how you argue.",
-      "- No villain. Interviewers listen for whether you can disagree and still work with someone next week.",
-    ],
-  ),
-  behavioral(
     "hardest-situation-at-work",
     "Your Hardest Situation at Work",
     "A deadline or an incident where you had to cut scope and manage risk.",

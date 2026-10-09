@@ -53,52 +53,6 @@ export const applePythonJudgesC: Record<string, JudgeLanguage> = {
     return out
 `,
   },
-  "run-length-compress": {
-    entry: "__judge_compress",
-    starterCode: `def compress_runs(s):
-    """Each run as its length then its character: "AAABBAA" -> "3A2B2A"."""
-    # Your code here
-    return ""
-
-
-def decode_runs(encoded):
-    """Undo compress_runs; counts may have several digits: "12A1B"."""
-    # Your code here
-    return ""
-`,
-    solutionCode: `def compress_runs(s):
-    parts = []
-    i = 0
-    while i < len(s):
-        j = i
-        while j < len(s) and s[j] == s[i]:
-            j += 1
-        parts.append(str(j - i) + s[i])
-        i = j
-    return "".join(parts)
-
-
-def decode_runs(encoded):
-    parts = []
-    count = 0
-    for ch in encoded:
-        if ch.isdigit():
-            count = count * 10 + int(ch)  # counts may have several digits
-        else:
-            parts.append(ch * count)
-            count = 0
-    return "".join(parts)
-`,
-    driverCode: `def __judge_compress(kind, s):
-    if kind == "runs":
-        return compress_runs(s)
-    if kind == "decode":
-        return decode_runs(s)
-    if kind == "roundTrip":
-        return decode_runs(compress_runs(s)) == s
-    raise ValueError("unknown case " + kind)
-`,
-  },
   "domain-operation-simulator": {
     entry: "process_domain_operations",
     starterCode: `def process_domain_operations(operations):

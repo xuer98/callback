@@ -272,7 +272,31 @@ def rle_decode(s):
     # Your code here
     return ""
 `,
+    solutionCode: `def rle_encode(s):
+    out, i = [], 0
+    while i < len(s):
+        j = i
+        while j < len(s) and s[j] == s[i]:
+            j += 1
+        out.append(f"{s[i]}{j - i}")
+        i = j
+    return "".join(out)
+
+
+def rle_decode(s):
+    out, i = [], 0
+    while i < len(s):
+        ch, i = s[i], i + 1
+        j = i
+        while j < len(s) and s[j].isdigit():
+            j += 1
+        out.append(ch * int(s[i:j]))
+        i = j
+    return "".join(out)
+`,
     driverCode: `def __judge_rle(direction, s):
+    if direction == "roundTrip":
+        return rle_decode(rle_encode(s)) == s
     return rle_encode(s) if direction == "encode" else rle_decode(s)
 `,
   },
