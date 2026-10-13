@@ -5,19 +5,22 @@ import type { Plugin } from "prettier";
 import type { Language } from "./types";
 
 /**
- * What Format treats the document as. The web languages go through Prettier;
- * everything else falls back to CodeMirror's indenter, which only rewrites
- * leading whitespace and leaves the rest of each line alone.
+ * What Format treats the document as. The web languages go through Prettier
+ * and Python through Ruff's formatter; everything else falls back to
+ * CodeMirror's indenter, which only rewrites leading whitespace and leaves
+ * the rest of each line alone.
  */
 export type FormatKind =
-  "javascript" | "typescript" | "css" | "html" | "indent";
+  "javascript" | "typescript" | "python" | "css" | "html" | "indent";
 
 type FormatOutcome =
   | { ok: true; mode: "pretty" | "indent"; changed: boolean }
   | { ok: false; reason: string };
 
 export function formatKindForLanguage(language: Language): FormatKind {
-  return language === "javascript" || language === "typescript"
+  return language === "javascript" ||
+    language === "typescript" ||
+    language === "python"
     ? language
     : "indent";
 }
@@ -36,9 +39,10 @@ type Notify = (text: string, ms: number) => void;
  * Pretty-print or re-indent the whole document in a single transaction that
  * one undo reverses, keeping the cursor on the same character, then report
  * through `notify` (status text plus how long it should stay up). Prettier
- * and its parsers load on first use (about a megabyte for TypeScript), so
- * pages that never press Format never pay for them; a press while that load
- * is still in flight is ignored rather than raced.
+ * and its parsers load on first use (about a megabyte for TypeScript), and
+ * so does Ruff for Python, so pages that never press Format never pay for
+ * them; a press while that load is still in flight is ignored rather than
+ * raced.
  */
 export function formatDocument(
   view: EditorView,
@@ -109,18 +113,12 @@ async function runFormat(
   let formatted: string;
   let cursorOffset: number;
   try {
-    const [{ formatWithCursor }, printer] = await Promise.all([
-      import("prettier/standalone"),
-      loadPrinter(kind),
-    ]);
-    ({ formatted, cursorOffset } = await formatWithCursor(source, {
-      ...printer,
-      cursorOffset: state.selection.main.head,
-      tabWidth: getIndentUnit(state),
-      useTabs: state.facet(indentUnit).startsWith("\t"),
-    }));
+    ({ formatted, cursorOffset } =
+      kind === "python"
+        ? await formatPython(state, source)
+        : await formatWithPrettier(state, source, kind));
   } catch (err) {
-    return { ok: false, reason: reportSyntaxError(view, err) };
+    return { ok: false, reason: reportSyntaxError(view, err, source) };
   }
 
   // The awaits gave the user time to type (or switch languages, which
@@ -142,12 +140,97 @@ async function runFormat(
   return { ok: true, mode: "pretty", changed };
 }
 
+type Formatted = { formatted: string; cursorOffset: number };
+type EditorState = EditorView["state"];
+
+async function formatWithPrettier(
+  state: EditorState,
+  source: string,
+  kind: Exclude<FormatKind, "indent" | "python">,
+): Promise<Formatted> {
+  const [{ formatWithCursor }, printer] = await Promise.all([
+    import("prettier/standalone"),
+    loadPrinter(kind),
+  ]);
+  return formatWithCursor(source, {
+    ...printer,
+    cursorOffset: state.selection.main.head,
+    tabWidth: getIndentUnit(state),
+    useTabs: state.facet(indentUnit).startsWith("\t"),
+  });
+}
+
+/**
+ * Ruff's formatter (Black-compatible) compiled to WebAssembly. The small
+ * JavaScript glue is bundled; the wasm itself comes from the CDN the Python
+ * runner already loads Pyodide from, pinned to the installed package version
+ * and fetched once per page. Ruff reports the cursor nowhere, so the caret
+ * stays on its line at the same distance into the code.
+ */
+const RUFF_VERSION = "0.17.0"; // the exact version in package.json
+const RUFF_WASM_URL = `https://cdn.jsdelivr.net/npm/@astral-sh/ruff-wasm-web@${RUFF_VERSION}/ruff_wasm_bg.wasm`;
+
+let ruff: Promise<typeof import("@astral-sh/ruff-wasm-web")> | null = null;
+
+function loadRuff(): Promise<typeof import("@astral-sh/ruff-wasm-web")> {
+  if (!ruff) {
+    ruff = import("@astral-sh/ruff-wasm-web").then(async (mod) => {
+      await mod.default({ module_or_path: RUFF_WASM_URL });
+      return mod;
+    });
+    // A failed download (offline, CDN down) must not poison later presses.
+    ruff.catch(() => {
+      ruff = null;
+    });
+  }
+  return ruff;
+}
+
+async function formatPython(
+  state: EditorState,
+  source: string,
+): Promise<Formatted> {
+  const { Workspace, PositionEncoding } = await loadRuff();
+  const workspace = new Workspace(
+    {
+      "line-length": 88,
+      "indent-width": getIndentUnit(state),
+      format: {
+        "indent-style": state.facet(indentUnit).startsWith("\t")
+          ? "tab"
+          : "space",
+        "quote-style": "double",
+      },
+    },
+    PositionEncoding.Utf16,
+  );
+  try {
+    const formatted = workspace.format(source);
+    return { formatted, cursorOffset: cursorAfterFormat(state, formatted) };
+  } finally {
+    workspace.free();
+  }
+}
+
+/** The same line, the same distance past the indentation, clamped. */
+function cursorAfterFormat(state: EditorState, formatted: string): number {
+  const { head } = state.selection.main;
+  const before = state.doc.lineAt(head);
+  const column = Math.max(0, head - before.from - indentWidth(before.text));
+  const lines = formatted.split("\n");
+  const number = Math.min(before.number, lines.length);
+  let from = 0;
+  for (let i = 1; i < number; i++) from += lines[i - 1].length + 1;
+  const text = lines[number - 1];
+  return Math.min(from + indentWidth(text) + column, from + text.length);
+}
+
 type Printer = { parser: string; plugins: Plugin[] };
 
 // Prettier's plugin modules are plugins themselves (they export `parsers`
 // and `printers`), so the namespaces go straight into the options.
 async function loadPrinter(
-  kind: Exclude<FormatKind, "indent">,
+  kind: Exclude<FormatKind, "indent" | "python">,
 ): Promise<Printer> {
   switch (kind) {
     case "javascript":
@@ -187,16 +270,27 @@ async function loadPrinter(
 
 /**
  * Prettier's parse errors carry a `loc` and a message that already ends in
- * "(line:column)". Park the cursor on the offending spot so the note has
- * something to point at, and return a one-line reason for it.
+ * "(line:column)"; Ruff's end in "at byte range a..b" instead. Park the
+ * cursor on the offending spot so the note has something to point at, and
+ * return a one-line reason that names the line and column either way.
  */
-function reportSyntaxError(view: EditorView, err: unknown): string {
+function reportSyntaxError(
+  view: EditorView,
+  err: unknown,
+  source: string,
+): string {
   const error = err as {
     message?: unknown;
     loc?: { start?: { line?: unknown; column?: unknown } };
   };
-  const start = error.loc?.start;
+  let message =
+    typeof error.message === "string" && error.message.trim()
+      ? error.message.split("\n")[0].trim()
+      : "syntax error";
   const { doc } = view.state;
+  let offset: number | null = null;
+  const start = error.loc?.start;
+  const byteRange = /\s+at byte range (\d+)\.\.\d+$/.exec(message);
   if (
     typeof start?.line === "number" &&
     start.line >= 1 &&
@@ -205,15 +299,29 @@ function reportSyntaxError(view: EditorView, err: unknown): string {
     const line = doc.line(start.line);
     const column =
       typeof start.column === "number" ? Math.max(start.column - 1, 0) : 0;
-    view.dispatch({
-      selection: { anchor: Math.min(line.from + column, line.to) },
-      scrollIntoView: true,
-    });
+    offset = Math.min(line.from + column, line.to);
+  } else if (byteRange) {
+    offset = Math.min(charOffsetForByte(source, Number(byteRange[1])), doc.length);
+    const line = doc.lineAt(offset);
+    message = `${message.slice(0, byteRange.index)} (${line.number}:${offset - line.from + 1})`;
+  }
+  if (offset !== null) {
+    view.dispatch({ selection: { anchor: offset }, scrollIntoView: true });
     view.focus();
   }
-  return typeof error.message === "string" && error.message.trim()
-    ? error.message.split("\n")[0].trim()
-    : "syntax error";
+  return message;
+}
+
+/** Ruff counts UTF-8 bytes; the document counts UTF-16 code units. */
+function charOffsetForByte(source: string, byte: number): number {
+  let bytes = 0;
+  for (let i = 0; i < source.length; i++) {
+    if (bytes >= byte) return i;
+    const code = source.codePointAt(i) ?? 0;
+    bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4;
+    if (code >= 0x10000) i++;
+  }
+  return source.length;
 }
 
 function indentWidth(text: string): number {
