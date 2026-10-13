@@ -10,7 +10,8 @@ export const appleProblemsC: Problem[] = [
     title: "Number of Islands",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["apple"],
+        // Snowflake: Number of Islands (200) is in LeetCode's Snowflake tag.
+companies: ["apple", "snowflake"],
     summary:
       "Flood fill from every unvisited land cell — and know when DFS, BFS or union-find fits.",
     prompt: [
@@ -179,7 +180,8 @@ function insertInterval(intervals, newInterval) {
     title: "Design HashMap",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["apple"],
+        // Snowflake: Design HashMap (706) is in LeetCode's Snowflake tag.
+companies: ["apple", "snowflake"],
     summary:
       "Separate chaining with a resize at a load-factor threshold — fixed buckets aren't enough.",
     prompt: [

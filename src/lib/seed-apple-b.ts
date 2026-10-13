@@ -223,7 +223,8 @@ class RankedBallotCounter {
     title: "Top-N Frequent Log Lines",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["apple"],
+        // Snowflake: LeetCode's Snowflake tag lists Top K Frequent Elements (347), the same count-then-rank over strings.
+companies: ["apple", "snowflake"],
     summary:
       "Bucket sort when the multiset fits, a size-N heap when it's a stream — say both.",
     prompt: [

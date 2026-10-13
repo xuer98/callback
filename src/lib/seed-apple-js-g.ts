@@ -123,7 +123,8 @@ function processDomainOperations(operations) {
     title: "Min Stack",
     category: "algorithms",
     difficulty: "easy",
-    companies: ["apple"],
+        // Snowflake: Min Stack (155) is in LeetCode's Snowflake tag.
+companies: ["apple", "snowflake"],
     summary: "A second stack holds the minimum at each depth, so getMin is just its top.",
     prompt: [
       "Implement `MinStack` with `push(x)`, `pop()` and `getMin()`, **all O(1)**. `pop` returns the removed value. On an empty stack, `pop` and `getMin` return `undefined` (`None` in Python, where the method is `get_min`).",

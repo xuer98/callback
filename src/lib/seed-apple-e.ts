@@ -10,7 +10,8 @@ export const appleProblemsE: Problem[] = [
     title: "Is Graph Bipartite?",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["apple"],
+        // Snowflake: Possible Bipartition (886) is in LeetCode's Snowflake tag: the same two-colouring over a dislikes graph.
+companies: ["apple", "snowflake"],
     summary:
       "Two-colour with BFS from every unvisited node; an odd cycle is the only way to fail.",
     prompt: [

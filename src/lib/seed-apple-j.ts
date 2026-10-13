@@ -89,7 +89,8 @@ function groupAnagrams(words) {
     title: "Basic Calculator II",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["apple"],
+        // Snowflake: Basic Calculator II (227) is in LeetCode's Snowflake tag.
+companies: ["apple", "snowflake"],
     summary:
       "One pass with a stack of signed terms; the trap is integer division truncating toward zero.",
     prompt: [

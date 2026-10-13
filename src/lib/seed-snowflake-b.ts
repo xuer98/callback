@@ -178,6 +178,7 @@ function earliestFinish(numCourses, prerequisites, time) {
       "",
       "- Name the model: this is the barrier version; [Course Finish Time](/problems/course-finish-time) lets each course start the moment its own prerequisites finish and gives 11 on the same example.",
       "- A single slow course in an early batch delays everything behind it — that is the cost of barriers, and the reason the other model exists.",
+      "- With every duration equal to 1 the total is the number of batches, which is Parallel Courses: the minimum number of semesters when any number of ready courses can be taken at once.",
     ].join("\n"),
     judge: {
       solutionCode: `// Kahn's algorithm by levels: each level is a batch and costs its slowest course.

@@ -44,6 +44,7 @@ export const snowflakeProblemsA: Problem[] = [
       "- Ask before coding: are there walls, can a floor have no bathroom, and is the answer per desk or a single number. Each changes the output, not the algorithm.",
       "- O(1) extra space: write distances into the input grid in place (the grid is the visited set); the queue is the only extra memory, and it is bounded by the frontier.",
       "- A streaming version — bathrooms added one at a time — re-runs the BFS from the new source only, lowering distances where it wins.",
+      "- The textbook forms are Walls and Gates (gates at 0, walls blocked, rooms filled with their distance) and 01 Matrix (every cell's distance to the nearest 0): the same multi-source BFS with different cell labels.",
     ].join("\n"),
     judge: {
       solutionCode: `// Multi-source BFS: every bathroom starts in the queue at distance 0, so one
@@ -157,6 +158,7 @@ function desksToBathrooms(grid) {
       "",
       "- This is the streaming version already: the two indexes are the whole state, so cells can arrive one at a time.",
       "- The grid version of the same question is [Nearest Bathroom for Every Desk](/problems/nearest-bathroom-distances); the global version, where every person must get a distinct cake, is [Assign People to Cakes](/problems/assign-people-to-cakes).",
+      "- Shortest Word Distance is the same sweep over a word list: remember the last index of each of the two words and keep the smallest gap.",
     ].join("\n"),
     judge: {
       solutionCode: `// One pass: the nearest partner behind you is always the last one seen.
@@ -360,6 +362,7 @@ function assignCakes(line) {
       "- Confirm the pair direction and 0- or 1-indexing before writing a line; both are easy to flip.",
       "- Tests to name: zero courses, no prerequisites (any order), a single chain (one order), a two-node cycle, a self-loop.",
       "- The same queue drives the timed versions: [Course Finish Time](/problems/course-finish-time) for per-course durations, [Course Batches Time](/problems/course-batches-time) for wave scheduling, and [Course Time With Any Prerequisite](/problems/course-any-prerequisite-time) for the start-when-any-finishes rule.",
+      "- The object-wrapper variant, where a course can fail and is retaken, is [Course Schedule With Retries](/problems/course-schedule-with-retries): the same queue, with a failed course pushed back on.",
     ].join("\n"),
     judge: {
       solutionCode: `// Kahn's algorithm: the order courses leave the queue is a schedule.

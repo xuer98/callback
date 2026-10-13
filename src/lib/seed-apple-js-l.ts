@@ -228,7 +228,8 @@ ${withoutNatives}
     title: "Two Sum",
     category: "algorithms",
     difficulty: "easy",
-    companies: ["apple"],
+        // Snowflake: Two Sum (1) is in LeetCode's Snowflake tag.
+companies: ["apple", "snowflake"],
     summary: "One pass with a map from value to index — look up the complement before storing.",
     prompt: [
       "Write `twoSum(nums, target)`: return the indices `[i, j]` with `i < j` of the one pair that sums to `target`, or `null` (`None` in Python) when there is none.",

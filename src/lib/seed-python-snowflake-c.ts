@@ -5,7 +5,7 @@ import { RUN_OPERATIONS_PY } from "./seed-python-snowflake-b";
 // and merged into judge.python by the seed script like seed-python.ts.
 
 /** Builds a tree of _TreeNode(val, left, right) from a level-order list. */
-const TREE_BUILDER_PY = `class _TreeNode:
+export const TREE_BUILDER_PY = `class _TreeNode:
     def __init__(self, val):
         self.val = val
         self.left = None

@@ -148,6 +148,8 @@ function __judgeClickPath(graph, start, target) {
       "- With several workers, two things decide correctness: the seen-set check-and-add is one atomic step under a lock (a check followed by an add is a race), and termination counts in-flight work — an empty queue alone is not done. A work queue whose `join` waits for every `task_done` is the clean termination signal.",
       "- A real crawler bounds concurrency per host, retries failed fetches with backoff and stops on a page budget or a depth limit; the API is the bottleneck, not the data structure.",
       "- Fewest clicks and the path itself are [Fewest Clicks Between Wiki Pages](/problems/fewest-clicks-between-pages) and [Click Path Between Wiki Pages](/problems/click-path-between-pages).",
+      "- The Web Crawler version adds a same-hostname filter: normalise each URL and skip links whose host differs from the start page before enqueueing.",
+      "- The multithreaded version is a worker pool over a shared queue: the visited check-and-add must be one atomic step under a lock, and termination waits for in-flight work, not just an empty queue.",
     ].join("\n"),
     judge: {
       solutionCode: `// The seen set is the answer: mark on discovery, fetch once.

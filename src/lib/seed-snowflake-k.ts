@@ -41,6 +41,7 @@ export const snowflakeProblemsK: Problem[] = [
       "",
       "- Scanning every line of the board after each move is the correct-but-slow answer; say why the local check is enough.",
       "- The same function serves the drop logic in a playable game: compute the landing row, place the piece, then call this once.",
+      "- A numeric board interface — 0 empty, 1 and 2 for the players — changes nothing but the comparison; keep the win check independent of how cells are encoded.",
     ].join("\n"),
     judge: {
       solutionCode: `// Count outward from the move along each of the four line directions.
