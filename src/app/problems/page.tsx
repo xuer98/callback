@@ -1,25 +1,35 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
+import { ProblemFilters } from "@/components/problem-filters";
 import { ProblemRow } from "@/components/problem-row";
-import { QuestionFilters } from "@/components/question-filters";
 import { QuestionList } from "@/components/question-list";
+import { auth } from "@/lib/auth";
+import { listProblemCards, progressBySlug } from "@/lib/data";
+import {
+  describeFilter,
+  excludes,
+  filterEntries,
+  LISTING_FIELDS,
+  matchesProblem,
+  parseFilter,
+  PROBLEM_FIELDS,
+  type ProgressMap,
+} from "@/lib/problem-filter";
 import {
   listCompaniesWithQuestions,
-  listProblems,
   listQuestionTopics,
-  problemsForCompany,
   queryQuestions,
   QUESTIONS_PER_PAGE,
-} from "@/lib/data";
+} from "@/lib/question-listings";
 import {
   CATEGORIES,
   CATEGORY_LABELS,
-  DIFFICULTIES,
   TIMEFRAMES,
   TIMEFRAME_LABELS,
   type Category,
   type CompanyQuestion,
-  type Difficulty,
+  type ProblemCard,
   type Timeframe,
 } from "@/lib/types";
 
@@ -51,12 +61,6 @@ export default async function ProblemsPage({
   )
     ? (timeframeParam as Timeframe)
     : "all";
-  const difficultyParam = one(params, "difficulty");
-  const difficulty = (DIFFICULTIES as readonly string[]).includes(
-    difficultyParam,
-  )
-    ? (difficultyParam as Difficulty)
-    : undefined;
   const pageParam = Number.parseInt(one(params, "page"), 10);
   const requestedPage =
     Number.isFinite(pageParam) && pageParam > 1 ? pageParam : 1;
@@ -65,13 +69,16 @@ export default async function ProblemsPage({
     listCompaniesWithQuestions(),
     listQuestionTopics(),
   ]);
+  const filter = parseFilter(params, {
+    companies: companies.map((c) => c.slug),
+    topics,
+  });
 
-  const company = companies.some((c) => c.slug === one(params, "company"))
-    ? one(params, "company")
-    : "";
-  const topic = topics.includes(one(params, "topic"))
-    ? one(params, "topic")
-    : "";
+  // Status is the viewer's own progress, so the session is read only when a
+  // row asks for it.
+  const session = filter.rows.some((row) => row.field === "status")
+    ? await auth.api.getSession({ headers: await headers() })
+    : null;
 
   // The imported listings are LeetCode coding questions, so they only render
   // when the category could contain them. Without them there is no
@@ -80,43 +87,44 @@ export default async function ProblemsPage({
   const listingsPage = showListings ? requestedPage : 1;
 
   // Callback's own problems render above the imported listings, on the first
-  // page only. Category, company, and difficulty apply to them; topic and
-  // timeframe are listing-only concepts, so a topic filter hides the section
-  // rather than pretending to match. queryQuestions clamps the page to the
-  // last one that has rows.
-  const [{ rows, total, page }, asked] = await Promise.all([
-    showListings
-      ? queryQuestions({
-          timeframe,
-          company: company || undefined,
-          topic: topic || undefined,
-          difficulty,
-          page: listingsPage,
-        })
+  // page only. Under "match all", a row one kind can never satisfy — a topic
+  // for the authored problems, a status for the listings — skips that query
+  // outright. queryQuestions clamps the page to the last one that has rows.
+  const [listings, cards, progress] = await Promise.all([
+    showListings && !excludes(filter, LISTING_FIELDS)
+      ? queryQuestions({ timeframe, filter, page: listingsPage })
       : Promise.resolve({ rows: [] as CompanyQuestion[], total: 0, page: 1 }),
-    !topic && listingsPage === 1
-      ? company
-        ? problemsForCompany(company)
-        : listProblems()
-      : Promise.resolve([]),
+    listingsPage === 1 && !excludes(filter, PROBLEM_FIELDS)
+      ? listProblemCards()
+      : Promise.resolve([] as ProblemCard[]),
+    session
+      ? progressBySlug(session.user.id)
+      : Promise.resolve({} as ProgressMap),
   ]);
-  const callbackProblems = asked.filter(
-    (p) =>
-      (!category || p.category === category) &&
-      (!difficulty || p.difficulty === difficulty),
+  const { rows, total, page } = listings;
+  const callbackProblems = cards.filter(
+    (card) =>
+      (!category || card.category === category) &&
+      matchesProblem(card, filter, progress),
   );
 
-  const companyName = companies.find((c) => c.slug === company)?.name;
+  const described = describeFilter(
+    filter,
+    new Map(companies.map((c) => [c.slug, c.name])),
+  );
+  // With the listings narrowed to named companies, every count would be 1;
+  // the row shows that company's frequency instead.
+  const namedCompanies =
+    filter.match === "all" &&
+    filter.rows.some((row) => row.field === "company" && row.op === "is");
   const lastPage = Math.max(1, Math.ceil(total / QUESTIONS_PER_PAGE));
   // One href builder for both the category chips (which change the category
   // and reset the page) and pagination (which keeps the category).
   const hrefFor = (cat: Category | undefined, nextPage: number) => {
     const next = new URLSearchParams();
     if (cat) next.set("category", cat);
-    if (company) next.set("company", company);
-    if (topic) next.set("topic", topic);
-    if (difficulty) next.set("difficulty", difficulty);
     if (timeframe !== "all") next.set("timeframe", timeframe);
+    for (const [name, value] of filterEntries(filter)) next.append(name, value);
     if (nextPage > 1) next.set("page", String(nextPage));
     const query = next.toString();
     return query ? `/problems?${query}` : "/problems";
@@ -128,8 +136,8 @@ export default async function ProblemsPage({
       <h1 className="text-2xl font-semibold tracking-tight">Problems</h1>
       <p className="mt-1 text-sm text-zinc-400">
         Callback&apos;s own problems and the LeetCode questions companies have
-        been asking, in one place — filter by category, company, topic,
-        difficulty, and how recently a question showed up.
+        been asking, in one place — pick a category, then filter by company,
+        frequency, status, difficulty, topic, and language.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
@@ -148,16 +156,11 @@ export default async function ProblemsPage({
         ))}
       </div>
 
-      <QuestionFilters
+      <ProblemFilters
         companies={companies}
         topics={topics}
-        selected={{
-          category: category ?? "",
-          company,
-          topic,
-          difficulty: difficulty ?? "",
-          timeframe,
-        }}
+        filter={filter}
+        timeframe={timeframe}
       />
 
       {callbackProblems.length > 0 && (
@@ -177,19 +180,18 @@ export default async function ProblemsPage({
           </h2>
           <p className="mt-1 text-xs text-zinc-500">
             {total.toLocaleString()} {total === 1 ? "question" : "questions"}
-            {companyName ? ` at ${companyName}` : ""}
-            {topic ? ` tagged ${topic}` : ""}
-            {difficulty ? `, ${difficulty}` : ""} ·{" "}
+            {described ? ` ${described}` : ""} ·{" "}
             {TIMEFRAME_LABELS[timeframe].toLowerCase()}
           </p>
 
           {rows.length === 0 ? (
             <p className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-6 text-sm text-zinc-400">
-              No LeetCode listings match those filters. Try a wider time range,
-              or clear the topic.
+              {excludes(filter, LISTING_FIELDS)
+                ? "Status and language describe Callback's own problems, so no LeetCode listing can match all of these filters. Match any of them instead, or remove those rows."
+                : "No LeetCode listings match those filters. Try a wider time range, or clear a filter."}
             </p>
           ) : (
-            <QuestionList rows={rows} showCompanyCount={!company} />
+            <QuestionList rows={rows} showCompanyCount={!namedCompanies} />
           )}
 
           {lastPage > 1 && (

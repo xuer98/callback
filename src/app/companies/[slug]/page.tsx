@@ -3,12 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CompanyProblems } from "@/components/company-problems";
 import { QuestionList } from "@/components/question-list";
-import {
-  getCompany,
-  listCompanies,
-  problemsForCompany,
-  queryQuestions,
-} from "@/lib/data";
+import { getCompany, listCompanies, problemsForCompany } from "@/lib/data";
+import { queryQuestions } from "@/lib/question-listings";
 
 export const revalidate = 300;
 
@@ -36,10 +32,14 @@ export default async function CompanyPage({
 
   const asked = await problemsForCompany(company.slug);
   // Imported listings, all-time and most frequent first. The time-range views
-  // live on /questions so this page can stay statically rendered.
+  // live on /problems so this page can stay statically rendered.
   const { rows: questions, total: questionCount } = await queryQuestions({
     timeframe: "all",
-    company: company.slug,
+    filter: {
+      match: "all",
+      rows: [{ field: "company", op: "is", values: [company.slug] }],
+      search: "",
+    },
   });
 
   return (

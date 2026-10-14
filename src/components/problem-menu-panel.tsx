@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Chip } from "./company-problems";
 import { ProblemMenuRow } from "./problem-menu-row";
 import { useProgress } from "./progress";
-import { Select } from "./question-filters";
+import { Select } from "./select";
+import { STATUS_LABELS, STATUSES, type Status } from "@/lib/problem-filter";
 import {
   CATEGORIES,
   DIFFICULTIES,
@@ -19,15 +20,6 @@ import {
 // What the problem side menu shows once it is open: search, the filters, and
 // the list. Filtering is client state over the index already in memory — a
 // few hundred rows — so every control answers per keystroke.
-
-const STATUSES = ["todo", "attempted", "solved"] as const;
-type Status = (typeof STATUSES)[number];
-
-const STATUS_LABELS: Record<Status, string> = {
-  todo: "To do",
-  attempted: "Attempted",
-  solved: "Solved",
-};
 
 /** Tab labels — the full category names don't fit six to a row. */
 const CATEGORY_TABS: Record<Category, string> = {

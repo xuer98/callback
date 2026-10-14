@@ -83,6 +83,19 @@ export interface ProblemIndex {
   companies: { slug: string; name: string }[];
 }
 
+/** One row of the /problems list: what the card shows plus what the filter reads. */
+export interface ProblemCard {
+  slug: string;
+  title: string;
+  category: Category;
+  difficulty: Difficulty;
+  summary: string;
+  /** Slugs of the companies the problem is tagged with. */
+  companies: string[];
+  /** Languages it can be solved in; empty for prompts without an editor. */
+  languages: Language[];
+}
+
 /** One starter file in a UI (frontend) workspace. */
 export interface UiFile {
   /** Shown on the editor tab and used as the module id, e.g. "App.jsx". */

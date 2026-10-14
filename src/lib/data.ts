@@ -1,31 +1,22 @@
 import "server-only";
-import {
-  and,
-  asc,
-  countDistinct,
-  desc,
-  eq,
-  exists,
-  inArray,
-  max,
-  or,
-  sql,
-} from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import type {
-  Category,
-  Company,
-  CompanyQuestion,
-  Difficulty,
-  Problem,
-  ProblemIndex,
-  Timeframe,
-  Track,
+import type { ProgressMap } from "./problem-filter";
+import {
+  LANGUAGES,
+  type Category,
+  type Company,
+  type Problem,
+  type ProblemCard,
+  type ProblemIndex,
+  type Track,
 } from "./types";
 
-// The single content read path. Pages call these accessors and get the same
-// Problem/Company/Track shapes the UI has always used; only the storage moved.
+// The content read path for Callback's own problems, companies, and tracks.
+// Pages call these accessors and get the same Problem/Company/Track shapes
+// the UI has always used; only the storage moved. The imported LeetCode
+// listings have their own module, question-listings.ts.
 
 const withCompanies = {
   problemCompanies: { with: { company: { columns: { slug: true } } } },
@@ -117,6 +108,73 @@ export async function getProblemIndex(): Promise<ProblemIndex> {
       .map(([slug, name]) => ({ slug, name }))
       .sort((a, b) => a.name.localeCompare(b.name)),
   };
+}
+
+/** Judge languages other than JavaScript, as a SQL list of literals. */
+const EXTRA_LANGUAGE_LIST = sql.raw(
+  LANGUAGES.filter((language) => language !== "javascript")
+    .map((language) => `'${language}'`)
+    .join(", "),
+);
+
+/**
+ * The /problems list. Like the index, it selects only what a row shows and
+ * reads the languages out of the judge in SQL, so the prompts and judges of
+ * a few hundred problems never leave the database.
+ */
+export async function listProblemCards(): Promise<ProblemCard[]> {
+  const rows = await db.query.problems.findMany({
+    columns: {
+      slug: true,
+      title: true,
+      category: true,
+      difficulty: true,
+      summary: true,
+    },
+    extras: (problems) => ({
+      hasJudge: sql<boolean>`${problems.judge} is not null`.as("has_judge"),
+      hasUi: sql<boolean>`${problems.ui} is not null`.as("has_ui"),
+      judgeLanguages: sql<string[]>`array(
+        select key from jsonb_object_keys(coalesce(${problems.judge}, '{}'::jsonb)) as k(key)
+        where key in (${EXTRA_LANGUAGE_LIST}))`.as("judge_languages"),
+    }),
+    with: withCompanies,
+    orderBy: (problems, { asc }) => [asc(problems.id)],
+  });
+  return rows.map((row) => ({
+    slug: row.slug,
+    title: row.title,
+    category: row.category,
+    difficulty: row.difficulty,
+    summary: row.summary,
+    companies: row.problemCompanies.map((link) => link.company.slug),
+    // JavaScript lives in the judge's own fields, so every judged problem
+    // has it; a UI workspace is JavaScript too.
+    languages: row.hasJudge
+      ? LANGUAGES.filter(
+          (language) =>
+            language === "javascript" || row.judgeLanguages.includes(language),
+        )
+      : row.hasUi
+        ? ["javascript"]
+        : [],
+  }));
+}
+
+/** One user's progress keyed by problem slug, for the status filter. */
+export async function progressBySlug(userId: string): Promise<ProgressMap> {
+  const rows = await db
+    .select({
+      slug: schema.problems.slug,
+      status: schema.problemProgress.status,
+    })
+    .from(schema.problemProgress)
+    .innerJoin(
+      schema.problems,
+      eq(schema.problemProgress.problemId, schema.problems.id),
+    )
+    .where(eq(schema.problemProgress.userId, userId));
+  return Object.fromEntries(rows.map((row) => [row.slug, row.status]));
 }
 
 export async function getProblem(slug: string): Promise<Problem | undefined> {
@@ -228,141 +286,4 @@ export async function trackProblems(trackSlug: string): Promise<Problem[]> {
     },
   });
   return row?.trackProblems.map((link) => toProblem(link.problem)) ?? [];
-}
-
-// --- Company question listings (LeetCode, imported snapshot) ---------------
-
-export const QUESTIONS_PER_PAGE = 50;
-
-export interface QuestionQuery {
-  timeframe: Timeframe;
-  company?: string;
-  topic?: string;
-  difficulty?: Difficulty;
-  page?: number;
-}
-
-/** Every topic tag present in the imported questions, for the filter menu. */
-export async function listQuestionTopics(): Promise<string[]> {
-  const result = await db.execute<{ topic: string }>(
-    sql`select distinct jsonb_array_elements_text(${schema.leetcodeQuestions.topics}) as topic
-        from ${schema.leetcodeQuestions} order by topic`,
-  );
-  return result.rows.map((row) => row.topic);
-}
-
-/**
- * Companies the /questions filter can select: any with imported listings or
- * with authored Callback problems, so a company that only has the latter is
- * still reachable.
- */
-export async function listCompaniesWithQuestions(): Promise<
-  { slug: string; name: string }[]
-> {
-  return db
-    .select({
-      slug: schema.companies.slug,
-      name: schema.companies.name,
-    })
-    .from(schema.companies)
-    .where(
-      or(
-        exists(
-          db
-            .select({ one: sql`1` })
-            .from(schema.companyQuestions)
-            .where(eq(schema.companyQuestions.companyId, schema.companies.id)),
-        ),
-        exists(
-          db
-            .select({ one: sql`1` })
-            .from(schema.problemCompanies)
-            .where(eq(schema.problemCompanies.companyId, schema.companies.id)),
-        ),
-      ),
-    )
-    .orderBy(asc(schema.companies.name));
-}
-
-function questionFilters({ timeframe, company, topic, difficulty }: QuestionQuery) {
-  const conditions = [eq(schema.companyQuestions.timeframe, timeframe)];
-  if (company) conditions.push(eq(schema.companies.slug, company));
-  if (difficulty)
-    conditions.push(eq(schema.leetcodeQuestions.difficulty, difficulty));
-  if (topic)
-    conditions.push(
-      sql`${schema.leetcodeQuestions.topics} @> ${JSON.stringify([topic])}::jsonb`,
-    );
-  return and(...conditions);
-}
-
-/**
- * Questions matching the filters, one row per question. Without a company
- * filter the same question is asked at many companies, so rows collapse to
- * the question and report how many companies ask it; with one selected,
- * every count is 1 and the frequency is that company's own score.
- */
-export async function queryQuestions(
-  query: QuestionQuery,
-): Promise<{ rows: CompanyQuestion[]; total: number; page: number }> {
-  const where = questionFilters(query);
-
-  // Count first so an out-of-range ?page lands on the last real page rather
-  // than an empty list that reads like "no matches".
-  const [totals] = await db
-    .select({ total: countDistinct(schema.companyQuestions.questionId) })
-    .from(schema.companyQuestions)
-    .innerJoin(
-      schema.leetcodeQuestions,
-      eq(schema.leetcodeQuestions.id, schema.companyQuestions.questionId),
-    )
-    .innerJoin(
-      schema.companies,
-      eq(schema.companies.id, schema.companyQuestions.companyId),
-    )
-    .where(where);
-  const total = totals?.total ?? 0;
-  const lastPage = Math.max(1, Math.ceil(total / QUESTIONS_PER_PAGE));
-  const page = Math.min(lastPage, Math.max(1, query.page ?? 1));
-
-  const rows = await db
-    .select({
-      slug: schema.leetcodeQuestions.slug,
-      title: schema.leetcodeQuestions.title,
-      difficulty: schema.leetcodeQuestions.difficulty,
-      topics: schema.leetcodeQuestions.topics,
-      frequency: max(schema.companyQuestions.frequency),
-      companyCount: countDistinct(schema.companyQuestions.companyId),
-    })
-    .from(schema.companyQuestions)
-    .innerJoin(
-      schema.leetcodeQuestions,
-      eq(schema.leetcodeQuestions.id, schema.companyQuestions.questionId),
-    )
-    .innerJoin(
-      schema.companies,
-      eq(schema.companies.id, schema.companyQuestions.companyId),
-    )
-    .where(where)
-    .groupBy(schema.leetcodeQuestions.id)
-    .orderBy(
-      desc(countDistinct(schema.companyQuestions.companyId)),
-      desc(max(schema.companyQuestions.frequency)),
-      asc(schema.leetcodeQuestions.title),
-    )
-    .limit(QUESTIONS_PER_PAGE)
-    .offset((page - 1) * QUESTIONS_PER_PAGE);
-
-  return {
-    rows: rows.map((row) => ({
-      slug: row.slug,
-      title: row.title,
-      difficulty: row.difficulty,
-      topics: row.topics,
-      frequency: row.frequency ?? 0,
-      companyCount: row.companyCount,
-    })),
-    total,
-    page,
-  };
 }
