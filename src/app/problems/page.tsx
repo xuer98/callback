@@ -58,7 +58,8 @@ export default async function ProblemsPage({
     ? (difficultyParam as Difficulty)
     : undefined;
   const pageParam = Number.parseInt(one(params, "page"), 10);
-  const requestedPage = Number.isFinite(pageParam) && pageParam > 1 ? pageParam : 1;
+  const requestedPage =
+    Number.isFinite(pageParam) && pageParam > 1 ? pageParam : 1;
 
   const [companies, topics] = await Promise.all([
     listCompaniesWithQuestions(),
@@ -161,17 +162,6 @@ export default async function ProblemsPage({
 
       {callbackProblems.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold text-zinc-100">
-            Solve on Callback
-          </h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            {callbackProblems.length}{" "}
-            {callbackProblems.length === 1 ? "problem" : "problems"}
-            {companyName ? ` asked at ${companyName}` : ""}
-            {category ? ` · ${CATEGORY_LABELS[category]}` : ""}
-            {difficulty ? `, ${difficulty}` : ""} — full prompts you can work
-            right here.
-          </p>
           <div className="mt-3 flex flex-col gap-2">
             {callbackProblems.map((p) => (
               <ProblemRow key={p.slug} problem={p} />
