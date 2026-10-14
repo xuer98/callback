@@ -22,6 +22,7 @@ import {
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import type { FilterRow, ProblemFilter } from "./problem-filter";
+import type { ProblemSort } from "./problem-sort";
 import type { CompanyQuestion, Difficulty, Timeframe } from "./types";
 
 // The LeetCode questions companies are known to ask: an imported snapshot
@@ -36,6 +37,7 @@ export interface QuestionQuery {
   filter: ProblemFilter;
   /** A company the page is about: required whatever the match mode. */
   company?: string;
+  sort?: ProblemSort;
   page?: number;
 }
 
@@ -197,6 +199,38 @@ function listingCondition(
 }
 
 /**
+ * The ORDER BY for a sort key. The default is the most widely asked first;
+ * "last worked on" means nothing for a listing, so it keeps that order.
+ * Difficulty is an enum, which Postgres orders as declared: easy first.
+ */
+function orderFor(
+  sort: ProblemSort | undefined,
+  asked: ReturnType<typeof askedBy>,
+) {
+  const question = schema.leetcodeQuestions;
+  const dir = sort?.direction === "desc" ? desc : asc;
+  switch (sort?.key) {
+    case "frequency":
+      return [dir(asked.frequency), asc(question.title)];
+    case "difficulty":
+      return [
+        dir(question.difficulty),
+        desc(asked.frequency),
+        asc(question.title),
+      ];
+    case "title":
+      // Byte order would put every capital before every lower-case letter.
+      return [dir(sql`lower(${question.title})`), asc(question.title)];
+    default:
+      return [
+        desc(asked.companyCount),
+        desc(asked.frequency),
+        asc(question.title),
+      ];
+  }
+}
+
+/**
  * Questions matching the filter, one row per question. Without a company
  * row the same question is asked at many companies, so each row reports how
  * many and its best frequency; with one, every count is 1 and the frequency
@@ -205,7 +239,7 @@ function listingCondition(
 export async function queryQuestions(
   query: QuestionQuery,
 ): Promise<{ rows: CompanyQuestion[]; total: number; page: number }> {
-  const { timeframe, filter, company } = query;
+  const { timeframe, filter, company, sort } = query;
   const question = schema.leetcodeQuestions;
   const asked = askedBy(
     timeframe,
@@ -255,11 +289,7 @@ export async function queryQuestions(
     .from(question)
     .innerJoin(asked, eq(asked.questionId, question.id))
     .where(where)
-    .orderBy(
-      desc(asked.companyCount),
-      desc(asked.frequency),
-      asc(question.title),
-    )
+    .orderBy(...orderFor(sort, asked))
     .limit(QUESTIONS_PER_PAGE)
     .offset((page - 1) * QUESTIONS_PER_PAGE);
 

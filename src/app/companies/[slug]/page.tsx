@@ -9,6 +9,7 @@ import { auth } from "@/lib/auth";
 import {
   favoriteSlugs,
   getCompany,
+  lastWorkedAt,
   listProblemCards,
   progressBySlug,
 } from "@/lib/data";
@@ -22,6 +23,7 @@ import {
   parseFilter,
   type ProgressMap,
 } from "@/lib/problem-filter";
+import { parseSort, sortCards, sortEntries } from "@/lib/problem-sort";
 import {
   companyHasListings,
   listQuestionTopics,
@@ -85,19 +87,23 @@ export default async function CompanyPage({
     companyHasListings(company.slug),
   ]);
   const filter = parseFilter(query, { companies: [], topics });
+  const sort = parseSort(query);
   const session =
-    filter.favorites || filter.rows.some((row) => row.field === "status")
+    filter.favorites ||
+    sort.key === "recent" ||
+    filter.rows.some((row) => row.field === "status")
       ? await auth.api.getSession({ headers: await headers() })
       : null;
 
   // The same split as /problems: authored problems on the first page only,
   // listings paged, and a query skipped when no row of its kind could hold.
-  const [listings, cards, progress, starred] = await Promise.all([
+  const [listings, cards, progress, starred, workedAt] = await Promise.all([
     hasListings && !excludes(filter, "listing")
       ? queryQuestions({
           timeframe,
           filter,
           company: company.slug,
+          sort,
           page: requestedPage,
         })
       : Promise.resolve({ rows: [] as CompanyQuestion[], total: 0, page: 1 }),
@@ -110,13 +116,20 @@ export default async function CompanyPage({
     session && filter.favorites
       ? favoriteSlugs(session.user.id)
       : Promise.resolve([] as string[]),
+    session && sort.key === "recent"
+      ? lastWorkedAt(session.user.id)
+      : Promise.resolve({} as Record<string, number>),
   ]);
   const { rows, total, page } = listings;
   const favorites = new Set(starred);
-  const practice = cards.filter(
-    (card) =>
-      card.companies.includes(company.slug) &&
-      matchesProblem(card, filter, progress, favorites),
+  const practice = sortCards(
+    cards.filter(
+      (card) =>
+        card.companies.includes(company.slug) &&
+        matchesProblem(card, filter, progress, favorites),
+    ),
+    sort,
+    workedAt,
   );
 
   const filtering = isFiltering(filter) || timeframe !== "all";
@@ -126,6 +139,7 @@ export default async function CompanyPage({
     const next = new URLSearchParams();
     if (timeframe !== "all") next.set("timeframe", timeframe);
     for (const [name, value] of filterEntries(filter)) next.append(name, value);
+    for (const [name, value] of sortEntries(sort)) next.set(name, value);
     if (nextPage > 1) next.set("page", String(nextPage));
     const text = next.toString();
     return text
@@ -162,6 +176,7 @@ export default async function CompanyPage({
           companies={[]}
           topics={topics}
           filter={filter}
+          sort={sort}
           timeframe={timeframe}
           basePath={`/companies/${company.slug}`}
           fields={COMPANY_PAGE_FIELDS}

@@ -11,7 +11,7 @@ import {
 } from "react";
 import { copyText } from "@/lib/clipboard";
 import { FilterRowItem } from "./filter-row";
-import { FilterButton, StarredToggle } from "./filter-toolbar";
+import { FilterButton, SortMenu, StarredToggle } from "./filter-toolbar";
 import type { Option } from "./filter-select";
 import { useProgress } from "./progress";
 import { Select } from "./select";
@@ -32,6 +32,7 @@ import {
   type ProblemFilter,
   type SetField,
 } from "@/lib/problem-filter";
+import { sortEntries, type ProblemSort } from "@/lib/problem-sort";
 import {
   DIFFICULTIES,
   LANGUAGE_LABELS,
@@ -112,6 +113,7 @@ export function ProblemFilters({
   companies,
   topics,
   filter,
+  sort,
   timeframe,
   basePath = "/problems",
   fields = FILTER_FIELDS,
@@ -120,6 +122,7 @@ export function ProblemFilters({
   topics: string[];
   /** What the URL holds, as the server parsed it. */
   filter: ProblemFilter;
+  sort: ProblemSort;
   timeframe: Timeframe;
   /** The page the filter rewrites the query string of. */
   basePath?: string;
@@ -274,6 +277,18 @@ export function ProblemFilters({
       <div
         className={`flex flex-wrap items-end gap-3 ${pending ? "opacity-60" : ""}`}
       >
+        <SortMenu
+          sort={sort}
+          onChange={(next) =>
+            navigate(
+              hrefFor(activeFilter(draft), {
+                sort: "",
+                dir: "",
+                ...Object.fromEntries(sortEntries(next)),
+              }),
+            )
+          }
+        />
         <FilterButton
           buttonRef={buttonRef}
           open={open}

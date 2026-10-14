@@ -177,6 +177,24 @@ export async function progressBySlug(userId: string): Promise<ProgressMap> {
   return Object.fromEntries(rows.map((row) => [row.slug, row.status]));
 }
 
+/** When one user last ran or marked each problem, by slug, in epoch milliseconds. */
+export async function lastWorkedAt(
+  userId: string,
+): Promise<Record<string, number>> {
+  const rows = await db
+    .select({
+      slug: schema.problems.slug,
+      at: schema.problemProgress.updatedAt,
+    })
+    .from(schema.problemProgress)
+    .innerJoin(
+      schema.problems,
+      eq(schema.problemProgress.problemId, schema.problems.id),
+    )
+    .where(eq(schema.problemProgress.userId, userId));
+  return Object.fromEntries(rows.map((row) => [row.slug, row.at.getTime()]));
+}
+
 /** The problems one user has starred, by slug, oldest star first. */
 export async function favoriteSlugs(userId: string): Promise<string[]> {
   const rows = await db

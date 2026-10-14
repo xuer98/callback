@@ -6,7 +6,12 @@ import { ProblemFilters } from "@/components/problem-filters";
 import { ProblemRow } from "@/components/problem-row";
 import { QuestionList } from "@/components/question-list";
 import { auth } from "@/lib/auth";
-import { favoriteSlugs, listProblemCards, progressBySlug } from "@/lib/data";
+import {
+  favoriteSlugs,
+  lastWorkedAt,
+  listProblemCards,
+  progressBySlug,
+} from "@/lib/data";
 import {
   describeFilter,
   excludes,
@@ -15,6 +20,7 @@ import {
   parseFilter,
   type ProgressMap,
 } from "@/lib/problem-filter";
+import { parseSort, sortCards, sortEntries } from "@/lib/problem-sort";
 import {
   listCompaniesWithQuestions,
   listQuestionTopics,
@@ -72,11 +78,14 @@ export default async function ProblemsPage({
     companies: companies.map((c) => c.slug),
     topics,
   });
+  const sort = parseSort(params);
 
-  // Status and stars are the viewer's own, so the session is read only when
-  // the filter asks for them.
+  // Status, stars and "last worked on" are the viewer's own, so the session
+  // is read only when the filter or the sort asks for them.
   const session =
-    filter.favorites || filter.rows.some((row) => row.field === "status")
+    filter.favorites ||
+    sort.key === "recent" ||
+    filter.rows.some((row) => row.field === "status")
       ? await auth.api.getSession({ headers: await headers() })
       : null;
 
@@ -90,9 +99,9 @@ export default async function ProblemsPage({
   // page only. Under "match all", a row one kind can never satisfy — a topic
   // for the authored problems, a status for the listings — skips that query
   // outright. queryQuestions clamps the page to the last one that has rows.
-  const [listings, cards, progress, starred] = await Promise.all([
+  const [listings, cards, progress, starred, workedAt] = await Promise.all([
     showListings && !excludes(filter, "listing")
-      ? queryQuestions({ timeframe, filter, page: listingsPage })
+      ? queryQuestions({ timeframe, filter, sort, page: listingsPage })
       : Promise.resolve({ rows: [] as CompanyQuestion[], total: 0, page: 1 }),
     listingsPage === 1 && !excludes(filter, "problem")
       ? listProblemCards()
@@ -103,13 +112,20 @@ export default async function ProblemsPage({
     session && filter.favorites
       ? favoriteSlugs(session.user.id)
       : Promise.resolve([] as string[]),
+    session && sort.key === "recent"
+      ? lastWorkedAt(session.user.id)
+      : Promise.resolve({} as Record<string, number>),
   ]);
   const { rows, total, page } = listings;
   const favorites = new Set(starred);
-  const callbackProblems = cards.filter(
-    (card) =>
-      (!category || card.category === category) &&
-      matchesProblem(card, filter, progress, favorites),
+  const callbackProblems = sortCards(
+    cards.filter(
+      (card) =>
+        (!category || card.category === category) &&
+        matchesProblem(card, filter, progress, favorites),
+    ),
+    sort,
+    workedAt,
   );
 
   const described = describeFilter(
@@ -129,6 +145,7 @@ export default async function ProblemsPage({
     if (cat) next.set("category", cat);
     if (timeframe !== "all") next.set("timeframe", timeframe);
     for (const [name, value] of filterEntries(filter)) next.append(name, value);
+    for (const [name, value] of sortEntries(sort)) next.set(name, value);
     if (nextPage > 1) next.set("page", String(nextPage));
     const query = next.toString();
     return query ? `/problems?${query}` : "/problems";
@@ -164,6 +181,7 @@ export default async function ProblemsPage({
         companies={companies}
         topics={topics}
         filter={filter}
+        sort={sort}
         timeframe={timeframe}
       />
 
