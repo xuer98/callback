@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { Pagination } from "@/components/pagination";
 import { ProblemFilters } from "@/components/problem-filters";
 import { ProblemRow } from "@/components/problem-row";
 import { QuestionList } from "@/components/question-list";
@@ -194,33 +195,7 @@ export default async function ProblemsPage({
             <QuestionList rows={rows} showCompanyCount={!namedCompanies} />
           )}
 
-          {lastPage > 1 && (
-            <nav className="mt-6 flex items-center justify-between text-xs text-zinc-400">
-              {page > 1 ? (
-                <Link
-                  href={linkFor(page - 1)}
-                  className="rounded-md border border-zinc-800 px-3 py-1.5 transition-colors hover:bg-zinc-900 hover:text-zinc-200"
-                >
-                  Previous
-                </Link>
-              ) : (
-                <span />
-              )}
-              <span className="text-zinc-500">
-                Page {page} of {lastPage.toLocaleString()}
-              </span>
-              {page < lastPage ? (
-                <Link
-                  href={linkFor(page + 1)}
-                  className="rounded-md border border-zinc-800 px-3 py-1.5 transition-colors hover:bg-zinc-900 hover:text-zinc-200"
-                >
-                  Next
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
-          )}
+          <Pagination page={page} lastPage={lastPage} hrefFor={linkFor} />
 
           <p className="mt-10 text-xs leading-6 text-zinc-600">
             Listings only — titles, difficulty, and tags link out to LeetCode.

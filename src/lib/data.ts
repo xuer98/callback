@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import type { ProgressMap } from "./problem-filter";
@@ -210,30 +210,6 @@ export async function getCompany(slug: string): Promise<Company | undefined> {
     where: eq(schema.companies.slug, slug),
   });
   return row ? toCompany(row) : undefined;
-}
-
-export async function problemsForCompany(
-  companySlug: string,
-): Promise<Problem[]> {
-  const links = await db
-    .select({ problemId: schema.problemCompanies.problemId })
-    .from(schema.problemCompanies)
-    .innerJoin(
-      schema.companies,
-      eq(schema.problemCompanies.companyId, schema.companies.id),
-    )
-    .where(eq(schema.companies.slug, companySlug));
-  if (links.length === 0) return [];
-
-  const rows = await db.query.problems.findMany({
-    where: inArray(
-      schema.problems.id,
-      links.map((link) => link.problemId),
-    ),
-    with: withCompanies,
-    orderBy: (problems, { asc }) => [asc(problems.id)],
-  });
-  return rows.map(toProblem);
 }
 
 function toTrack(

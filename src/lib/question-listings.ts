@@ -34,6 +34,8 @@ export const QUESTIONS_PER_PAGE = 50;
 export interface QuestionQuery {
   timeframe: Timeframe;
   filter: ProblemFilter;
+  /** A company the page is about: required whatever the match mode. */
+  company?: string;
   page?: number;
 }
 
@@ -108,6 +110,20 @@ function askedBy(timeframe: Timeframe, companySlugs: string[]) {
     )
     .groupBy(schema.companyQuestions.questionId)
     .as("asked");
+}
+
+/** Whether any listing names the company, in any time range. */
+export async function companyHasListings(slug: string): Promise<boolean> {
+  const [row] = await db
+    .select({ one: sql<number>`1` })
+    .from(schema.companyQuestions)
+    .innerJoin(
+      schema.companies,
+      eq(schema.companies.id, schema.companyQuestions.companyId),
+    )
+    .where(eq(schema.companies.slug, slug))
+    .limit(1);
+  return row !== undefined;
 }
 
 function shownCompanies(filter: ProblemFilter): string[] {
@@ -189,13 +205,23 @@ function listingCondition(
 export async function queryQuestions(
   query: QuestionQuery,
 ): Promise<{ rows: CompanyQuestion[]; total: number; page: number }> {
-  const { timeframe, filter } = query;
+  const { timeframe, filter, company } = query;
   const question = schema.leetcodeQuestions;
-  const asked = askedBy(timeframe, shownCompanies(filter));
+  const asked = askedBy(
+    timeframe,
+    company ? [company] : shownCompanies(filter),
+  );
   const conditions = filter.rows.map((row) =>
     listingCondition(row, timeframe, asked),
   );
   const where = and(
+    company
+      ? listingCondition(
+          { field: "company", op: "is", values: [company] },
+          timeframe,
+          asked,
+        )
+      : undefined,
     conditions.length === 0
       ? undefined
       : filter.match === "all"

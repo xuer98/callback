@@ -39,12 +39,12 @@ import {
   type Timeframe,
 } from "@/lib/types";
 
-// The /problems toolbar: the time-range select and the Filters button, which
-// opens a panel of filter rows — match all or any of "companies is …",
-// "frequency 20–80%", "status is not solved", and so on — over a title
-// search. Every change rewrites the URL, so the server does the filtering
-// and the view is a link. The panel keeps only what the URL cannot hold:
-// blank rows, and the order the rows were added in.
+// The toolbar of /problems and of a company page: the time-range select and
+// the Filters button, which opens a panel of filter rows — match all or any
+// of "companies is …", "frequency 20–80%", "status is not solved", and so
+// on — over a title search. Every change rewrites the URL, so the server
+// does the filtering and the view is a link. The panel keeps only what the
+// URL cannot hold: blank rows, and the order the rows were added in.
 
 /** The query keys the panel owns; category and timeframe pass through. */
 const OWNED_KEYS: readonly string[] = [...FILTER_FIELDS, "match", "q", "page"];
@@ -69,9 +69,12 @@ function blankRow(field: FilterField, id: string): DraftRow {
 }
 
 /** The default rows in order, each holding its active rows or one blank. */
-function draftFor(filter: ProblemFilter): Draft {
+function draftFor(
+  filter: ProblemFilter,
+  fields: readonly FilterField[],
+): Draft {
   const rows: DraftRow[] = [];
-  for (const field of FILTER_FIELDS) {
+  for (const field of fields) {
     const active = filter.rows.filter((row) => row.field === field);
     rows.push(
       ...(active.length > 0
@@ -121,12 +124,18 @@ export function ProblemFilters({
   topics,
   filter,
   timeframe,
+  basePath = "/problems",
+  fields = FILTER_FIELDS,
 }: {
   companies: { slug: string; name: string }[];
   topics: string[];
   /** What the URL holds, as the server parsed it. */
   filter: ProblemFilter;
   timeframe: Timeframe;
+  /** The page the filter rewrites the query string of. */
+  basePath?: string;
+  /** The rows the panel offers; a company page leaves out Companies. */
+  fields?: readonly FilterField[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -138,7 +147,7 @@ export function ProblemFilters({
   const searchRef = useRef<HTMLInputElement>(null);
   const added = useRef(0);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<Draft>(() => draftFor(filter));
+  const [draft, setDraft] = useState<Draft>(() => draftFor(filter, fields));
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
     "idle",
   );
@@ -151,7 +160,7 @@ export function ProblemFilters({
   const [sentKey, setSentKey] = useState(key);
   if (!pending && key !== sentKey) {
     setSentKey(key);
-    setDraft(draftFor(filter));
+    setDraft(draftFor(filter, fields));
   }
 
   const hrefFor = (
@@ -167,7 +176,7 @@ export function ProblemFilters({
       else params.delete(name);
     }
     const query = params.toString();
-    return query ? `/problems?${query}` : "/problems";
+    return query ? `${basePath}?${query}` : basePath;
   };
   const navigate = (href: string) =>
     startTransition(() => router.push(href, { scroll: false }));
@@ -419,7 +428,7 @@ export function ProblemFilters({
                 <option value="" disabled hidden>
                   +
                 </option>
-                {FILTER_FIELDS.map((field) => (
+                {fields.map((field) => (
                   <option key={field} value={field}>
                     {FIELD_LABELS[field]}
                   </option>
@@ -463,7 +472,7 @@ export function ProblemFilters({
             </button>
             <button
               type="button"
-              onClick={() => update(draftFor(EMPTY_FILTER))}
+              onClick={() => update(draftFor(EMPTY_FILTER, fields))}
               className="flex h-10 items-center justify-center gap-2 rounded-xl bg-zinc-900 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-800"
             >
               <svg
