@@ -24,7 +24,7 @@ import {
 } from "@/lib/editor-format";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
-import { useProgress } from "./progress";
+import { MarkDoneButton, useProgress } from "./progress";
 import {
   buildPreview,
   PREVIEW_MESSAGE_SOURCE,
@@ -399,6 +399,9 @@ export function UiWorkspace({
               >
                 Run
               </button>
+              {/* No judge grades a UI build, so the done mark is manual and
+                  sits where the coding workspace puts Submit. */}
+              <MarkDoneButton slug={slug} variant="toolbar" />
             </div>
           </header>
           <div className="relative min-h-0 flex-1 overflow-hidden text-[13px]">

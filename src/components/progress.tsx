@@ -123,8 +123,19 @@ export function ProgressMarker({ slug }: { slug: string }) {
   );
 }
 
-/** Manual toggle for problems without an in-browser judge. */
-export function MarkDoneButton({ slug }: { slug: string }) {
+/**
+ * Manual toggle for problems without an in-browser judge. The header variant
+ * sits with the category and difficulty; the toolbar variant takes the slot
+ * where the coding workspace puts Submit, so a UI problem's done control is
+ * where the eye looks for it.
+ */
+export function MarkDoneButton({
+  slug,
+  variant = "header",
+}: {
+  slug: string;
+  variant?: "header" | "toolbar";
+}) {
   const { signedIn, statuses, toggleDone } = useProgress();
   const [busy, setBusy] = useState(false);
 
@@ -148,10 +159,14 @@ export function MarkDoneButton({ slug }: { slug: string }) {
         await toggleDone(slug);
         setBusy(false);
       }}
-      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+      className={`rounded-md px-3 text-xs font-medium transition-colors disabled:opacity-60 ${
+        variant === "toolbar" ? "py-1" : "py-1.5"
+      } ${
         solved
           ? "bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/20"
-          : "border border-zinc-700 text-zinc-300 hover:bg-zinc-900"
+          : variant === "toolbar"
+            ? "bg-emerald-600 text-white hover:bg-emerald-500"
+            : "border border-zinc-700 text-zinc-300 hover:bg-zinc-900"
       }`}
     >
       {solved ? "✓ Done" : "Mark as done"}

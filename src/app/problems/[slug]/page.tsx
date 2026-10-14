@@ -54,7 +54,9 @@ export default async function ProblemPage({
         <span>{CATEGORY_LABELS[problem.category]}</span>
         <span aria-hidden>·</span>
         <DifficultyBadge difficulty={problem.difficulty} />
-        {!judge && (
+        {/* Coding problems are marked by Submit, UI problems by their
+            workspace toolbar; everything else gets the toggle here. */}
+        {!judge && !problem.ui && (
           <span className="ml-auto">
             <MarkDoneButton slug={problem.slug} />
           </span>
