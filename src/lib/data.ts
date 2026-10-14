@@ -177,6 +177,20 @@ export async function progressBySlug(userId: string): Promise<ProgressMap> {
   return Object.fromEntries(rows.map((row) => [row.slug, row.status]));
 }
 
+/** The problems one user has starred, by slug, oldest star first. */
+export async function favoriteSlugs(userId: string): Promise<string[]> {
+  const rows = await db
+    .select({ slug: schema.problems.slug })
+    .from(schema.favorites)
+    .innerJoin(
+      schema.problems,
+      eq(schema.favorites.problemId, schema.problems.id),
+    )
+    .where(eq(schema.favorites.userId, userId))
+    .orderBy(schema.favorites.createdAt);
+  return rows.map((row) => row.slug);
+}
+
 export async function getProblem(slug: string): Promise<Problem | undefined> {
   const row = await db.query.problems.findFirst({
     where: eq(schema.problems.slug, slug),

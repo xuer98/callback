@@ -96,12 +96,15 @@ export interface ProblemFilter {
   rows: FilterRow[];
   /** Case-insensitive title search; applies whatever the match mode. */
   search: string;
+  /** Only the viewer's starred problems; applies whatever the match mode. */
+  favorites: boolean;
 }
 
 export const EMPTY_FILTER: ProblemFilter = {
   match: "all",
   rows: [],
   search: "",
+  favorites: false,
 };
 
 export const MAX_SEARCH_LENGTH = 80;
@@ -174,6 +177,7 @@ export function parseFilter(
     match: many(params, "match")[0] === "any" ? "any" : "all",
     rows,
     search: search.trim().slice(0, MAX_SEARCH_LENGTH),
+    favorites: many(params, "favorites")[0] === "1",
   };
 }
 
@@ -190,6 +194,7 @@ export function filterEntries(filter: ProblemFilter): [string, string][] {
     );
   }
   if (filter.search) entries.push(["q", filter.search]);
+  if (filter.favorites) entries.push(["favorites", "1"]);
   return entries;
 }
 
@@ -201,7 +206,9 @@ export function isActiveRow(row: FilterRow): boolean {
 }
 
 export function isFiltering(filter: ProblemFilter): boolean {
-  return filter.search !== "" || filter.rows.some(isActiveRow);
+  return (
+    filter.search !== "" || filter.favorites || filter.rows.some(isActiveRow)
+  );
 }
 
 /** What a filter selects, as a string: the same selection gives the same key, whatever the row order. */
@@ -214,28 +221,37 @@ export function filterKey(filter: ProblemFilter): string {
         : `${row.field}:${row.op}:${[...row.values].sort().join(",")}`,
     )
     .sort();
-  return JSON.stringify({ match: filter.match, search: filter.search, rows });
+  return JSON.stringify({
+    match: filter.match,
+    search: filter.search,
+    favorites: filter.favorites,
+    rows,
+  });
 }
 
 /**
- * True when, under "match all", some row can never hold for items of the
- * given kind, so none of them can match and the section may as well say so.
+ * True when nothing of the given kind can match: stars are Callback-only,
+ * and under "match all" a row the kind cannot have rules everything out,
+ * so the section may as well say so.
  */
 export function excludes(
   filter: ProblemFilter,
-  fields: ReadonlySet<FilterField>,
+  kind: "problem" | "listing",
 ): boolean {
+  if (filter.favorites && kind === "listing") return true;
+  const fields = kind === "problem" ? PROBLEM_FIELDS : LISTING_FIELDS;
   return (
     filter.match === "all" &&
     filter.rows.some((row) => isActiveRow(row) && !fields.has(row.field))
   );
 }
 
-/** The filter over one of Callback's own problems; status comes from the viewer's progress. */
+/** The filter over one of Callback's own problems; status and stars are the viewer's. */
 export function matchesProblem(
   card: ProblemCard,
   filter: ProblemFilter,
   progress: ProgressMap,
+  favorites: ReadonlySet<string>,
 ): boolean {
   if (
     filter.search &&
@@ -243,6 +259,7 @@ export function matchesProblem(
   ) {
     return false;
   }
+  if (filter.favorites && !favorites.has(card.slug)) return false;
   const rows = filter.rows.filter(isActiveRow);
   if (rows.length === 0) return true;
   const holds = (row: FilterRow) => rowMatchesProblem(card, row, progress);
@@ -303,7 +320,11 @@ export function describeFilter(
   const joined = clauses.join(
     filter.match === "any" && clauses.length > 1 ? " or " : ", ",
   );
-  return [filter.search ? `matching “${filter.search}”` : "", joined]
+  return [
+    filter.search ? `matching “${filter.search}”` : "",
+    filter.favorites ? "starred" : "",
+    joined,
+  ]
     .filter(Boolean)
     .join(", ");
 }

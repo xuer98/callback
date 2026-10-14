@@ -71,6 +71,13 @@
       "when": 1790515777182,
       "tag": "0009_polite_blacklash",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791992141202,
+      "tag": "0010_conscious_chimera",
+      "breakpoints": true
     }
   ]
 }

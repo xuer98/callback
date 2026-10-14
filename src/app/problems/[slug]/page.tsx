@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { DesignChat } from "@/components/design-chat";
 import { DesignWorkspace } from "@/components/design-workspace";
 import { DifficultyBadge } from "@/components/difficulty-badge";
-import { MarkDoneButton } from "@/components/progress";
+import { FavoriteStar, MarkDoneButton } from "@/components/progress";
 import { RichText } from "@/components/markdown";
 import { ProblemMenuButton } from "@/components/problem-menu";
 import { ProblemPanes } from "@/components/problem-panes";
@@ -54,6 +54,7 @@ export default async function ProblemPage({
         <span>{CATEGORY_LABELS[problem.category]}</span>
         <span aria-hidden>·</span>
         <DifficultyBadge difficulty={problem.difficulty} />
+        <FavoriteStar slug={problem.slug} className="-my-1" />
         {/* Coding problems are marked by Submit, UI problems by their
             workspace toolbar; everything else gets the toggle here. */}
         {!judge && !problem.ui && (

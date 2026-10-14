@@ -6,15 +6,13 @@ import { ProblemFilters } from "@/components/problem-filters";
 import { ProblemRow } from "@/components/problem-row";
 import { QuestionList } from "@/components/question-list";
 import { auth } from "@/lib/auth";
-import { listProblemCards, progressBySlug } from "@/lib/data";
+import { favoriteSlugs, listProblemCards, progressBySlug } from "@/lib/data";
 import {
   describeFilter,
   excludes,
   filterEntries,
-  LISTING_FIELDS,
   matchesProblem,
   parseFilter,
-  PROBLEM_FIELDS,
   type ProgressMap,
 } from "@/lib/problem-filter";
 import {
@@ -75,11 +73,12 @@ export default async function ProblemsPage({
     topics,
   });
 
-  // Status is the viewer's own progress, so the session is read only when a
-  // row asks for it.
-  const session = filter.rows.some((row) => row.field === "status")
-    ? await auth.api.getSession({ headers: await headers() })
-    : null;
+  // Status and stars are the viewer's own, so the session is read only when
+  // the filter asks for them.
+  const session =
+    filter.favorites || filter.rows.some((row) => row.field === "status")
+      ? await auth.api.getSession({ headers: await headers() })
+      : null;
 
   // The imported listings are LeetCode coding questions, so they only render
   // when the category could contain them. Without them there is no
@@ -91,22 +90,26 @@ export default async function ProblemsPage({
   // page only. Under "match all", a row one kind can never satisfy — a topic
   // for the authored problems, a status for the listings — skips that query
   // outright. queryQuestions clamps the page to the last one that has rows.
-  const [listings, cards, progress] = await Promise.all([
-    showListings && !excludes(filter, LISTING_FIELDS)
+  const [listings, cards, progress, starred] = await Promise.all([
+    showListings && !excludes(filter, "listing")
       ? queryQuestions({ timeframe, filter, page: listingsPage })
       : Promise.resolve({ rows: [] as CompanyQuestion[], total: 0, page: 1 }),
-    listingsPage === 1 && !excludes(filter, PROBLEM_FIELDS)
+    listingsPage === 1 && !excludes(filter, "problem")
       ? listProblemCards()
       : Promise.resolve([] as ProblemCard[]),
     session
       ? progressBySlug(session.user.id)
       : Promise.resolve({} as ProgressMap),
+    session && filter.favorites
+      ? favoriteSlugs(session.user.id)
+      : Promise.resolve([] as string[]),
   ]);
   const { rows, total, page } = listings;
+  const favorites = new Set(starred);
   const callbackProblems = cards.filter(
     (card) =>
       (!category || card.category === category) &&
-      matchesProblem(card, filter, progress),
+      matchesProblem(card, filter, progress, favorites),
   );
 
   const described = describeFilter(
@@ -187,9 +190,11 @@ export default async function ProblemsPage({
 
           {rows.length === 0 ? (
             <p className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-6 text-sm text-zinc-400">
-              {excludes(filter, LISTING_FIELDS)
-                ? "Status and language describe Callback's own problems, so no LeetCode listing can match all of these filters. Match any of them instead, or remove those rows."
-                : "No LeetCode listings match those filters. Try a wider time range, or clear a filter."}
+              {filter.favorites
+                ? "Stars are for Callback's own problems, so the LeetCode listings sit this one out."
+                : excludes(filter, "listing")
+                  ? "Status and language describe Callback's own problems, so no LeetCode listing can match all of these filters. Match any of them instead, or remove those rows."
+                  : "No LeetCode listings match those filters. Try a wider time range, or clear a filter."}
             </p>
           ) : (
             <QuestionList rows={rows} showCompanyCount={!namedCompanies} />

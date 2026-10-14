@@ -108,6 +108,21 @@ export const problemProgress = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.problemId] })],
 );
 
+// Starred problems: one user's own list, like LeetCode's favourites.
+export const favorites = pgTable(
+  "favorites",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.problemId] })],
+);
+
 // Account-backed copies of what the workspace also keeps in localStorage:
 // saved code per problem/language, and the whiteboard scene per problem.
 // The client reconciles the two on load (newest wins). Language is text,

@@ -9,7 +9,9 @@ import {
   useState,
   useTransition,
 } from "react";
+import { copyText } from "@/lib/clipboard";
 import { FilterRowItem } from "./filter-row";
+import { FilterButton, StarredToggle } from "./filter-toolbar";
 import type { Option } from "./filter-select";
 import { useProgress } from "./progress";
 import { Select } from "./select";
@@ -47,7 +49,13 @@ import {
 // URL cannot hold: blank rows, and the order the rows were added in.
 
 /** The query keys the panel owns; category and timeframe pass through. */
-const OWNED_KEYS: readonly string[] = [...FILTER_FIELDS, "match", "q", "page"];
+const OWNED_KEYS: readonly string[] = [
+  ...FILTER_FIELDS,
+  "match",
+  "q",
+  "favorites",
+  "page",
+];
 
 /** A row in the panel: stable identity for React, whatever gets removed. */
 interface DraftRow {
@@ -59,6 +67,7 @@ interface Draft {
   match: MatchMode;
   rows: DraftRow[];
   search: string;
+  favorites: boolean;
 }
 
 function blankRow(field: FilterField, id: string): DraftRow {
@@ -82,7 +91,12 @@ function draftFor(
         : [blankRow(field, `${field}:0`)]),
     );
   }
-  return { match: filter.match, rows, search: filter.search };
+  return {
+    match: filter.match,
+    rows,
+    search: filter.search,
+    favorites: filter.favorites,
+  };
 }
 
 function activeFilter(draft: Draft): ProblemFilter {
@@ -90,33 +104,8 @@ function activeFilter(draft: Draft): ProblemFilter {
     match: draft.match,
     rows: draft.rows.map(({ row }) => row).filter(isActiveRow),
     search: draft.search.trim().slice(0, MAX_SEARCH_LENGTH),
+    favorites: draft.favorites,
   };
-}
-
-/**
- * The async clipboard first; where it is refused (no permission, an iframe
- * without the right policy), the selection-based copy still works.
- */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const field = document.createElement("textarea");
-    field.value = text;
-    field.setAttribute("readonly", "");
-    field.style.position = "fixed";
-    field.style.opacity = "0";
-    document.body.appendChild(field);
-    field.select();
-    try {
-      return document.execCommand("copy");
-    } catch {
-      return false;
-    } finally {
-      field.remove();
-    }
-  }
 }
 
 export function ProblemFilters({
@@ -273,7 +262,8 @@ export function ProblemFilters({
     topic: topics.map((t) => ({ value: t, label: t })),
     language: LANGUAGES.map((l) => ({ value: l, label: LANGUAGE_LABELS[l] })),
   };
-  const activeCount = filter.rows.length + (filter.search ? 1 : 0);
+  const activeCount =
+    filter.rows.length + (filter.search ? 1 : 0) + (filter.favorites ? 1 : 0);
   const filtering = isFiltering(activeFilter(draft));
   const asksStatus = draft.rows.some(
     ({ row }) => row.field === "status" && isActiveRow(row),
@@ -284,43 +274,22 @@ export function ProblemFilters({
       <div
         className={`flex flex-wrap items-end gap-3 ${pending ? "opacity-60" : ""}`}
       >
-        <button
-          ref={buttonRef}
-          type="button"
+        <FilterButton
+          buttonRef={buttonRef}
+          open={open}
+          activeCount={activeCount}
+          panelId={panelId}
           onClick={() => setOpen((shown) => !shown)}
-          aria-label={
-            activeCount > 0 ? `Filters, ${activeCount} active` : "Filters"
+        />
+        <StarredToggle
+          on={filter.favorites}
+          signedIn={signedIn}
+          onClick={() =>
+            signedIn
+              ? update({ ...draft, favorites: !draft.favorites })
+              : router.push("/signin")
           }
-          aria-expanded={open}
-          aria-controls={panelId}
-          title="Filters"
-          className={`relative flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-md ring-1 ring-inset transition-colors ${
-            open || activeCount > 0
-              ? "bg-zinc-800 text-zinc-100 ring-zinc-700"
-              : "bg-zinc-900 text-zinc-400 ring-zinc-800 hover:text-zinc-100"
-          }`}
-        >
-          <svg
-            aria-hidden
-            viewBox="0 0 16 16"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M2.5 3.5h11L9.5 8.5v4l-3 1.5v-5.5z" />
-          </svg>
-          {activeCount > 0 && (
-            <span
-              aria-hidden
-              className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-semibold leading-none text-white"
-            >
-              {activeCount}
-            </span>
-          )}
-        </button>
+        />
         <Select
           label="Time range"
           value={timeframe}

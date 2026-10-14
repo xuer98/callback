@@ -96,3 +96,34 @@ export async function toggleProblemDone(
     });
   return "solved";
 }
+
+/**
+ * Star or unstar a problem for the signed-in user. Returns the new state,
+ * or null for anonymous users and unknown slugs.
+ */
+export async function toggleFavorite(
+  problemSlug: unknown,
+): Promise<boolean | null> {
+  if (typeof problemSlug !== "string") return null;
+  const userId = await sessionUserId();
+  if (!userId) return null;
+  const problemId = await problemIdBySlug(problemSlug);
+  if (problemId === null) return null;
+
+  const removed = await db
+    .delete(schema.favorites)
+    .where(
+      and(
+        eq(schema.favorites.userId, userId),
+        eq(schema.favorites.problemId, problemId),
+      ),
+    )
+    .returning({ problemId: schema.favorites.problemId });
+  if (removed.length > 0) return false;
+
+  await db
+    .insert(schema.favorites)
+    .values({ userId, problemId })
+    .onConflictDoNothing();
+  return true;
+}
