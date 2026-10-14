@@ -326,7 +326,8 @@ export const appleUiProblemsE: Problem[] = [
     title: "Tic-Tac-Toe: N by N, M in a Row",
     category: "frontend",
     difficulty: "medium",
-    companies: ["apple"],
+    // Snowflake: Tic-tac-toe is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["apple", "snowflake"],
     summary:
       "A board of any size, a win check that looks only through the last move, and a status line for turn, winner or draw.",
     prompt: [

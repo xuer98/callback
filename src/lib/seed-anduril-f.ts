@@ -93,7 +93,8 @@ function hasCycle(n, edges) {
     title: "Sensor Network: Count Components",
     category: "algorithms",
     difficulty: "easy",
-    companies: ["anduril"],
+    // Snowflake: Number of Connected Components in an Undirected Graph (323), in Blind 75, the sample set the recruiter's email names for the backend round, is this count over an edge list.
+    companies: ["anduril", "snowflake"],
     summary: "Start at n components; every successful union merges two into one.",
     prompt: `Field sensors numbered \`0\` to \`n − 1\` are linked by **undirected** edges \`(u, v)\`. Return the number of **disconnected components** — groups of sensors that can reach each other through links. A sensor with no links is a component of its own.
 

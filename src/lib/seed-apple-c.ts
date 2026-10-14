@@ -105,7 +105,8 @@ function countIslands(grid) {
     title: "Insert Interval",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["apple"],
+    // Snowflake: Insert Interval (57) is in Blind 75, the sample set the recruiter's email names for the backend round.
+    companies: ["apple", "snowflake"],
     summary: "Three linear phases instead of a re-sort: before, overlapping, after.",
     prompt: [
       "`intervals` is a list of closed `[start, end]` pairs that are sorted by start and do not overlap. Insert `newInterval`, merging where it overlaps, and return the list still sorted and non-overlapping. Touching intervals merge (`[1, 4]` and `[4, 5]` become `[1, 5]`). Do it in one pass without re-sorting.",

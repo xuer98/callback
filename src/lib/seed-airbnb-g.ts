@@ -305,7 +305,8 @@ class AbortablePromise extends Promise {
     difficulty: "medium",
     // Apple: debounce and throttle top the utility list in the Apple
     // JavaScript guide.
-    companies: ["airbnb", "apple"],
+    // Snowflake: Throttle is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["airbnb", "apple", "snowflake"],
     summary:
       "A leading call, then at most one call per window — with a trailing call that carries the latest arguments.",
     prompt: `Write \`throttle(fn, wait)\`: the returned function calls \`fn\` at most once per \`wait\` ms.

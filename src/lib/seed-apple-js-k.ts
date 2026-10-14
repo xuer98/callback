@@ -11,7 +11,8 @@ export const appleJsProblemsK: Problem[] = [
     title: "Product of Every Other Element",
     category: "algorithms",
     difficulty: "easy",
-    companies: ["apple"],
+    // Snowflake: Product of Array Except Self (238) is in Blind 75, the sample set the recruiter's email names for the backend round.
+    companies: ["apple", "snowflake"],
     summary: "Prefix products left to right, suffix products right to left — no division, so zeros need no special case.",
     prompt: [
       "Turn an array into one where each position holds the product of every **other** element: `productOfOthers(nums)`. No division, O(n) time.",

@@ -341,7 +341,8 @@ Talk through where the state lives and why the disabled state should be derived 
     title: "Build a Todo List",
     category: "frontend",
     difficulty: "medium",
-    companies: ["meta", "amazon", "airbnb"],
+    // Snowflake: Todo List is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["meta", "amazon", "airbnb", "snowflake"],
     summary: "List state done right: keys, controlled input, and deletes.",
     prompt: `Build a todo list. The markup ships with a hardcoded task — replace it with real state.
 
@@ -372,7 +373,8 @@ One array of task objects in state, each with a stable id that serves as both th
     title: "Build Tabs",
     category: "frontend",
     difficulty: "easy",
-    companies: ["meta", "pinterest"],
+    // Snowflake: Tabs is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["meta", "pinterest", "snowflake"],
     summary: "One active index drives the whole component.",
     prompt: `Build a tabbed interface from the provided \`TABS\` data. The starter renders every tab as active and only the first panel — fix both.
 

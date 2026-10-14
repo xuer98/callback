@@ -51,6 +51,23 @@ import { snowflakeDesignProblemsD } from "./seed-snowflake-design-d";
 import { snowflakeSqlProblems } from "./seed-snowflake-sql";
 import { snowflakeUiProblems } from "./seed-snowflake-ui";
 import { snowflakeUiProblemsB } from "./seed-snowflake-ui-b";
+import { snowflakeBlindProblemsA } from "./seed-snowflake-b75-a";
+import { snowflakeBlindProblemsB } from "./seed-snowflake-b75-b";
+import { snowflakeBlindProblemsC } from "./seed-snowflake-b75-c";
+import { snowflakeBlindProblemsD } from "./seed-snowflake-b75-d";
+import { snowflakeBlindProblemsE } from "./seed-snowflake-b75-e";
+import { snowflakeBlindProblemsF } from "./seed-snowflake-b75-f";
+import { snowflakeBlindProblemsG } from "./seed-snowflake-b75-g";
+import { snowflakeBlindProblemsH } from "./seed-snowflake-b75-h";
+import { snowflakeBlindProblemsI } from "./seed-snowflake-b75-i";
+import { snowflakeGfeProblems } from "./seed-snowflake-gfe";
+import { snowflakeJsProblems } from "./seed-snowflake-js";
+import { snowflakeUiProblemsC } from "./seed-snowflake-ui-c";
+import { snowflakeUiProblemsD } from "./seed-snowflake-ui-d";
+import { snowflakeUiProblemsE } from "./seed-snowflake-ui-e";
+import { snowflakeUiProblemsF } from "./seed-snowflake-ui-f";
+import { snowflakeUiProblemsG } from "./seed-snowflake-ui-g";
+import { snowflakeUiProblemsH } from "./seed-snowflake-ui-h";
 import { appleProblemsA } from "./seed-apple-a";
 import { appleProblemsB } from "./seed-apple-b";
 import { appleProblemsC } from "./seed-apple-c";
@@ -3049,6 +3066,23 @@ ORDER BY department, employee;
   ...snowflakeSqlProblems,
   ...snowflakeUiProblems,
   ...snowflakeUiProblemsB,
+  ...snowflakeBlindProblemsA,
+  ...snowflakeBlindProblemsB,
+  ...snowflakeBlindProblemsC,
+  ...snowflakeBlindProblemsD,
+  ...snowflakeBlindProblemsE,
+  ...snowflakeBlindProblemsF,
+  ...snowflakeBlindProblemsG,
+  ...snowflakeBlindProblemsH,
+  ...snowflakeBlindProblemsI,
+  ...snowflakeGfeProblems,
+  ...snowflakeJsProblems,
+  ...snowflakeUiProblemsC,
+  ...snowflakeUiProblemsD,
+  ...snowflakeUiProblemsE,
+  ...snowflakeUiProblemsF,
+  ...snowflakeUiProblemsG,
+  ...snowflakeUiProblemsH,
 ];
 
 export const tracks: Track[] = [

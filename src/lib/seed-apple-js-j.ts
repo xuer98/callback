@@ -11,7 +11,8 @@ export const appleJsProblemsJ: Problem[] = [
     title: "Implement Promise.all",
     category: "frontend",
     difficulty: "medium",
-    companies: ["apple"],
+    // Snowflake: Promise.all is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["apple", "snowflake"],
     summary: "Store results by index, count down, resolve an empty input at once, reject on the first failure.",
     prompt: [
       "Implement `promiseAll(iterable)`, which behaves like `Promise.all` without calling it. `Promise.all`, `allSettled`, `race` and `any` are switched off while it runs.",
@@ -197,7 +198,8 @@ async function __judgeTimeout(spec, ms) {
     title: "Implement curry",
     category: "frontend",
     difficulty: "medium",
-    companies: ["apple"],
+    // Snowflake: Curry is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["apple", "snowflake"],
     summary: "Collect arguments until `fn.length` have arrived — with a fresh array per call so partials stay independent.",
     prompt: [
       "Write `curry(fn)`: collect arguments across calls until at least `fn.length` of them have arrived, then call `fn` with all of them.",

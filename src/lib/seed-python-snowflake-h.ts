@@ -6,7 +6,7 @@ import { TREE_BUILDER_PY } from "./seed-python-snowflake-c";
 // the seed script like seed-python.ts.
 
 /** Serialises a tree of .val/.left/.right nodes to level order, trailing Nones trimmed. */
-const TREE_SERIALIZER_PY = `def __to_level_order(root):
+export const TREE_SERIALIZER_PY = `def __to_level_order(root):
     out = []
     queue = [root]
     head = 0

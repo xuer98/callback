@@ -354,7 +354,8 @@ export const airbnbProblemsF: Problem[] = [
     title: "Transfer List",
     category: "frontend",
     difficulty: "medium",
-    companies: ["airbnb"],
+    // Snowflake: Transfer List is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["airbnb", "snowflake"],
     summary:
       "Two arrays and one Set of checked ids — get a working version fast, then polish.",
     prompt: `Implement a Transfer List — the MUI-style widget: two lists of items with checkboxes, buttons to move the checked items right or left, plus "move all" in each direction. Aim for a **working version in about 15 minutes**, then polish. Available as a React template and an HTML/CSS/JS one.

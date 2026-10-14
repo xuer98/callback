@@ -10,7 +10,8 @@ export const appleJsProblemsD: Problem[] = [
     title: "Implement cloneDeep",
     category: "frontend",
     difficulty: "medium",
-    companies: ["apple"],
+    // Snowflake: Deep Clone is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["apple", "snowflake"],
     summary:
       "Cycles, shared references, `Date`, `RegExp`, `Map`, `Set`, prototypes and symbol keys: everything spread and JSON get wrong.",
     prompt: [
@@ -237,7 +238,8 @@ function cloneDeep(value) {
     title: "Implement memoize",
     category: "frontend",
     difficulty: "medium",
-    companies: ["apple"],
+    // Snowflake: Memoize is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["apple", "snowflake"],
     summary: "A closure over a Map keyed on every argument — and `has`, not truthiness, so 0 and undefined still hit.",
     prompt: [
       "Write `memoize(fn, resolver)`: return a function that caches `fn`'s result per key.",

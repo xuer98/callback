@@ -60,7 +60,8 @@ export const appleJsProblemsA: Problem[] = [
     title: "Implement Array.prototype.flat",
     category: "frontend",
     difficulty: "medium",
-    companies: ["apple"],
+    // Snowflake: Flatten is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["apple", "snowflake"],
     summary:
       "Depth, holes and `Infinity` — without recursion, so 100,000 levels can't overflow the stack.",
     prompt: [

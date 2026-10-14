@@ -1091,7 +1091,8 @@ The trap: when the countdown hits 0 you change \`index\` *and* reset \`remaining
     title: "Connect Four",
     category: "frontend",
     difficulty: "medium",
-    companies: ["airbnb"],
+    // Snowflake: Connect Four is on GreatFrontEnd's list, the practice set the recruiter's email names for the frontend round.
+    companies: ["airbnb", "snowflake"],
     summary:
       "Immutable board updates, gravity in dropPiece, and a win check that only looks through the last move.",
     prompt: `Two players drop discs into a 7×6 grid; the first to line up four wins. The board renders in the starter — make it a game. Available as a React template and an HTML/CSS/JS one.

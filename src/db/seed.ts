@@ -57,6 +57,16 @@ import { snowflakePythonJudgesJ } from "../lib/seed-python-snowflake-j";
 import { snowflakePythonJudgesK } from "../lib/seed-python-snowflake-k";
 import { snowflakePythonJudgesL } from "../lib/seed-python-snowflake-l";
 import { snowflakePythonJudgesM } from "../lib/seed-python-snowflake-m";
+import { snowflakePythonJudgesN } from "../lib/seed-python-snowflake-n";
+import { snowflakePythonJudgesO } from "../lib/seed-python-snowflake-o";
+import { snowflakePythonJudgesP } from "../lib/seed-python-snowflake-p";
+import { snowflakePythonJudgesQ } from "../lib/seed-python-snowflake-q";
+import { snowflakePythonJudgesR } from "../lib/seed-python-snowflake-r";
+import { snowflakePythonJudgesS } from "../lib/seed-python-snowflake-s";
+import { snowflakePythonJudgesT } from "../lib/seed-python-snowflake-t";
+import { snowflakePythonJudgesU } from "../lib/seed-python-snowflake-u";
+import { snowflakePythonJudgesV } from "../lib/seed-python-snowflake-v";
+import { snowflakePythonJudgesW } from "../lib/seed-python-snowflake-w";
 import { typescriptJudges } from "../lib/seed-typescript";
 import { appleTypescriptJudges } from "../lib/seed-typescript-apple";
 import { appleTypescriptJudgesB } from "../lib/seed-typescript-apple-b";
@@ -261,7 +271,17 @@ async function main() {
                 snowflakePythonJudgesJ[problem.slug] ??
                 snowflakePythonJudgesK[problem.slug] ??
                 snowflakePythonJudgesL[problem.slug] ??
-                snowflakePythonJudgesM[problem.slug],
+                snowflakePythonJudgesM[problem.slug] ??
+                snowflakePythonJudgesN[problem.slug] ??
+                snowflakePythonJudgesO[problem.slug] ??
+                snowflakePythonJudgesP[problem.slug] ??
+                snowflakePythonJudgesQ[problem.slug] ??
+                snowflakePythonJudgesR[problem.slug] ??
+                snowflakePythonJudgesS[problem.slug] ??
+                snowflakePythonJudgesT[problem.slug] ??
+                snowflakePythonJudgesU[problem.slug] ??
+                snowflakePythonJudgesV[problem.slug] ??
+                snowflakePythonJudgesW[problem.slug],
               typescript:
                 typescriptJudges[problem.slug] ??
                 appleTypescriptJudges[problem.slug] ??
