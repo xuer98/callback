@@ -1,27 +1,9 @@
 import type { JudgeLanguage } from "./types";
 
-// Python judges for the Snowflake LeetCode-tag bank part K and the custom
-// long-tail prompts of part S, keyed by slug and merged into judge.python by
-// the seed script like seed-python.ts.
+// Python judges for the Snowflake custom prompts of parts K, P and S, keyed
+// by slug and merged into judge.python by the seed script like seed-python.ts.
 
 export const snowflakePythonJudgesL: Record<string, JudgeLanguage> = {
-  "task-scheduler": {
-    entry: "least_interval",
-    starterCode: `def least_interval(tasks, n):
-    """The least total time with a cooldown of n between runs of the same task."""
-    # Your code here
-    return 0
-`,
-    solutionCode: `from collections import Counter
-
-
-def least_interval(tasks, n):
-    counts = Counter(tasks)
-    max_freq = max(counts.values())
-    tied = sum(1 for c in counts.values() if c == max_freq)
-    return max(len(tasks), (max_freq - 1) * (n + 1) + tied)
-`,
-  },
   "document-coverage-window": {
     entry: "shortest_coverage",
     starterCode: `def shortest_coverage(words, terms):

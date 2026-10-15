@@ -10,8 +10,7 @@ export const appleProblemsC: Problem[] = [
     title: "Number of Islands",
     category: "algorithms",
     difficulty: "medium",
-        // Snowflake: Number of Islands (200) is in LeetCode's Snowflake tag.
-companies: ["apple", "snowflake"],
+    companies: ["apple"],
     summary:
       "Flood fill from every unvisited land cell — and know when DFS, BFS or union-find fits.",
     prompt: [
@@ -105,8 +104,7 @@ function countIslands(grid) {
     title: "Insert Interval",
     category: "algorithms",
     difficulty: "medium",
-    // Snowflake: Insert Interval (57) is in Blind 75, the sample set the recruiter's email names for the backend round.
-    companies: ["apple", "snowflake"],
+    companies: ["apple"],
     summary: "Three linear phases instead of a re-sort: before, overlapping, after.",
     prompt: [
       "`intervals` is a list of closed `[start, end]` pairs that are sorted by start and do not overlap. Insert `newInterval`, merging where it overlaps, and return the list still sorted and non-overlapping. Touching intervals merge (`[1, 4]` and `[4, 5]` become `[1, 5]`). Do it in one pass without re-sorting.",
@@ -181,8 +179,7 @@ function insertInterval(intervals, newInterval) {
     title: "Design HashMap",
     category: "algorithms",
     difficulty: "medium",
-        // Snowflake: Design HashMap (706) is in LeetCode's Snowflake tag.
-companies: ["apple", "snowflake"],
+    companies: ["apple"],
     summary:
       "Separate chaining with a resize at a load-factor threshold — fixed buckets aren't enough.",
     prompt: [

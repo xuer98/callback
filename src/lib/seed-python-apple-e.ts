@@ -238,22 +238,6 @@ def __judge_sqrt(x):
     return "NaN" if root != root else "%.6f" % root
 `,
   },
-  "two-sum": {
-    entry: "two_sum",
-    starterCode: `def two_sum(nums, target):
-    """Indices [i, j], i < j, of the pair that sums to target, or None."""
-    # Your code here
-    return None
-`,
-    solutionCode: `def two_sum(nums, target):
-    seen = {}  # value -> index
-    for i, v in enumerate(nums):
-        if target - v in seen:
-            return [seen[target - v], i]
-        seen[v] = i
-    return None
-`,
-  },
   "fibonacci-generator": {
     entry: "__judge_fibonacci",
     starterCode: `def fibonacci():

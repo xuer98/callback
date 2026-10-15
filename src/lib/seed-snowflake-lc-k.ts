@@ -1,76 +1,11 @@
 import type { Problem } from "./types";
 
-// Snowflake coding bank, LeetCode tag part K and custom prompts: task
-// scheduling with cooldowns, document coverage (the minimum window), and the
-// best query type for a time budget; part P continues the custom prompts.
-// Judged in JavaScript and Python; the Python judges live in
+// Snowflake coding bank, part K of the custom prompts: document coverage
+// (the minimum window) and the best query type for a time budget; part P
+// continues them. Judged in JavaScript and Python; the Python judges live in
 // seed-python-snowflake-l.ts.
 
 export const snowflakeLcProblemsK: Problem[] = [
-  {
-    slug: "task-scheduler",
-    title: "Task Scheduler",
-    category: "algorithms",
-    difficulty: "medium",
-    companies: ["snowflake"],
-    summary: "The most frequent task sets the frame: (maxFreq − 1) gaps of n + 1 slots, plus one slot per task tied for the maximum.",
-    prompt: [
-      "Tasks are letters; each takes one unit of time, and two runs of the same letter must be at least `n` units apart. Idle units are allowed. Return the least total time to run every task.",
-      "",
-      "```",
-      "leastInterval([\"A\", \"A\", \"A\", \"B\", \"B\", \"B\"], 2)  ->  8    // A B _ A B _ A B",
-      "leastInterval([\"A\", \"A\", \"A\", \"B\", \"B\", \"B\"], 0)  ->  6",
-      "```",
-    ].join("\n"),
-    hints: [
-      "Lay out the most frequent task first: its copies need (maxFreq − 1) gaps of length n between them, and each gap can hold n other tasks.",
-      "If there are enough other tasks to fill every gap, nothing idles and the answer is the task count; otherwise it is (maxFreq − 1) × (n + 1) + the number of tasks sharing the maximum frequency.",
-    ],
-    solution: [
-      "## Approach",
-      "",
-      "Count frequencies. The task with the highest count `f` forces at least `(f − 1)` full frames of `n + 1` slots followed by one final slot for it and for every other task that also has count `f`. Other tasks slot into the frames' idle positions; when there are more tasks than idle positions the schedule has no idle time at all. So the answer is the larger of the task count and `(f − 1) × (n + 1) + (number of tasks with count f)`.",
-      "",
-      "## Complexity",
-      "",
-      "O(tasks) time; O(26) space.",
-      "",
-      "## Worth saying out loud",
-      "",
-      "- The simulation with a max-heap and a cooldown queue produces the same number and also yields an actual schedule, which is the usual follow-up.",
-      "- Explain why filling frames greedily is safe: round-robin over the remaining tasks never puts two equal letters within n of each other.",
-    ].join("\n"),
-    judge: {
-      solutionCode: `function leastInterval(tasks, n) {
-  const counts = new Map();
-  for (const t of tasks) counts.set(t, (counts.get(t) ?? 0) + 1);
-  const maxFreq = Math.max(...counts.values());
-  let tied = 0;
-  for (const c of counts.values()) if (c === maxFreq) tied++;
-  return Math.max(tasks.length, (maxFreq - 1) * (n + 1) + tied);
-}
-`,
-      starterCode: `/**
- * @param {string[]} tasks
- * @param {number} n cooldown between runs of the same task
- * @returns {number} the least total time
- */
-function leastInterval(tasks, n) {
-  // Your code here
-  return 0;
-}
-`,
-      entry: "leastInterval",
-      tests: [
-        { name: "Prompt example", input: [["A", "A", "A", "B", "B", "B"], 2], expected: 8 },
-        { name: "No cooldown", input: [["A", "A", "A", "B", "B", "B"], 0], expected: 6 },
-        { name: "One dominant task", input: [["A", "A", "A", "A", "A", "A", "B", "C", "D", "E", "F", "G"], 2], expected: 16 },
-        { name: "A single task", input: [["A"], 5], expected: 1 },
-        { name: "Distinct tasks never idle", input: [["A", "B"], 3], expected: 2 },
-        { name: "Two tasks tied", input: [["A", "A", "B", "B"], 1], expected: 4 },
-      ],
-    },
-  },
   {
     slug: "document-coverage-window",
     title: "Document Coverage: The Shortest Window",

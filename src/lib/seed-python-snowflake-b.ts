@@ -1,6 +1,6 @@
 import type { JudgeLanguage } from "./types";
 
-// Python judges for the Snowflake coding bank, parts E to G, keyed by slug
+// Python judges for the Snowflake coding bank, parts E and F, keyed by slug
 // and merged into judge.python by the seed script like seed-python.ts.
 
 /** Constructs the class named by the first operation, then calls methods. */
@@ -280,80 +280,6 @@ def min_buses(trips):
             buses += 1
         heapq.heappush(idle[destination], arrival)
     return buses
-`,
-  },
-  "minimum-meeting-rooms": {
-    entry: "min_meeting_rooms",
-    starterCode: `def min_meeting_rooms(intervals):
-    """intervals: [start, end) meetings. The fewest rooms needed."""
-    # Your code here
-    return 0
-`,
-    solutionCode: `def min_meeting_rooms(intervals):
-    # Peak concurrency: sweep sorted starts against sorted ends.
-    starts = sorted(m[0] for m in intervals)
-    ends = sorted(m[1] for m in intervals)
-    rooms = freed = 0
-    for start in starts:
-        if ends[freed] <= start:
-            freed += 1                                 # a room has come free
-        else:
-            rooms += 1
-    return rooms
-`,
-  },
-  "max-events-attended": {
-    entry: "max_events",
-    starterCode: `def max_events(events):
-    """events: [start_day, end_day], inclusive. The most events attendable
-    at one per day."""
-    # Your code here
-    return 0
-`,
-    solutionCode: `import heapq
-
-
-def max_events(events):
-    # Earliest-deadline-first with a min-heap of end days.
-    ordered = sorted(events)
-    heap = []
-    attended = nxt = 0
-    day = ordered[0][0] if ordered else 0
-    while nxt < len(ordered) or heap:
-        if not heap:
-            day = max(day, ordered[nxt][0])            # jump to the next start
-        while nxt < len(ordered) and ordered[nxt][0] <= day:
-            heapq.heappush(heap, ordered[nxt][1])
-            nxt += 1
-        while heap and heap[0] < day:                  # already over
-            heapq.heappop(heap)
-        if heap:
-            heapq.heappop(heap)
-            attended += 1
-        day += 1
-    return attended
-`,
-  },
-  "job-scheduling-max-profit": {
-    entry: "job_scheduling",
-    starterCode: `def job_scheduling(start_time, end_time, profit):
-    """The maximum profit from non-overlapping jobs; a job may start when
-    another ends."""
-    # Your code here
-    return 0
-`,
-    solutionCode: `import bisect
-
-
-def job_scheduling(start_time, end_time, profit):
-    # Weighted interval scheduling: sort by end, binary-search the compatible predecessor.
-    jobs = sorted(zip(start_time, end_time, profit), key=lambda j: j[1])
-    ends = [j[1] for j in jobs]
-    dp = [0] * (len(jobs) + 1)
-    for i, (start, _, value) in enumerate(jobs, 1):
-        predecessor = bisect.bisect_right(ends, start, 0, i - 1)
-        dp[i] = max(dp[i - 1], value + dp[predecessor])
-    return dp[len(jobs)]
 `,
   },
 };

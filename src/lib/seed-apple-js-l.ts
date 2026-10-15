@@ -224,67 +224,6 @@ ${withoutNatives}
     },
   },
   {
-    slug: "two-sum",
-    title: "Two Sum",
-    category: "algorithms",
-    difficulty: "easy",
-        // Snowflake: Two Sum (1) is in LeetCode's Snowflake tag.
-companies: ["apple", "snowflake"],
-    summary: "One pass with a map from value to index — look up the complement before storing.",
-    prompt: [
-      "Write `twoSum(nums, target)`: return the indices `[i, j]` with `i < j` of the one pair that sums to `target`, or `null` (`None` in Python) when there is none.",
-      "",
-      "```",
-      "twoSum([2, 7, 11, 15], 9)   // [0, 1]",
-      "twoSum([3, 3], 6)           // [0, 1]",
-      "twoSum([1, 2, 3], 7)        // null",
-      "```",
-    ].join("\n"),
-    hints: [
-      "Keep a map from value to index. For each element, look up `target - value` before storing the element itself.",
-    ],
-    solution: [
-      "## Approach",
-      "",
-      "One pass with a map from value to index. For each element, if its complement `target - value` is already in the map, the pair is found; otherwise store the element and continue.",
-      "",
-      "## Worth saying out loud",
-      "",
-      "- Looking up before storing is what stops an element pairing with itself (`[3]` with target 6).",
-      "- O(n) time and space. With a sorted array, two pointers need no extra space — but sorting loses the original indices.",
-    ].join("\n"),
-    judge: {
-      starterCode: `/** Indices [i, j], i < j, of the pair that sums to target, or null. */
-function twoSum(nums, target) {
-  // Your code here
-  return null;
-}
-`,
-      solutionCode: `function twoSum(nums, target) {
-  const seen = new Map(); // value -> index
-  for (let i = 0; i < nums.length; i++) {
-    const j = seen.get(target - nums[i]);
-    if (j !== undefined) return [j, i];
-    seen.set(nums[i], i);
-  }
-  return null;
-}
-`,
-      entry: "__judgeTwoSum",
-      driverCode: `function __judgeTwoSum(nums, target) {
-  var pair = twoSum(nums, target);
-  return pair === undefined ? null : pair;
-}`,
-      tests: [
-        { name: "twoSum finds the pair", input: [[2, 7, 11, 15], 9], expected: [0, 1] },
-        { name: "twoSum later in the array", input: [[3, 2, 4], 6], expected: [1, 2] },
-        { name: "twoSum with equal values", input: [[3, 3], 6], expected: [0, 1] },
-        { name: "twoSum with no pair", input: [[1, 2, 3], 7], expected: null },
-        { name: "Negative numbers", input: [[-3, 4, 3, 90], 0], expected: [0, 2] },
-      ],
-    },
-  },
-  {
     slug: "fibonacci-generator",
     title: "An Exact Fibonacci Generator",
     category: "algorithms",

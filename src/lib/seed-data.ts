@@ -12,14 +12,11 @@ import { snowflakeProblemsC } from "./seed-snowflake-c";
 import { snowflakeProblemsD } from "./seed-snowflake-d";
 import { snowflakeProblemsE } from "./seed-snowflake-e";
 import { snowflakeProblemsF } from "./seed-snowflake-f";
-import { snowflakeProblemsG } from "./seed-snowflake-g";
-import { snowflakeProblemsH } from "./seed-snowflake-h";
 import { snowflakeProblemsI } from "./seed-snowflake-i";
 import { snowflakeProblemsJ } from "./seed-snowflake-j";
 import { snowflakeProblemsK } from "./seed-snowflake-k";
 import { snowflakeProblemsL } from "./seed-snowflake-l";
 import { snowflakeProblemsM } from "./seed-snowflake-m";
-import { snowflakeProblemsN } from "./seed-snowflake-n";
 import { snowflakeProblemsO } from "./seed-snowflake-o";
 import { snowflakeProblemsP } from "./seed-snowflake-p";
 import { snowflakeProblemsQ } from "./seed-snowflake-q";
@@ -29,21 +26,7 @@ import { snowflakeDesignProblemsB } from "./seed-snowflake-design-b";
 import { snowflakeDesignProblemsC } from "./seed-snowflake-design-c";
 import { snowflakeBehavioralProblems } from "./seed-snowflake-behavioral";
 import { snowflakeConceptProblems } from "./seed-snowflake-concepts";
-import { snowflakeLcProblemsA } from "./seed-snowflake-lc-a";
-import { snowflakeLcProblemsB } from "./seed-snowflake-lc-b";
-import { snowflakeLcProblemsC } from "./seed-snowflake-lc-c";
-import { snowflakeLcProblemsD } from "./seed-snowflake-lc-d";
-import { snowflakeLcProblemsE } from "./seed-snowflake-lc-e";
-import { snowflakeLcProblemsF } from "./seed-snowflake-lc-f";
-import { snowflakeLcProblemsG } from "./seed-snowflake-lc-g";
-import { snowflakeLcProblemsH } from "./seed-snowflake-lc-h";
-import { snowflakeLcProblemsI } from "./seed-snowflake-lc-i";
-import { snowflakeLcProblemsJ } from "./seed-snowflake-lc-j";
 import { snowflakeLcProblemsK } from "./seed-snowflake-lc-k";
-import { snowflakeLcProblemsL } from "./seed-snowflake-lc-l";
-import { snowflakeLcProblemsM } from "./seed-snowflake-lc-m";
-import { snowflakeLcProblemsN } from "./seed-snowflake-lc-n";
-import { snowflakeLcProblemsO } from "./seed-snowflake-lc-o";
 import { snowflakeLcProblemsP } from "./seed-snowflake-lc-p";
 import { snowflakeProblemsS } from "./seed-snowflake-s";
 import { snowflakeProblemsT } from "./seed-snowflake-t";
@@ -51,15 +34,6 @@ import { snowflakeDesignProblemsD } from "./seed-snowflake-design-d";
 import { snowflakeSqlProblems } from "./seed-snowflake-sql";
 import { snowflakeUiProblems } from "./seed-snowflake-ui";
 import { snowflakeUiProblemsB } from "./seed-snowflake-ui-b";
-import { snowflakeBlindProblemsA } from "./seed-snowflake-b75-a";
-import { snowflakeBlindProblemsB } from "./seed-snowflake-b75-b";
-import { snowflakeBlindProblemsC } from "./seed-snowflake-b75-c";
-import { snowflakeBlindProblemsD } from "./seed-snowflake-b75-d";
-import { snowflakeBlindProblemsE } from "./seed-snowflake-b75-e";
-import { snowflakeBlindProblemsF } from "./seed-snowflake-b75-f";
-import { snowflakeBlindProblemsG } from "./seed-snowflake-b75-g";
-import { snowflakeBlindProblemsH } from "./seed-snowflake-b75-h";
-import { snowflakeBlindProblemsI } from "./seed-snowflake-b75-i";
 import { snowflakeGfeProblems } from "./seed-snowflake-gfe";
 import { snowflakeJsProblems } from "./seed-snowflake-js";
 import { snowflakeUiProblemsC } from "./seed-snowflake-ui-c";
@@ -226,7 +200,7 @@ function pairSum(numbers, target) {
     category: "algorithms",
     difficulty: "medium",
     // Apple: a 2026 phone screen asked merge then insert-interval (offer).
-    companies: ["google", "meta", "apple", "snowflake"],
+    companies: ["google", "meta", "apple"],
     summary: "Sort, then sweep — the pattern behind a dozen calendar problems.",
     prompt:
       "Given a list of intervals [start, end], merge all overlapping intervals and return the result sorted by start time. Intervals that touch, such as [1, 4] and [4, 5], overlap.",
@@ -283,8 +257,7 @@ function mergeIntervals(intervals) {
     category: "algorithms",
     difficulty: "medium",
     // Apple: the most-reported Apple design problem (onsite, repeatedly).
-        // Snowflake: LRU Cache (146) is in LeetCode's Snowflake tag.
-companies: ["amazon", "meta", "apple", "snowflake"],
+    companies: ["amazon", "meta", "apple"],
     summary: "Hash map plus doubly linked list, all operations O(1).",
     prompt:
       "Design a data structure for a least-recently-used (LRU) cache with a fixed capacity. Implement get(key) and put(key, value), both in O(1) average time. When the cache is full, put evicts the least recently used entry.",
@@ -414,7 +387,7 @@ Every operation is O(1); space is O(capacity).
     title: "Course Schedule",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["netflix", "stripe", "snowflake"],
+    companies: ["netflix", "stripe"],
     summary: "Cycle detection dressed up as a scheduling question.",
     prompt:
       "There are n courses labeled 0 to n-1, and a list of prerequisite pairs [a, b] meaning you must take course b before course a. Determine whether it is possible to finish all courses.",
@@ -2528,8 +2501,7 @@ function markAndCompact(heapArray, k) {
     title: "Implement Single-Tab Browser History Navigation",
     category: "algorithms",
     difficulty: "medium",
-        // Snowflake: Design Browser History (1472) is in LeetCode's Snowflake tag; this is that API plus haveVisited.
-companies: ["chime", "snowflake"],
+    companies: ["chime"],
     summary:
       "A cursor over one visit stack: truncate forward history, clamp at both ends.",
     prompt: `Implement a \`BrowserSession\` for a single-tab browser.
@@ -3027,14 +2999,11 @@ ORDER BY department, employee;
   ...snowflakeProblemsD,
   ...snowflakeProblemsE,
   ...snowflakeProblemsF,
-  ...snowflakeProblemsG,
-  ...snowflakeProblemsH,
   ...snowflakeProblemsI,
   ...snowflakeProblemsJ,
   ...snowflakeProblemsK,
   ...snowflakeProblemsL,
   ...snowflakeProblemsM,
-  ...snowflakeProblemsN,
   ...snowflakeProblemsO,
   ...snowflakeProblemsP,
   ...snowflakeProblemsQ,
@@ -3044,21 +3013,7 @@ ORDER BY department, employee;
   ...snowflakeDesignProblemsC,
   ...snowflakeBehavioralProblems,
   ...snowflakeConceptProblems,
-  ...snowflakeLcProblemsA,
-  ...snowflakeLcProblemsB,
-  ...snowflakeLcProblemsC,
-  ...snowflakeLcProblemsD,
-  ...snowflakeLcProblemsE,
-  ...snowflakeLcProblemsF,
-  ...snowflakeLcProblemsG,
-  ...snowflakeLcProblemsH,
-  ...snowflakeLcProblemsI,
-  ...snowflakeLcProblemsJ,
   ...snowflakeLcProblemsK,
-  ...snowflakeLcProblemsL,
-  ...snowflakeLcProblemsM,
-  ...snowflakeLcProblemsN,
-  ...snowflakeLcProblemsO,
   ...snowflakeLcProblemsP,
   ...snowflakeProblemsS,
   ...snowflakeProblemsT,
@@ -3066,15 +3021,6 @@ ORDER BY department, employee;
   ...snowflakeSqlProblems,
   ...snowflakeUiProblems,
   ...snowflakeUiProblemsB,
-  ...snowflakeBlindProblemsA,
-  ...snowflakeBlindProblemsB,
-  ...snowflakeBlindProblemsC,
-  ...snowflakeBlindProblemsD,
-  ...snowflakeBlindProblemsE,
-  ...snowflakeBlindProblemsF,
-  ...snowflakeBlindProblemsG,
-  ...snowflakeBlindProblemsH,
-  ...snowflakeBlindProblemsI,
   ...snowflakeGfeProblems,
   ...snowflakeJsProblems,
   ...snowflakeUiProblemsC,

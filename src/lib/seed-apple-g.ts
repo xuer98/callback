@@ -10,7 +10,7 @@ export const appleProblemsG: Problem[] = [
     title: "Running Median of a Stream",
     category: "algorithms",
     difficulty: "hard",
-    companies: ["apple", "snowflake"],
+    companies: ["apple"],
     summary:
       "Two heaps — a max-heap for the lower half, a min-heap for the upper — rebalanced on every add.",
     prompt: [

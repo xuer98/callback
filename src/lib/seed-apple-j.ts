@@ -9,8 +9,7 @@ export const appleProblemsJ: Problem[] = [
     title: "Group Anagrams",
     category: "algorithms",
     difficulty: "easy",
-    // Snowflake: Group Anagrams (49) is in Blind 75, the sample set the recruiter's email names for the backend round.
-    companies: ["apple", "snowflake"],
+    companies: ["apple"],
     summary:
       "A 26-count key instead of sorting each word — the only decision in the problem.",
     prompt: [
@@ -90,8 +89,7 @@ function groupAnagrams(words) {
     title: "Basic Calculator II",
     category: "algorithms",
     difficulty: "medium",
-        // Snowflake: Basic Calculator II (227) is in LeetCode's Snowflake tag.
-companies: ["apple", "snowflake"],
+    companies: ["apple"],
     summary:
       "One pass with a stack of signed terms; the trap is integer division truncating toward zero.",
     prompt: [

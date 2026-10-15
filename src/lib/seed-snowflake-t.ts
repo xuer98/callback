@@ -1,11 +1,27 @@
 import type { Problem } from "./types";
-import { TREE_BUILDER } from "./seed-snowflake-h";
 
 // Snowflake coding bank, part T: the long-tail tree prompts — a pre-order
 // that skips marked subtrees, deleting a node from a forest stored as a
 // parent array, and rewriting merged complete trees with subtree sums.
 // Judged in JavaScript and Python; the Python judges live in
 // seed-python-snowflake-m.ts.
+
+/**
+ * Builds a binary tree from a level-order list with nulls, the way the
+ * tests write them. Nodes are plain { val, left, right } objects, so user
+ * code never has to match a class name.
+ */
+const TREE_BUILDER = `function __buildTree(values) {
+  if (values.length === 0 || values[0] === null) return null;
+  const nodes = values.map((v) => (v === null ? null : { val: v, left: null, right: null }));
+  let child = 1;
+  for (let i = 0; i < nodes.length && child < nodes.length; i++) {
+    if (nodes[i] === null) continue;
+    nodes[i].left = nodes[child++] ?? null;
+    if (child < nodes.length) nodes[i].right = nodes[child++] ?? null;
+  }
+  return nodes[0];
+}`;
 
 export const snowflakeProblemsT: Problem[] = [
   {

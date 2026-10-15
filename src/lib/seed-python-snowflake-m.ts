@@ -2,8 +2,8 @@ import type { JudgeLanguage } from "./types";
 import { TREE_BUILDER_PY } from "./seed-python-snowflake-c";
 
 // Python judges for the Snowflake coding bank part T (the long-tail tree
-// prompts) and the two scans of LeetCode-tag part M, keyed by slug and
-// merged into judge.python by the seed script like seed-python.ts.
+// prompts), keyed by slug and merged into judge.python by the seed script
+// like seed-python.ts.
 
 export const snowflakePythonJudgesM: Record<string, JudgeLanguage> = {
   "preorder-skipping-marked-nodes": {
@@ -60,48 +60,6 @@ def __judge_preorder(values, marked):
     for i in range(n - 1, 0, -1):
         sums[(i - 1) // 2] += sums[i]
     return sums
-`,
-  },
-  "alert-using-same-key-card": {
-    entry: "alert_names",
-    starterCode: `def alert_names(key_name, key_time):
-    """Names with three or more uses within one hour (inclusive), sorted."""
-    # Your code here
-    return []
-`,
-    solutionCode: `def alert_names(key_name, key_time):
-    by_name = {}
-    for name, time in zip(key_name, key_time):
-        h, m = time.split(":")
-        by_name.setdefault(name, []).append(int(h) * 60 + int(m))
-    alerted = []
-    for name, times in by_name.items():
-        times.sort()
-        if any(times[i] - times[i - 2] <= 60 for i in range(2, len(times))):
-            alerted.append(name)
-    return sorted(alerted)
-`,
-  },
-  "most-frequent-ids": {
-    entry: "most_frequent_ids",
-    starterCode: `def most_frequent_ids(nums, freq):
-    """The top count after each step (0 when the collection is empty)."""
-    # Your code here
-    return []
-`,
-    solutionCode: `import heapq
-
-
-def most_frequent_ids(nums, freq):
-    count, heap, out = {}, [], []
-    for value, delta in zip(nums, freq):
-        nxt = max(0, count.get(value, 0) + delta)
-        count[value] = nxt
-        heapq.heappush(heap, (-nxt, value))
-        while heap and -heap[0][0] != count[heap[0][1]]:
-            heapq.heappop(heap)
-        out.append(-heap[0][0] if heap else 0)
-    return out
 `,
   },
 };

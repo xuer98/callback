@@ -10,6 +10,10 @@ import {
   tracks as seedTracks,
 } from "../lib/seed-data";
 import { companies as seedCompanies } from "../lib/seed-companies";
+import {
+  curatedListings,
+  MOVED_TO_LEETCODE,
+} from "../lib/seed-company-questions";
 import type { Difficulty, Timeframe } from "../lib/types";
 
 /**
@@ -50,22 +54,8 @@ import { snowflakePythonJudgesC } from "../lib/seed-python-snowflake-c";
 import { snowflakePythonJudgesD } from "../lib/seed-python-snowflake-d";
 import { snowflakePythonJudgesE } from "../lib/seed-python-snowflake-e";
 import { snowflakePythonJudgesF } from "../lib/seed-python-snowflake-f";
-import { snowflakePythonJudgesG } from "../lib/seed-python-snowflake-g";
-import { snowflakePythonJudgesH } from "../lib/seed-python-snowflake-h";
-import { snowflakePythonJudgesI } from "../lib/seed-python-snowflake-i";
-import { snowflakePythonJudgesJ } from "../lib/seed-python-snowflake-j";
-import { snowflakePythonJudgesK } from "../lib/seed-python-snowflake-k";
 import { snowflakePythonJudgesL } from "../lib/seed-python-snowflake-l";
 import { snowflakePythonJudgesM } from "../lib/seed-python-snowflake-m";
-import { snowflakePythonJudgesN } from "../lib/seed-python-snowflake-n";
-import { snowflakePythonJudgesO } from "../lib/seed-python-snowflake-o";
-import { snowflakePythonJudgesP } from "../lib/seed-python-snowflake-p";
-import { snowflakePythonJudgesQ } from "../lib/seed-python-snowflake-q";
-import { snowflakePythonJudgesR } from "../lib/seed-python-snowflake-r";
-import { snowflakePythonJudgesS } from "../lib/seed-python-snowflake-s";
-import { snowflakePythonJudgesT } from "../lib/seed-python-snowflake-t";
-import { snowflakePythonJudgesU } from "../lib/seed-python-snowflake-u";
-import { snowflakePythonJudgesV } from "../lib/seed-python-snowflake-v";
 import { snowflakePythonJudgesW } from "../lib/seed-python-snowflake-w";
 import { typescriptJudges } from "../lib/seed-typescript";
 import { appleTypescriptJudges } from "../lib/seed-typescript-apple";
@@ -173,6 +163,7 @@ async function main() {
   let skippedEdited = 0;
   let renamed = 0;
   let merged = 0;
+  let moved = 0;
   const pool = new Pool({
     connectionString:
       process.env.DATABASE_URL ?? "postgres://localhost:5432/callback",
@@ -236,6 +227,19 @@ async function main() {
       merged += 1;
     }
 
+    // Authored copies of LeetCode questions that moved into the listings
+    // (MOVED_TO_LEETCODE) go; a console-edited copy stays, like a renamed one.
+    const movedRows = await tx
+      .delete(schema.problems)
+      .where(
+        and(
+          inArray(schema.problems.slug, Object.keys(MOVED_TO_LEETCODE)),
+          isNull(schema.problems.editedAt),
+        ),
+      )
+      .returning({ id: schema.problems.id });
+    moved = movedRows.length;
+
     for (const problem of seedProblems) {
       const values = {
         slug: problem.slug,
@@ -265,22 +269,8 @@ async function main() {
                 snowflakePythonJudgesD[problem.slug] ??
                 snowflakePythonJudgesE[problem.slug] ??
                 snowflakePythonJudgesF[problem.slug] ??
-                snowflakePythonJudgesG[problem.slug] ??
-                snowflakePythonJudgesH[problem.slug] ??
-                snowflakePythonJudgesI[problem.slug] ??
-                snowflakePythonJudgesJ[problem.slug] ??
-                snowflakePythonJudgesK[problem.slug] ??
                 snowflakePythonJudgesL[problem.slug] ??
                 snowflakePythonJudgesM[problem.slug] ??
-                snowflakePythonJudgesN[problem.slug] ??
-                snowflakePythonJudgesO[problem.slug] ??
-                snowflakePythonJudgesP[problem.slug] ??
-                snowflakePythonJudgesQ[problem.slug] ??
-                snowflakePythonJudgesR[problem.slug] ??
-                snowflakePythonJudgesS[problem.slug] ??
-                snowflakePythonJudgesT[problem.slug] ??
-                snowflakePythonJudgesU[problem.slug] ??
-                snowflakePythonJudgesV[problem.slug] ??
                 snowflakePythonJudgesW[problem.slug],
               typescript:
                 typescriptJudges[problem.slug] ??
@@ -387,6 +377,18 @@ async function main() {
         }),
     );
 
+    // Curated listings bring the questions the snapshot lacks; one the
+    // snapshot has keeps its row.
+    const curatedQuestions = curatedListings.flatMap(({ questions }) =>
+      questions.flatMap(({ slug, meta }) => (meta ? [{ slug, ...meta }] : [])),
+    );
+    if (curatedQuestions.length > 0) {
+      await tx
+        .insert(schema.leetcodeQuestions)
+        .values(curatedQuestions)
+        .onConflictDoNothing();
+    }
+
     const questionIds = new Map(
       (await tx.select().from(schema.leetcodeQuestions)).map((q) => [
         q.slug,
@@ -414,6 +416,28 @@ async function main() {
       tx.insert(schema.companyQuestions).values(chunk),
     );
 
+    // Curated company rows follow the snapshot's, which win on a clash.
+    const curatedLinks = curatedListings.flatMap(({ company, questions }) =>
+      questions.flatMap(({ slug, scores }) =>
+        Object.entries(scores).flatMap(([timeframe, frequency]) =>
+          frequency === undefined
+            ? []
+            : [
+                {
+                  companyId: requireId(companyIds, company, "company"),
+                  questionId: requireId(questionIds, slug, "question"),
+                  timeframe: timeframe as Timeframe,
+                  frequency,
+                },
+              ],
+        ),
+      ),
+    );
+    questionCount += curatedLinks.length;
+    await inBatches(curatedLinks, 2000, (chunk) =>
+      tx.insert(schema.companyQuestions).values(chunk).onConflictDoNothing(),
+    );
+
     await tx.delete(schema.trackProblems);
     const trackLinks = seedTracks.flatMap((track) =>
       track.problemSlugs.map((problemSlug, position) => ({
@@ -435,6 +459,11 @@ async function main() {
   }
   if (merged > 0) {
     console.log(`Merged ${merged} duplicate problem(s) into their survivors.`);
+  }
+  if (moved > 0) {
+    console.log(
+      `Dropped ${moved} authored problem(s) that moved to the LeetCode listings.`,
+    );
   }
   if (skippedEdited > 0) {
     console.log(

@@ -355,28 +355,6 @@ class DocumentStore:
     return True
 `,
   },
-  "cheapest-flights-k-stops": {
-    entry: "find_cheapest_price",
-    starterCode: `def find_cheapest_price(n, flights, src, dst, k):
-    """flights: [from, to, price]. The cheapest price from src to dst with
-    at most k stops, or -1."""
-    # Your code here
-    return -1
-`,
-    solutionCode: `def find_cheapest_price(n, flights, src, dst, k):
-    # Bellman-Ford for k + 1 rounds against a frozen copy of the previous round.
-    INF = float("inf")
-    cost = [INF] * n
-    cost[src] = 0
-    for _ in range(k + 1):
-        nxt = cost[:]
-        for frm, to, price in flights:
-            if cost[frm] + price < nxt[to]:
-                nxt[to] = cost[frm] + price
-        cost = nxt
-    return -1 if cost[dst] == INF else cost[dst]
-`,
-  },
   "three-colorable-graph": {
     entry: "is_three_colorable",
     starterCode: `def is_three_colorable(n, edges):
