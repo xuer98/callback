@@ -15,7 +15,7 @@ export const COURSE_PARAMS = `/**
 export const snowflakeProblemsB: Problem[] = [
   {
     slug: "course-batches-time",
-    title: "Course Batches Time",
+    title: "Course Completion Time I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["snowflake"],

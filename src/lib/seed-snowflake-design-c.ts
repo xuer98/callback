@@ -274,7 +274,7 @@ export const snowflakeDesignProblemsC: Problem[] = [
       "",
       "## The single-process version",
       "",
-      "The same algorithm with one queue and one seen-set is [Crawl Every Reachable Page](/problems/crawl-reachable-pages); with several threads, the seen-set's check-and-add must be atomic and termination must count in-flight fetches.",
+      "The same algorithm with one queue and one seen-set is [Wiki Page Links III](/problems/crawl-reachable-pages); with several threads, the seen-set's check-and-add must be atomic and termination must count in-flight fetches.",
       "",
       "## Probes",
       "",

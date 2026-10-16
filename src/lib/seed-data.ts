@@ -543,7 +543,7 @@ function justify(words, maxWidth) {
   },
   {
     slug: "round-numeric-strings",
-    title: "Round Numeric String Values",
+    title: "Round Numeric Strings I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -1099,7 +1099,7 @@ function collectReachablePins(boards, start) {
   },
   {
     slug: "stream-line-reader",
-    title: "Stream Line Reader",
+    title: "Chunked Stream Reader I",
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],
@@ -1351,7 +1351,7 @@ up to 2e5 operations; 1 <= k <= N.`,
   },
   {
     slug: "rebalance-experiment-buckets",
-    title: "Rebalance Experiment Buckets with Minimal Reassignment",
+    title: "Experiment Buckets I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -1443,7 +1443,7 @@ function rebalanceBuckets(current, targets) {
   },
   {
     slug: "list-unallocated-buckets",
-    title: "List Unallocated Experiment Buckets",
+    title: "Experiment Buckets II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -1514,7 +1514,7 @@ function unallocatedRanges(n, allocated) {
   },
   {
     slug: "adjustable-id-allocator",
-    title: "Design a Smallest-Free ID Allocator",
+    title: "ID Allocator I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -1626,7 +1626,7 @@ Shrinking must not invalidate IDs already handed out — an ID beyond the new ca
   },
   {
     slug: "design-adjustable-id-allocator",
-    title: "Design Adjustable ID Allocator",
+    title: "ID Allocator II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],

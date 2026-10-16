@@ -8,7 +8,7 @@ import { COURSE_PARAMS } from "./seed-snowflake-b";
 export const snowflakeProblemsO: Problem[] = [
   {
     slug: "course-any-prerequisite-time",
-    title: "Course Time With Any Prerequisite",
+    title: "Course Completion Time II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["snowflake"],
@@ -39,7 +39,7 @@ export const snowflakeProblemsO: Problem[] = [
       "",
       "## Worth saying out loud",
       "",
-      "- The three models differ by one operator: max per course in [Course Finish Time](/problems/course-finish-time), max per batch in [Course Batches Time](/problems/course-batches-time), min per course here. Say which one the question means before writing it.",
+      "- The three models differ by one operator: max per course in [Course Finish Time](/problems/course-finish-time), max per batch in [Course Completion Time I](/problems/course-batches-time), min per course here. Say which one the question means before writing it.",
       "- Processing in topological order still matters: a course's earliest-finishing prerequisite is only known after all of its prerequisites have been finished.",
     ].join("\n"),
     judge: {
@@ -138,7 +138,7 @@ function anyPrerequisiteTime(numCourses, prerequisites, time) {
   },
   {
     slug: "height-after-deleting-nodes",
-    title: "Tree Height After Deleting Nodes",
+    title: "Tree Height After Deletions I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["snowflake"],
@@ -170,7 +170,7 @@ function anyPrerequisiteTime(numCourses, prerequisites, time) {
       "## Worth saying out loud",
       "",
       "- Ask whether height counts nodes or edges, and whether the root may be deleted — both change the answer by exactly the kind of off-by-one that costs a round.",
-      "- The follow-up, choosing which nodes to delete so the height drops to a target, is [Fewest Deletions for a Height Limit](/problems/fewest-deletions-for-height).",
+      "- The follow-up, choosing which nodes to delete so the height drops to a target, is [Tree Height After Deletions II](/problems/fewest-deletions-for-height).",
       "- Tests to name: a lone root, deleting a leaf (no change), deleting every non-root node (height 1), a long chain with its middle removed.",
     ].join("\n"),
     judge: {

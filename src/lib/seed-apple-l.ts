@@ -7,7 +7,7 @@ import type { Problem } from "./types";
 export const appleProblemsL: Problem[] = [
   {
     slug: "socket-message-reader",
-    title: "Robust Socket Message Reader",
+    title: "Socket Reader II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],

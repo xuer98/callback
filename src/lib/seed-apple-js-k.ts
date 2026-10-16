@@ -8,7 +8,7 @@ import type { Problem } from "./types";
 export const appleJsProblemsK: Problem[] = [
   {
     slug: "product-of-others",
-    title: "Product of Every Other Element",
+    title: "Array Products I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["apple"],
@@ -81,7 +81,7 @@ function productOfOthers(nums) {
   },
   {
     slug: "product-of-next-two",
-    title: "Product of the Next Two Elements",
+    title: "Array Products II",
     category: "algorithms",
     difficulty: "easy",
     companies: ["apple"],

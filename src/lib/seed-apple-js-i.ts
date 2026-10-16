@@ -148,7 +148,7 @@ async function __judgeRun(name) {
   },
   {
     slug: "map-async",
-    title: "mapAsync: Map Through an Async Function",
+    title: "mapAsync I",
     category: "frontend",
     difficulty: "easy",
     companies: ["apple"],
@@ -175,7 +175,7 @@ async function __judgeRun(name) {
       "",
       "- **Completion order doesn't decide result order** — `Promise.all` places each result at its input index.",
       "- The other calls keep running after the first rejection; `Promise.all` just stops waiting. Use `Promise.allSettled` when every outcome matters.",
-      "- Unbounded parallelism is the weakness: a thousand items fire a thousand requests. Capping it is [mapAsyncLimit](/problems/map-async-limit).",
+      "- Unbounded parallelism is the weakness: a thousand items fire a thousand requests. Capping it is [mapAsync II](/problems/map-async-limit).",
     ].join("\n"),
     judge: {
       starterCode: `/**

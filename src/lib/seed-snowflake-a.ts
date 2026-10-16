@@ -125,7 +125,7 @@ function desksToBathrooms(grid) {
   },
   {
     slug: "closest-person-cake-distance",
-    title: "Closest Person to a Cake",
+    title: "People and Cakes I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["snowflake"],
@@ -157,7 +157,7 @@ function desksToBathrooms(grid) {
       "## Worth saying out loud",
       "",
       "- This is the streaming version already: the two indexes are the whole state, so cells can arrive one at a time.",
-      "- The grid version of the same question is [Nearest Bathroom for Every Desk](/problems/nearest-bathroom-distances); the global version, where every person must get a distinct cake, is [Assign People to Cakes](/problems/assign-people-to-cakes).",
+      "- The grid version of the same question is [Nearest Bathroom for Every Desk](/problems/nearest-bathroom-distances); the global version, where every person must get a distinct cake, is [People and Cakes II](/problems/assign-people-to-cakes).",
       "- Shortest Word Distance is the same sweep over a word list: remember the last index of each of the two words and keep the smallest gap.",
     ].join("\n"),
     judge: {
@@ -201,7 +201,7 @@ function minPersonCakeGap(line) {
   },
   {
     slug: "assign-people-to-cakes",
-    title: "Assign People to Cakes",
+    title: "People and Cakes II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["snowflake"],

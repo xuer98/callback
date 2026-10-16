@@ -173,7 +173,7 @@ class FileSystem {
   },
   {
     slug: "pour-water",
-    title: "Pour Water",
+    title: "Pour Water I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["airbnb"],
@@ -206,7 +206,7 @@ O(volume · n) — each unit may scan the whole row; O(n) for the copy of the he
 
 - The walk condition is "not higher" (\`<=\`), but the landing condition is "strictly lower" (\`<\`) — flat ground is traversable, not a destination. Say that distinction; it's where most bugs live.
 - Left-before-right and first-lowest-wins are conventions from the problem statement — confirm them before coding.
-- Draw the terrain after every unit while debugging — [Print Terrain and Water](/problems/print-terrain) is exactly that tool.`,
+- Draw the terrain after every unit while debugging — [Pour Water II](/problems/print-terrain) is exactly that tool.`,
     judge: {
       solutionCode: `// Pour Water
 // heights[i] = terrain height; drop \`volume\` units at index k, one unit at a time.
@@ -249,7 +249,7 @@ function pourWater(heights, volume, k) {
   },
   {
     slug: "print-terrain",
-    title: "Print Terrain and Water",
+    title: "Pour Water II",
     category: "algorithms",
     difficulty: "easy",
     companies: ["airbnb"],
@@ -280,7 +280,7 @@ O(n · max(water)) — one character per column per level.
 
 ## Worth saying out loud
 
-- It pairs with [Pour Water](/problems/pour-water): print after every unit while debugging the simulation, and the bug is usually visible at a glance.
+- It pairs with [Pour Water I](/problems/pour-water): print after every unit while debugging the simulation, and the bug is usually visible at a glance.
 - Keep the trailing spaces — rows of equal width are what make the picture a grid, and the tests compare exact strings.
 - \`Math.max(...[])\` is \`-Infinity\`, so an empty terrain prints no rows without a special case.`,
     judge: {

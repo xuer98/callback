@@ -9,7 +9,7 @@ import type { Problem } from "./types";
 export const appleJsProblemsF: Problem[] = [
   {
     slug: "first-duplicate-character",
-    title: "First Duplicate Character",
+    title: "First Duplicate Character I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["apple"],
@@ -77,7 +77,7 @@ function firstDuplicate(str) {
   },
   {
     slug: "first-duplicate-index",
-    title: "Index of the First Repeated Character",
+    title: "First Duplicate Character II",
     category: "algorithms",
     difficulty: "easy",
     companies: ["apple"],
@@ -134,7 +134,7 @@ function firstDuplicateIndex(str) {
   },
   {
     slug: "merge-arrays-unique-values",
-    title: "Merge Two Arrays, Keep Unique Values",
+    title: "Unique Values Across Two Arrays I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["apple"],
@@ -185,7 +185,7 @@ function union(a, b) {
   },
   {
     slug: "values-appearing-once",
-    title: "Values That Appear Once Across Two Arrays",
+    title: "Unique Values Across Two Arrays II",
     category: "algorithms",
     difficulty: "easy",
     companies: ["apple"],
@@ -236,7 +236,7 @@ function appearOnce(a, b) {
   },
   {
     slug: "merge-arrays-unique-by-key",
-    title: "Merge Arrays of Objects, Unique by Key",
+    title: "Unique Values Across Two Arrays III",
     category: "algorithms",
     difficulty: "easy",
     companies: ["apple"],

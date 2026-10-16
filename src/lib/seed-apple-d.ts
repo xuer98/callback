@@ -203,7 +203,7 @@ class TaskManager {
   },
   {
     slug: "unit-conversion-tree",
-    title: "Unit Conversion in a Tree",
+    title: "Unit Conversion I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],
@@ -237,7 +237,7 @@ class TaskManager {
       "",
       "- **Why iterative and not recursive?** `n` up to 10^5 and the tree can be a path, so recursion blows the stack.",
       "- **Conversions listed in any order?** Build the child lists first, then traverse; processing edges in input order would read parents that aren't computed yet.",
-      "- **Between any two units?** Dividing two answers needs a modular inverse — see [Unit Conversion Queries](/problems/unit-conversion-queries).",
+      "- **Between any two units?** Dividing two answers needs a modular inverse — see [Unit Conversion II](/problems/unit-conversion-queries).",
     ].join("\n"),
     judge: {
       solutionCode: `const MOD = 1000000007n;

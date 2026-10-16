@@ -12,7 +12,7 @@ const unevenRows = `The teams can have **different sizes**. Each row has \`max(l
 export const andurilProblemsA: Problem[] = [
   {
     slug: "team-photo-arrangement",
-    title: "Team Photo Arrangement",
+    title: "Team Photo I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["anduril"],
@@ -85,7 +85,7 @@ function photoOrder(teamA, teamB) {
   },
   {
     slug: "team-photo-uneven-teams",
-    title: "Team Photo with Uneven Teams",
+    title: "Team Photo II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],
@@ -165,7 +165,7 @@ function canArrangeWithGaps(front, back) {
   },
   {
     slug: "team-photo-rows",
-    title: "Team Photo: Build the Rows",
+    title: "Team Photo III",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],

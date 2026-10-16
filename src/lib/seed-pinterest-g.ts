@@ -8,7 +8,7 @@ import type { Problem } from "./types";
 export const pinterestProblemsG: Problem[] = [
   {
     slug: "round-numeric-string-list",
-    title: "Round a List of Numeric Strings",
+    title: "Round Numeric Strings II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -105,7 +105,7 @@ function roundAll(csv) {
   },
   {
     slug: "settle-debts-from-stream",
-    title: "Settle Balances From a Chunked Stream",
+    title: "Chunked Stream Reader II",
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],

@@ -55,7 +55,7 @@ export const appleJsProblemsB: Problem[] = [
       "",
       "- An array of promises can't be sequenced: they already started. Ask for functions.",
       "- Both versions stop at the first rejection and never start the remaining tasks.",
-      "- \"Now run at most N at a time\" is the natural next step: a limit of 1 is this function, and no limit is `Promise.all` — see [mapAsyncLimit](/problems/map-async-limit).",
+      "- \"Now run at most N at a time\" is the natural next step: a limit of 1 is this function, and no limit is `Promise.all` — see [mapAsync II](/problems/map-async-limit).",
     ].join("\n"),
     judge: {
       starterCode: `/**
@@ -144,7 +144,7 @@ async function __judgeSequence(spec) {
   },
   {
     slug: "map-async-limit",
-    title: "mapAsyncLimit: At Most N Calls in Flight",
+    title: "mapAsync II",
     category: "frontend",
     difficulty: "medium",
     companies: ["apple"],

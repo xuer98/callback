@@ -22,13 +22,13 @@ export const LINK_FETCHER = `function __linkFetcher(graph) {
 export const snowflakeProblemsC: Problem[] = [
   {
     slug: "fewest-deletions-for-height",
-    title: "Fewest Deletions for a Height Limit",
+    title: "Tree Height After Deletions II",
     category: "algorithms",
     difficulty: "hard",
     companies: ["snowflake"],
     summary: "Delete exactly the non-root nodes whose own subtree is k or more deep — one post-order pass, no DP.",
     prompt: [
-      "A rooted tree is given as `[parent, child]` edges plus its `root`. Deleting a node promotes its children to its nearest surviving ancestor, as in [Tree Height After Deleting Nodes](/problems/height-after-deleting-nodes). Height is counted in nodes.",
+      "A rooted tree is given as `[parent, child]` edges plus its `root`. Deleting a node promotes its children to its nearest surviving ancestor, as in [Tree Height After Deletions I](/problems/height-after-deleting-nodes). Height is counted in nodes.",
       "",
       "Return a **smallest** set of non-root nodes whose deletion brings the height down to at most `k` (`k ≥ 1`). Any smallest set is accepted; return an empty list if the tree is already short enough.",
       "",
@@ -389,7 +389,7 @@ function finalAllowed(n, edges, allow, disallow) {
   },
   {
     slug: "fewest-clicks-between-pages",
-    title: "Fewest Clicks Between Wiki Pages",
+    title: "Wiki Page Links I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["snowflake"],
@@ -422,7 +422,7 @@ function finalAllowed(n, edges, allow, disallow) {
       "",
       "- Why BFS and not DFS: BFS discovers pages in order of click count, so the first hit is the shortest route; DFS finds *a* route and would need to search everything to prove it the shortest.",
       "- A real `getLinkedPages` fails and throttles: retry with backoff, cap how many fetches are in flight, and cache responses so a retry after a crash does not refetch.",
-      "- The path itself is [Click Path Between Wiki Pages](/problems/click-path-between-pages); visiting every reachable page is [Crawl Every Reachable Page](/problems/crawl-reachable-pages). With several worker threads, the seen-set check-and-add must be atomic and termination must wait for in-flight fetches, not only for an empty queue.",
+      "- The path itself is [Wiki Page Links II](/problems/click-path-between-pages); visiting every reachable page is [Wiki Page Links III](/problems/crawl-reachable-pages). With several worker threads, the seen-set check-and-add must be atomic and termination must wait for in-flight fetches, not only for an empty queue.",
     ].join("\n"),
     judge: {
       solutionCode: `// BFS over the pages, one fetch per page.

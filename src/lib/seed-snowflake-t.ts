@@ -125,7 +125,7 @@ function __judgePreorder(values, marked) {
       "## Worth saying out loud",
       "",
       "- Deleting several nodes at once is the same rule applied to each in any order, as long as a deleted node is never used as a destination parent — chase through tombstones when it is.",
-      "- The pointer-tree version of this promotion is [Tree Height After Deleting Nodes](/problems/height-after-deleting-nodes).",
+      "- The pointer-tree version of this promotion is [Tree Height After Deletions I](/problems/height-after-deleting-nodes).",
     ].join("\n"),
     judge: {
       solutionCode: `function deleteNode(parent, x) {

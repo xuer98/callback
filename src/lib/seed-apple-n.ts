@@ -98,7 +98,7 @@ function sessionize(events, gap) {
   },
   {
     slug: "unit-conversion-queries",
-    title: "Unit Conversion Queries",
+    title: "Unit Conversion II",
     category: "algorithms",
     difficulty: "hard",
     companies: ["apple"],

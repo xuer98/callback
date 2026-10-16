@@ -28,7 +28,7 @@ const rodSetup = `You have a rod of length \`n\` and a price table: \`prices[i]\
 export const andurilProblemsF: Problem[] = [
   {
     slug: "sensor-network-cycles",
-    title: "Sensor Network: Detect a Cycle",
+    title: "Sensor Network I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["anduril"],
@@ -90,7 +90,7 @@ function hasCycle(n, edges) {
   },
   {
     slug: "sensor-network-components",
-    title: "Sensor Network: Count Components",
+    title: "Sensor Network II",
     category: "algorithms",
     difficulty: "easy",
     companies: ["anduril"],
@@ -152,7 +152,7 @@ function countComponents(n, edges) {
   },
   {
     slug: "sensor-processing-order",
-    title: "Sensor Network: Processing Order",
+    title: "Sensor Network III",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],
@@ -238,7 +238,7 @@ function topoOrder(n, edges) {
   },
   {
     slug: "rod-cutting-profit",
-    title: "Rod Cutting",
+    title: "Rod Cutting I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],
@@ -324,7 +324,7 @@ function rodCutting(prices, n) {
   },
   {
     slug: "rod-cutting-with-cut-cost",
-    title: "Rod Cutting with a Cost per Cut",
+    title: "Rod Cutting II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],
@@ -389,7 +389,7 @@ function rodCuttingWithCost(prices, n, cutCost) {
   },
   {
     slug: "rod-cutting-limited-pieces",
-    title: "Rod Cutting with at Most k Pieces",
+    title: "Rod Cutting III",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],

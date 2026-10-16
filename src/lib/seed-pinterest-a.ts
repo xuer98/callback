@@ -6,7 +6,7 @@ import type { Problem } from "./types";
 export const pinterestProblemsA: Problem[] = [
   {
     slug: "settle-debts",
-    title: "Settle Debts",
+    title: "Settle Debts I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -62,7 +62,7 @@ def settle(payments):
     return transfers
 \`\`\`
 
-O(P + n log n) for P payee entries. n − 1 is an upper bound, not the minimum: finding the fewest transfers is a different, NP-hard problem — see [Minimum Transfers to Settle Debts](/problems/minimum-debt-transfers).`,
+O(P + n log n) for P payee entries. n − 1 is an upper bound, not the minimum: finding the fewest transfers is a different, NP-hard problem — see [Settle Debts II](/problems/minimum-debt-transfers).`,
     judge: {
       starterCode: `/**
  * Net the balances, return transfers [from, to, amount] that settle
@@ -142,7 +142,7 @@ function settle(payments) {
   },
   {
     slug: "minimum-debt-transfers",
-    title: "Minimum Transfers to Settle Debts",
+    title: "Settle Debts II",
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],
@@ -238,7 +238,7 @@ function minTransfers(debts) {
   },
   {
     slug: "reconstruct-itinerary",
-    title: "Reconstruct Itinerary",
+    title: "Reconstruct Itinerary I",
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],
@@ -330,7 +330,7 @@ function findItinerary(tickets, start) {
   },
   {
     slug: "itinerary-revisits-airport",
-    title: "Does the Itinerary Revisit an Airport?",
+    title: "Reconstruct Itinerary II",
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],

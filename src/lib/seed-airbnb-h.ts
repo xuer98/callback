@@ -8,7 +8,7 @@ import type { Problem } from "./types";
 export const airbnbProblemsH: Problem[] = [
   {
     slug: "boxed-sentences-mixed-widths",
-    title: "Boxed Sentences, Mixed Widths",
+    title: "Boxed Sentences II",
     category: "algorithms",
     difficulty: "easy",
     companies: ["airbnb"],
@@ -49,7 +49,7 @@ O(total characters) to wrap and draw.
 
 ## Worth saying out loud
 
-- Keep wrapping and drawing separate: \`wrapWords(text, width)\` is the same function as in [Boxed Sentence](/problems/boxed-sentence), and the box needs only the lines and one inner width.
+- Keep wrapping and drawing separate: \`wrapWords(text, width)\` is the same function as in [Boxed Sentences I](/problems/boxed-sentence), and the box needs only the lines and one inner width.
 - The box follows the declared widths, not the longest line — so a short sentence with a wide width still sets the box.
 - A word longer than its width, or a trailing punctuation mark, can push a line past the border; ask whether to widen the box or hard-break the word.`,
     judge: {

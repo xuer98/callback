@@ -291,7 +291,7 @@ function numBusesToDestination(routes, source, target) {
   },
   {
     slug: "board-exact-jumps",
-    title: "Board Reachability with Exact Jumps",
+    title: "Exact Board Jumps I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["pinterest"],
@@ -360,7 +360,7 @@ function canReachEnd(board, start) {
   },
   {
     slug: "board-exact-jumps-min-moves",
-    title: "Minimum Exact Jumps to the Last Index",
+    title: "Exact Board Jumps II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],

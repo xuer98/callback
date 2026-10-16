@@ -7,7 +7,7 @@ import type { Problem } from "./types";
 export const andurilProblemsE: Problem[] = [
   {
     slug: "surveillance-footage",
-    title: "Surveillance Footage",
+    title: "Surveillance Footage I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],
@@ -81,7 +81,7 @@ function minClips(clips, T) {
   },
   {
     slug: "surveillance-footage-clip-choice",
-    title: "Surveillance Footage: Which Clips?",
+    title: "Surveillance Footage II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],
@@ -174,7 +174,7 @@ function minClipsWithChoice(clips, T) {
   },
   {
     slug: "surveillance-footage-gaps",
-    title: "Surveillance Footage: Uncovered Gaps",
+    title: "Surveillance Footage III",
     category: "algorithms",
     difficulty: "easy",
     companies: ["anduril"],

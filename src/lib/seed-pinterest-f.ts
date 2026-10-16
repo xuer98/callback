@@ -165,7 +165,7 @@ With <= 100 stored sentences this scan is O(S · L + S log S) per keystroke and 
   },
   {
     slug: "reverse-count-and-say",
-    title: "Reverse Count-and-Say",
+    title: "Reverse Count-and-Say I",
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],
@@ -263,7 +263,7 @@ function reverseCountAndSay(s) {
   },
   {
     slug: "count-count-and-say-originals",
-    title: "Count the Originals of a Count-and-Say String",
+    title: "Reverse Count-and-Say II",
     category: "algorithms",
     difficulty: "hard",
     companies: ["pinterest"],

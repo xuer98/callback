@@ -7,7 +7,7 @@ import type { Problem } from "./types";
 export const appleProblemsG: Problem[] = [
   {
     slug: "streaming-median",
-    title: "Running Median of a Stream",
+    title: "Median of a Stream I",
     category: "algorithms",
     difficulty: "hard",
     companies: ["apple"],
@@ -41,7 +41,7 @@ export const appleProblemsG: Problem[] = [
       "",
       "## Worth saying out loud",
       "",
-      "- **Name the limit:** O(n) memory. When the stream won't fit in RAM, switch to a fixed-bucket histogram with bounded error — see [Fixed-Memory Quantiles](/problems/histogram-quantile).",
+      "- **Name the limit:** O(n) memory. When the stream won't fit in RAM, switch to a fixed-bucket histogram with bounded error — see [Median of a Stream II](/problems/histogram-quantile).",
       "- **Exact median, data on disk?** External merge sort, or two passes of counting on the high bits then the low bits. O(1) memory, two reads.",
       "- **Even-length trap:** the median of an even count is the mean of the two middles. Check it.",
     ].join("\n"),
@@ -157,7 +157,7 @@ class ExactStreamingMedian {
   },
   {
     slug: "histogram-quantile",
-    title: "Fixed-Memory Quantiles with a Histogram",
+    title: "Median of a Stream II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["apple"],

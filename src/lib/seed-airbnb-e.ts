@@ -8,7 +8,7 @@ import type { Problem } from "./types";
 export const airbnbProblemsE: Problem[] = [
   {
     slug: "boxed-sentence",
-    title: "Boxed Sentence",
+    title: "Boxed Sentences I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["airbnb"],
@@ -49,7 +49,7 @@ O(length of the sentence) to wrap and draw.
 - Say the greedy invariant before coding: "a line holds the most words that fit, in order" — that's what makes the output deterministic.
 - \`padEnd\` is the whole alignment story; hand-rolled space counting is where box drawings go wrong.
 - Full justification is the cousin question: distribute the slack across the gaps, left-heavy, with the last line left-justified. Name it if even spacing comes up.
-- Several sentences with their own widths in one box: [Boxed Sentences, Mixed Widths](/problems/boxed-sentences-mixed-widths).`,
+- Several sentences with their own widths in one box: [Boxed Sentences II](/problems/boxed-sentences-mixed-widths).`,
     judge: {
       solutionCode: `// Word wrap → boxed sentence.
 // Greedy: append words while they fit; never split a word; a line never starts with punctuation.

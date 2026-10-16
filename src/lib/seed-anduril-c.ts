@@ -6,7 +6,7 @@ import type { Problem } from "./types";
 export const andurilProblemsC: Problem[] = [
   {
     slug: "brace-expansion",
-    title: "Brace Expansion",
+    title: "Brace Expansion I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["anduril"],
@@ -73,7 +73,7 @@ function braceExpansion(s) {
   },
   {
     slug: "nested-brace-expansion",
-    title: "Nested Brace Expansion",
+    title: "Brace Expansion II",
     category: "algorithms",
     difficulty: "hard",
     companies: ["anduril"],

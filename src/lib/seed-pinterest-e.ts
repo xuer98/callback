@@ -7,7 +7,7 @@ import type { Problem } from "./types";
 export const pinterestProblemsE: Problem[] = [
   {
     slug: "bank-teller-wait-time",
-    title: "Bank Tellers: Wait Time",
+    title: "Bank Tellers I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -74,7 +74,7 @@ function waitTime(times, m) {
   },
   {
     slug: "bank-tellers-finish-time",
-    title: "Bank Tellers: Minimum Time to Serve Everyone",
+    title: "Bank Tellers II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
@@ -140,7 +140,7 @@ function minTimeToServe(times, m) {
   },
   {
     slug: "first-word-with-prefix",
-    title: "First Word Containing a Prefix",
+    title: "Prefix Search I",
     category: "algorithms",
     difficulty: "easy",
     companies: ["pinterest"],
@@ -188,7 +188,7 @@ O(L log n) per query for prefix length L.
 ## Worth saying out loud
 
 - For many queries against one list, build a trie once — each node stores the index of the first word through it and how many words pass through — and a query walks len(prefix) nodes regardless of n.
-- The whole block of matches is one more binary search away: see [Range of Words Matching a Prefix](/problems/prefix-match-range).`,
+- The whole block of matches is one more binary search away: see [Prefix Search II](/problems/prefix-match-range).`,
     judge: {
       starterCode: `/**
  * Index of the first word starting with prefix, or -1.
@@ -214,7 +214,7 @@ function firstMatch(words, prefix) {
   },
   {
     slug: "prefix-match-range",
-    title: "Range of Words Matching a Prefix",
+    title: "Prefix Search II",
     category: "algorithms",
     difficulty: "medium",
     companies: ["pinterest"],
