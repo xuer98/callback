@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -20,6 +21,7 @@ import { indentUnit } from "@codemirror/language";
 import { acceptCompletion } from "@codemirror/autocomplete";
 import { jsCompletions, pythonCompletions } from "@/lib/editor-completions";
 import { formatDocument, formatKindForLanguage } from "@/lib/editor-format";
+import { editorLint, lintKindForLanguage } from "@/lib/editor-lint";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
 import {
@@ -393,6 +395,18 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     submit: submitFromKeyboard,
   });
 
+  // Diagnostics are per problem: Python's driver defines names a solution
+  // may use (a TreeNode class, say), which the checker must not flag.
+  const extensions = useMemo(
+    () => [
+      ...EXTENSIONS[language],
+      ...editorLint(lintKindForLanguage(language), {
+        harness: judgeFor(judge, language)?.driverCode,
+      }),
+    ],
+    [language, judge],
+  );
+
   if (!mounted) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -539,7 +553,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
               value={code}
               onChange={onChange}
               theme={oneDark}
-              extensions={EXTENSIONS[language]}
+              extensions={extensions}
               indentWithTab={false}
               height="100%"
               className="absolute inset-0"

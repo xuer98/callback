@@ -172,7 +172,8 @@ const RUFF_WASM_URL = `https://cdn.jsdelivr.net/npm/@astral-sh/ruff-wasm-web@${R
 
 let ruff: Promise<typeof import("@astral-sh/ruff-wasm-web")> | null = null;
 
-function loadRuff(): Promise<typeof import("@astral-sh/ruff-wasm-web")> {
+/** Ruff, shared with the editor's linter: one download serves both. */
+export function loadRuff(): Promise<typeof import("@astral-sh/ruff-wasm-web")> {
   if (!ruff) {
     ruff = import("@astral-sh/ruff-wasm-web").then(async (mod) => {
       await mod.default({ module_or_path: RUFF_WASM_URL });

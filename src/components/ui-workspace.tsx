@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -22,6 +23,7 @@ import {
   formatKindForFile,
   saveFormatted,
 } from "@/lib/editor-format";
+import { editorLint, lintKindForFile } from "@/lib/editor-lint";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
 import { MarkDoneButton, useProgress } from "./progress";
@@ -71,13 +73,15 @@ const INDENT_UNIT = indentUnit.of("  ");
 
 function extensionsFor(name: string) {
   const kind = uiFileKind(name);
-  if (kind === "css") return [css(), EDITOR_KEYMAP, INDENT_UNIT];
-  if (kind === "html") return [html(), EDITOR_KEYMAP, INDENT_UNIT];
+  const lint = editorLint(lintKindForFile(name), { filename: name });
+  if (kind === "css") return [css(), EDITOR_KEYMAP, INDENT_UNIT, ...lint];
+  if (kind === "html") return [html(), EDITOR_KEYMAP, INDENT_UNIT, ...lint];
   return [
     javascript({ jsx: true, typescript: /\.tsx?$/.test(name) }),
     ...jsCompletions,
     EDITOR_KEYMAP,
     INDENT_UNIT,
+    ...lint,
   ];
 }
 
@@ -308,6 +312,10 @@ export function UiWorkspace({
 
   useEditorShortcuts({ save, format, run, submit: run });
 
+  // Built once per open file: a fresh array every render would reconfigure
+  // the editor on each keystroke.
+  const extensions = useMemo(() => extensionsFor(active), [active]);
+
   if (!mounted) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -411,7 +419,7 @@ export function UiWorkspace({
               value={files[active] ?? ""}
               onChange={onChange}
               theme={oneDark}
-              extensions={extensionsFor(active)}
+              extensions={extensions}
               indentWithTab={false}
               height="100%"
               className="absolute inset-0"
