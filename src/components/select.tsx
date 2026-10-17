@@ -36,7 +36,7 @@ export function Select({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full cursor-pointer appearance-none rounded-md bg-zinc-900 py-1.5 pl-2.5 pr-8 text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white focus:outline-none focus:ring-indigo-500"
+          className="w-full cursor-pointer appearance-none rounded-md bg-zinc-900 py-1.5 pl-2.5 pr-8 text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-zinc-50 focus:outline-none focus:ring-indigo-500"
         >
           {placeholder && <option value="">{placeholder}</option>}
           {options.map((option) => (

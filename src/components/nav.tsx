@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuthMenu } from "./auth-menu";
+import { ThemeToggle } from "./theme";
 
 const links = [
   { href: "/problems", label: "Problems" },
@@ -32,7 +33,8 @@ export function Nav() {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto shrink-0">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <ThemeToggle />
           <AuthMenu />
         </div>
       </div>

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { ProgressProvider } from "@/components/progress";
+import { ThemeScript } from "@/components/theme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,11 +25,17 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // ThemeScript sets data-theme on <html> before React hydrates, so that one
+  // attribute is expected to differ from the server-rendered markup.
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <ThemeScript />
+      </head>
       <body className="flex min-h-full flex-col font-sans">
         <ProgressProvider>
           <Nav />

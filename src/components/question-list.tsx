@@ -24,7 +24,7 @@ export function QuestionList({
             rel="noreferrer noopener"
             className="group flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3 transition-colors hover:border-zinc-700 hover:bg-zinc-900"
           >
-            <span className="text-sm text-zinc-200 group-hover:text-white">
+            <span className="text-sm text-zinc-200 group-hover:text-zinc-50">
               {question.title}
             </span>
             <DifficultyBadge difficulty={question.difficulty} />

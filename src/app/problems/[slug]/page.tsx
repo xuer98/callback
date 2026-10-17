@@ -267,7 +267,7 @@ async function AskedAt({ problem }: { problem: Problem }) {
           <Link
             key={company.slug}
             href={`/companies/${company.slug}`}
-            className="rounded-full bg-zinc-900 px-3 py-1 text-xs text-zinc-300 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white"
+            className="rounded-full bg-zinc-900 px-3 py-1 text-xs text-zinc-300 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-zinc-50"
           >
             {company.name}
           </Link>

@@ -30,6 +30,7 @@ import {
   TestcasePanel,
 } from "./workspace-console";
 import { useProgress } from "./progress";
+import { useTheme } from "./theme";
 import {
   listSubmissions,
   recordSubmission,
@@ -178,6 +179,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   // null until the first load; Submit prepends once loaded.
   const [submissions, setSubmissions] = useState<AlgoSubmission[] | null>(null);
   const { signedIn, reportRun } = useProgress();
+  const theme = useTheme();
 
   // Account sync: on load, newer server copies land in localStorage and the
   // open language is adopted below; edits are pushed up on a debounce.
@@ -449,7 +451,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
                   value={language}
                   onChange={(e) => switchLanguage(e.target.value as Language)}
                   disabled={running}
-                  className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1 pl-2.5 pr-7 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white focus:outline-none focus:ring-indigo-500 disabled:opacity-60"
+                  className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1 pl-2.5 pr-7 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-zinc-50 focus:outline-none focus:ring-indigo-500 disabled:opacity-60"
                 >
                   {available.map((lang) => (
                     <option key={lang} value={lang}>
@@ -552,7 +554,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
               key={`${language}:${editorEpoch}`}
               value={code}
               onChange={onChange}
-              theme={oneDark}
+              theme={theme === "dark" ? oneDark : "light"}
               extensions={extensions}
               indentWithTab={false}
               height="100%"

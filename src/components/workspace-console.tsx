@@ -202,7 +202,7 @@ export function SubmissionsPanel({
       <Panel className="text-zinc-500">
         <Link
           href="/signin"
-          className="text-zinc-300 underline underline-offset-2 hover:text-white"
+          className="text-zinc-300 underline underline-offset-2 hover:text-zinc-50"
         >
           Sign in
         </Link>{" "}

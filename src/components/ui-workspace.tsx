@@ -27,6 +27,7 @@ import { editorLint, lintKindForFile } from "@/lib/editor-lint";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
 import { MarkDoneButton, useProgress } from "./progress";
+import { useTheme } from "./theme";
 import {
   buildPreview,
   PREVIEW_MESSAGE_SOURCE,
@@ -152,6 +153,7 @@ export function UiWorkspace({
   const [note, setNote] = useState<string | null>(null);
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const { signedIn } = useProgress();
+  const theme = useTheme();
 
   const filesRef = useRef(files);
   useEffect(() => {
@@ -370,7 +372,7 @@ export function UiWorkspace({
                     onChange={(e) =>
                       switchFramework(e.target.value as UiFramework)
                     }
-                    className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1 pl-2.5 pr-7 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white focus:outline-none focus:ring-indigo-500"
+                    className="cursor-pointer appearance-none rounded-md bg-zinc-900 py-1 pl-2.5 pr-7 font-mono text-xs text-zinc-200 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-zinc-50 focus:outline-none focus:ring-indigo-500"
                   >
                     {templates.map((t) => (
                       <option key={t.framework} value={t.framework}>
@@ -418,7 +420,7 @@ export function UiWorkspace({
               key={`${framework}:${active}:${editorEpoch}`}
               value={files[active] ?? ""}
               onChange={onChange}
-              theme={oneDark}
+              theme={theme === "dark" ? oneDark : "light"}
               extensions={extensions}
               indentWithTab={false}
               height="100%"

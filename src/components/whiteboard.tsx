@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import "@excalidraw/excalidraw/index.css";
 import { useProgress } from "./progress";
+import { useTheme } from "./theme";
 import { saveBoard } from "@/lib/workspace-actions";
 import {
   fetchWorkspace,
@@ -102,6 +103,7 @@ type InitialData = React.ComponentProps<typeof Excalidraw>["initialData"];
 export function Whiteboard({ slug }: { slug: string }) {
   const storageKey = boardStorageKey(slug);
   const { signedIn } = useProgress();
+  const theme = useTheme();
 
   // The scene Excalidraw mounts with; adopting a newer server copy swaps it
   // and bumps the epoch to remount (Excalidraw is uncontrolled).
@@ -211,7 +213,7 @@ export function Whiteboard({ slug }: { slug: string }) {
     <div className="h-full w-full">
       <Excalidraw
         key={boardEpoch}
-        theme="dark"
+        theme={theme}
         initialData={initialData}
         onChange={handleChange}
       />

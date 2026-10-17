@@ -160,7 +160,7 @@ export function DesignChat({ slug }: { slug: string }) {
                   key={starter}
                   type="button"
                   onClick={() => setInput(starter)}
-                  className="rounded-full bg-zinc-900 px-3 py-1 text-left text-xs text-zinc-300 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-white"
+                  className="rounded-full bg-zinc-900 px-3 py-1 text-left text-xs text-zinc-300 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-zinc-50"
                 >
                   {starter}
                 </button>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { authClient } from "@/lib/auth-client";
 
 /**
@@ -11,9 +11,20 @@ import { authClient } from "@/lib/auth-client";
  * (Google), the name's initial in a circle when not — opening a small menu
  * with the account details and sign-out.
  */
+const subscribeNoop = () => () => {};
+
 export function AuthMenu() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
+  // The server always renders the pending placeholder, but the session store
+  // can already be settled when the client first renders; matching the
+  // placeholder until mounted keeps hydration clean. (A mismatch here makes
+  // React regenerate the whole tree, which also drops the theme attribute.)
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +44,7 @@ export function AuthMenu() {
     };
   }, [open]);
 
-  if (isPending) {
+  if (isPending || !mounted) {
     return <span aria-hidden className="h-8 w-8 rounded-full bg-zinc-900" />;
   }
 
@@ -96,7 +107,7 @@ export function AuthMenu() {
               await authClient.signOut();
               router.refresh();
             }}
-            className="mt-1 w-full px-3 py-1.5 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-white"
+            className="mt-1 w-full px-3 py-1.5 text-left text-sm text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
           >
             Sign out
           </button>
