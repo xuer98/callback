@@ -24,15 +24,11 @@ import { formatDocument, formatKindForLanguage } from "@/lib/editor-format";
 import { editorLint, lintKindForLanguage } from "@/lib/editor-lint";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
 import { PaneTab, SplitPane } from "./resizable";
-import {
-  ResultsPanel,
-  SubmissionsPanel,
-  TestcasePanel,
-} from "./workspace-console";
+import { ResultsPanel, TestcasePanel } from "./workspace-console";
 import { useProgress } from "./progress";
+import { useSubmissions } from "./submissions";
 import { useTheme } from "./theme";
 import {
-  listSubmissions,
   recordSubmission,
   type AlgoSubmission,
 } from "@/lib/workspace-actions";
@@ -172,13 +168,14 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [bottomTab, setBottomTab] = useState<
-    "testcase" | "result" | "submissions"
-  >("testcase");
+  const [bottomTab, setBottomTab] = useState<"testcase" | "result">(
+    "testcase",
+  );
   const [fullscreen, setFullscreen] = useState(false);
-  // null until the first load; Submit prepends once loaded.
-  const [submissions, setSubmissions] = useState<AlgoSubmission[] | null>(null);
   const { signedIn, reportRun } = useProgress();
+  // The history itself lives in the description pane's Submissions tab;
+  // this side archives into it and lends it Restore.
+  const { recorded, setRestorer, setBusy } = useSubmissions();
   const theme = useTheme();
 
   // Account sync: on load, newer server copies land in localStorage and the
@@ -267,7 +264,8 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
   };
 
   // Submit is Run plus a record: the code exactly as graded, the language,
-  // and the verdict are archived to the account's submission history.
+  // and the verdict are archived to the account's submission history, and
+  // the Submissions tab opens on the new row.
   const submit = async () => {
     setRunning(true);
     setSubmitting(true);
@@ -298,31 +296,13 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
           : null,
       });
       if (stored) {
-        // An unloaded history stays null so its first open fetches
-        // everything, new row included.
-        setSubmissions((prev) => (prev ? [stored, ...prev] : prev));
+        recorded(stored);
         flash(stored.status === "pass" ? "Accepted — saved" : "Submission saved");
       }
     }
     setRunning(false);
     setSubmitting(false);
   };
-
-  // Fetch history the first time the tab opens; Submit keeps it fresh after.
-  useEffect(() => {
-    if (bottomTab !== "submissions" || !signedIn || submissions !== null) {
-      return;
-    }
-    let cancelled = false;
-    listSubmissions(slug)
-      .then((rows) => {
-        if (!cancelled) setSubmissions(rows);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [bottomTab, signedIn, submissions, slug]);
 
   /** Load a past submission's code (and language) back into the editor. */
   const restore = useCallback(
@@ -345,6 +325,16 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
     },
     [running, available, language, slug, signedIn, queueSave],
   );
+
+  // The Submissions tab's Restore button calls this; it waits while a run
+  // is in flight, like the editor's own controls.
+  useEffect(() => {
+    setRestorer(restore);
+    return () => setRestorer(null);
+  }, [restore, setRestorer]);
+  useEffect(() => {
+    setBusy(running);
+  }, [running, setBusy]);
 
   const runInBrowser = (): Promise<RunResult> => {
     if (isServerOnly(language)) {
@@ -582,12 +572,6 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
             >
               Test Result
             </PaneTab>
-            <PaneTab
-              active={bottomTab === "submissions"}
-              onClick={() => setBottomTab("submissions")}
-            >
-              Submissions
-            </PaneTab>
             {passed !== null && (
               <span
                 className={`ml-auto pr-1 text-xs ${
@@ -606,7 +590,7 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             {bottomTab === "testcase" ? (
               <TestcasePanel tests={judge.tests} />
-            ) : bottomTab === "result" ? (
+            ) : (
               <ResultsPanel
                 result={result}
                 running={running}
@@ -620,13 +604,6 @@ export function Workspace({ slug, judge }: { slug: string; judge: Judge }) {
                         ? "compiling in the server sandbox"
                         : null
                 }
-              />
-            ) : (
-              <SubmissionsPanel
-                submissions={submissions}
-                signedIn={signedIn}
-                busy={running}
-                onRestore={restore}
               />
             )}
           </div>

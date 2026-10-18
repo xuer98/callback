@@ -97,6 +97,8 @@ export default async function ProblemPage({
             problems on client-side navigation. */}
         <ProblemPanes
           key={problem.slug}
+          slug={problem.slug}
+          hasSubmissions={judge !== undefined}
           hasSolution={
             problem.solution !== undefined ||
             (judge !== undefined &&

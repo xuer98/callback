@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -313,41 +313,60 @@ export async function recordSubmission(
   };
 }
 
-/** The signed-in user's recent submissions for one problem, newest first. */
+export interface SubmissionHistory {
+  /** The newest submissions, newest first — at most SUBMISSION_PAGE. */
+  rows: AlgoSubmission[];
+  /** How many the user has made in all, so rows can be numbered from it. */
+  total: number;
+}
+
+/** Each row carries its code, so the page stays modest. */
+const SUBMISSION_PAGE = 50;
+
+/** The signed-in user's submissions for one problem, newest first. */
 export async function listSubmissions(
   problemSlug: unknown,
-): Promise<AlgoSubmission[]> {
-  if (typeof problemSlug !== "string") return [];
+): Promise<SubmissionHistory> {
+  const none: SubmissionHistory = { rows: [], total: 0 };
+  if (typeof problemSlug !== "string") return none;
   const userId = await sessionUserId();
-  if (!userId) return [];
+  if (!userId) return none;
   const problemId = await problemIdBySlug(problemSlug);
-  if (problemId === null) return [];
+  if (problemId === null) return none;
 
-  const rows = await db
-    .select({
-      id: schema.algoSubmissions.id,
-      language: schema.algoSubmissions.language,
-      code: schema.algoSubmissions.code,
-      status: schema.algoSubmissions.status,
-      passed: schema.algoSubmissions.passed,
-      total: schema.algoSubmissions.total,
-      runtimeMs: schema.algoSubmissions.runtimeMs,
-      createdAt: schema.algoSubmissions.createdAt,
-    })
-    .from(schema.algoSubmissions)
-    .where(
-      and(
-        eq(schema.algoSubmissions.userId, userId),
-        eq(schema.algoSubmissions.problemId, problemId),
-      ),
-    )
-    .orderBy(desc(schema.algoSubmissions.createdAt), desc(schema.algoSubmissions.id))
-    .limit(20);
-  return rows.map((row) => ({
-    ...row,
-    status: row.status as AlgoSubmission["status"],
-    createdAt: row.createdAt.getTime(),
-  }));
+  const mine = and(
+    eq(schema.algoSubmissions.userId, userId),
+    eq(schema.algoSubmissions.problemId, problemId),
+  );
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({
+        id: schema.algoSubmissions.id,
+        language: schema.algoSubmissions.language,
+        code: schema.algoSubmissions.code,
+        status: schema.algoSubmissions.status,
+        passed: schema.algoSubmissions.passed,
+        total: schema.algoSubmissions.total,
+        runtimeMs: schema.algoSubmissions.runtimeMs,
+        createdAt: schema.algoSubmissions.createdAt,
+      })
+      .from(schema.algoSubmissions)
+      .where(mine)
+      .orderBy(
+        desc(schema.algoSubmissions.createdAt),
+        desc(schema.algoSubmissions.id),
+      )
+      .limit(SUBMISSION_PAGE),
+    db.select({ total: count() }).from(schema.algoSubmissions).where(mine),
+  ]);
+  return {
+    rows: rows.map((row) => ({
+      ...row,
+      status: row.status as AlgoSubmission["status"],
+      createdAt: row.createdAt.getTime(),
+    })),
+    total,
+  };
 }
 
 /**

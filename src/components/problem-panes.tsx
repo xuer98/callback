@@ -2,31 +2,38 @@
 
 import { useState } from "react";
 import { PaneTab, SplitPane } from "./resizable";
+import { SubmissionHistory, SubmissionsProvider } from "./submissions";
 
 // The judged-problem layout: a tabbed description pane beside the workspace,
 // with a draggable divider between them. The tab contents are server-rendered
 // and passed in, so the prompt stays static HTML. Hints live inside the
-// description (collapsed) rather than behind their own tab. Design problems
-// add an Interviewer tab (the chat), which stays mounted so a reply keeps
-// streaming while the candidate reads the prompt.
+// description (collapsed) rather than behind their own tab. Judged problems
+// add a Submissions tab (the signed-in user's graded attempts), which the
+// workspace's Submit opens. Design problems add an Interviewer tab (the
+// chat), which stays mounted so a reply keeps streaming while the candidate
+// reads the prompt.
 export function ProblemPanes({
+  slug,
   description,
   solution,
   workspace,
   hasSolution,
+  hasSubmissions,
   chat,
 }: {
+  slug: string;
   description: React.ReactNode;
   solution: React.ReactNode;
   workspace: React.ReactNode;
   hasSolution: boolean;
+  hasSubmissions: boolean;
   chat?: React.ReactNode;
 }) {
-  const [tab, setTab] = useState<"description" | "solution" | "chat">(
-    "description",
-  );
+  const [tab, setTab] = useState<
+    "description" | "solution" | "submissions" | "chat"
+  >("description");
 
-  return (
+  const panes = (
     <SplitPane
       direction="horizontal"
       storageKey="callback:split:main"
@@ -55,6 +62,14 @@ export function ProblemPanes({
                 Solution
               </PaneTab>
             )}
+            {hasSubmissions && (
+              <PaneTab
+                active={tab === "submissions"}
+                onClick={() => setTab("submissions")}
+              >
+                Submissions
+              </PaneTab>
+            )}
             {chat !== undefined && (
               <PaneTab active={tab === "chat"} onClick={() => setTab("chat")}>
                 Interviewer
@@ -68,7 +83,13 @@ export function ProblemPanes({
                 : "min-h-0 flex-1 overflow-y-auto px-5 py-5"
             }
           >
-            {tab === "solution" ? solution : description}
+            {tab === "submissions" ? (
+              <SubmissionHistory />
+            ) : tab === "solution" ? (
+              solution
+            ) : (
+              description
+            )}
           </div>
           {chat !== undefined && (
             <div
@@ -83,5 +104,15 @@ export function ProblemPanes({
       }
       second={workspace}
     />
+  );
+
+  // The provider sits above both panes so Submit (right) and the tab (left)
+  // share one history; without a judge there is nothing to share.
+  return hasSubmissions ? (
+    <SubmissionsProvider slug={slug} onRecorded={() => setTab("submissions")}>
+      {panes}
+    </SubmissionsProvider>
+  ) : (
+    panes
   );
 }
