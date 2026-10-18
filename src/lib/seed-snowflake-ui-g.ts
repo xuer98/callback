@@ -397,7 +397,7 @@ export default function App() {
 export const snowflakeUiProblemsG: Problem[] = [
   {
     slug: "data-table",
-    title: "Data Table",
+    title: "Data Table I",
     category: "frontend",
     difficulty: "medium",
     companies: ["snowflake"],
@@ -426,7 +426,7 @@ export const snowflakeUiProblemsG: Problem[] = [
       "## Worth saying out loud",
       "",
       "- Sorting on every render is O(n log n); memoise with `useMemo` keyed on the sort when the data is large, or sort on the server with the page and sort in the URL.",
-      "- Column filters, row selection and virtualised rows are the usual follow-ups; each is more derived data, not more state.",
+      "- Column filters are [Data Table II](/problems/data-table-filters); row selection and virtualised rows are the other usual follow-ups. Each is more derived data, not more state.",
     ].join("\n"),
     ui: {
       framework: "react",

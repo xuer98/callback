@@ -10,7 +10,7 @@ export const appleDesignProblemsG: Problem[] = [
     title: "Design an Autocomplete Component (Front End)",
     category: "system-design",
     difficulty: "medium",
-    companies: ["apple"],
+    companies: ["apple", "snowflake"],
     summary:
       "A reusable typeahead: the component API, a data layer that debounces, cancels and caches, and the combobox pattern done properly.",
     prompt: [

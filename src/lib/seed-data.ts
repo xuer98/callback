@@ -48,6 +48,7 @@ import { snowflakeUiProblemsE } from "./seed-snowflake-ui-e";
 import { snowflakeUiProblemsF } from "./seed-snowflake-ui-f";
 import { snowflakeUiProblemsG } from "./seed-snowflake-ui-g";
 import { snowflakeUiProblemsH } from "./seed-snowflake-ui-h";
+import { snowflakeUiProblemsI } from "./seed-snowflake-ui-i";
 import { appleProblemsA } from "./seed-apple-a";
 import { appleProblemsB } from "./seed-apple-b";
 import { appleProblemsC } from "./seed-apple-c";
@@ -2673,7 +2674,7 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
     title: "Implement debounce()",
     category: "frontend",
     difficulty: "easy",
-    companies: ["meta", "stripe"],
+    companies: ["meta", "snowflake", "stripe"],
     summary: "Closures and timers, the frontend screen classic.",
     prompt:
       "Implement debounce(fn, wait): return a wrapped function that delays invoking fn until wait milliseconds have passed since the last call. Support a cancel() method that drops any pending invocation, and be ready to explain how debounce differs from throttle and when a leading-edge option matters.\n\nThe grader replays timed call scripts against your implementation on a virtual clock. Each case's input is the wait plus a script of [ms, action, ...args] steps; the expected output lists every fire as {at, args}. Forward arguments faithfully.",
@@ -3041,6 +3042,7 @@ ORDER BY department, employee;
   ...snowflakeUiProblemsF,
   ...snowflakeUiProblemsG,
   ...snowflakeUiProblemsH,
+  ...snowflakeUiProblemsI,
 ];
 
 export const tracks: Track[] = [
