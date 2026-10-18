@@ -52,6 +52,10 @@ import { snowflakeUiProblemsI } from "./seed-snowflake-ui-i";
 import { uiCheatsheetProblemsA } from "./seed-ui-cheatsheet-a";
 import { uiCheatsheetProblemsB } from "./seed-ui-cheatsheet-b";
 import { uiCheatsheetProblemsC } from "./seed-ui-cheatsheet-c";
+import { jsPlaybookProblemsA } from "./seed-js-playbook-a";
+import { jsPlaybookProblemsB } from "./seed-js-playbook-b";
+import { jsPlaybookProblemsC } from "./seed-js-playbook-c";
+import { jsPlaybookProblemsD } from "./seed-js-playbook-d";
 import { appleProblemsA } from "./seed-apple-a";
 import { appleProblemsB } from "./seed-apple-b";
 import { appleProblemsC } from "./seed-apple-c";
@@ -3049,6 +3053,10 @@ ORDER BY department, employee;
   ...uiCheatsheetProblemsA,
   ...uiCheatsheetProblemsB,
   ...uiCheatsheetProblemsC,
+  ...jsPlaybookProblemsA,
+  ...jsPlaybookProblemsB,
+  ...jsPlaybookProblemsC,
+  ...jsPlaybookProblemsD,
 ];
 
 export const tracks: Track[] = [
@@ -3110,6 +3118,39 @@ export const tracks: Track[] = [
       "windowed-list",
       "load-css-on-demand",
       "securing-a-website",
+    ],
+  },
+  {
+    slug: "js-coding-interviews",
+    name: "JavaScript Coding Interviews",
+    description:
+      "The JavaScript round in the order the topics build: how to run it, closures and this, the array polyfills, timers and promises, the lodash classics, a data-selection question, then the DOM — with the one bug each is known for.",
+    problemSlugs: [
+      "js-question-approach",
+      "closures-explained",
+      "var-let-loop-closure-quiz",
+      "implement-function-bind",
+      "implement-array-map",
+      "implement-array-filter",
+      "implement-array-reduce",
+      "promise-timer-order-quiz",
+      "implement-promise",
+      "implement-debounce",
+      "implement-throttle",
+      "implement-promise-all",
+      "implement-promise-all-settled",
+      "implement-promise-any",
+      "promise-retry-backoff",
+      "implement-curry",
+      "implement-array-flat",
+      "implement-clone-deep",
+      "implement-classnames",
+      "event-emitter",
+      "implement-memoize",
+      "json-stringify",
+      "data-selection",
+      "get-elements-by-tag-name",
+      "tooltip-library",
     ],
   },
 ];
