@@ -49,6 +49,9 @@ import { snowflakeUiProblemsF } from "./seed-snowflake-ui-f";
 import { snowflakeUiProblemsG } from "./seed-snowflake-ui-g";
 import { snowflakeUiProblemsH } from "./seed-snowflake-ui-h";
 import { snowflakeUiProblemsI } from "./seed-snowflake-ui-i";
+import { uiCheatsheetProblemsA } from "./seed-ui-cheatsheet-a";
+import { uiCheatsheetProblemsB } from "./seed-ui-cheatsheet-b";
+import { uiCheatsheetProblemsC } from "./seed-ui-cheatsheet-c";
 import { appleProblemsA } from "./seed-apple-a";
 import { appleProblemsB } from "./seed-apple-b";
 import { appleProblemsC } from "./seed-apple-c";
@@ -3043,6 +3046,9 @@ ORDER BY department, employee;
   ...snowflakeUiProblemsG,
   ...snowflakeUiProblemsH,
   ...snowflakeUiProblemsI,
+  ...uiCheatsheetProblemsA,
+  ...uiCheatsheetProblemsB,
+  ...uiCheatsheetProblemsC,
 ];
 
 export const tracks: Track[] = [
@@ -3081,6 +3087,29 @@ export const tracks: Track[] = [
       "top-earners-per-department",
       "design-rate-limiter",
       "conflict-with-teammate",
+    ],
+  },
+  {
+    slug: "ui-cheatsheet",
+    name: "UI Questions Cheatsheet",
+    description:
+      "The checklist a UI build is graded against — instances, state, HTML and forms, network, keyboard, edge cases, strings — as a question of its own, then one problem per section in the order you would run them.",
+    problemSlugs: [
+      "ui-question-checklist",
+      "tabs-init-node",
+      "nested-checkboxes",
+      "multi-step-form",
+      "signup-form",
+      "star-rating-form",
+      "tooltip-library",
+      "image-carousel",
+      "like-button",
+      "typeahead-keyboard-nav",
+      "implement-debounce",
+      "data-table",
+      "windowed-list",
+      "load-css-on-demand",
+      "securing-a-website",
     ],
   },
 ];
