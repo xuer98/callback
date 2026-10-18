@@ -30,6 +30,12 @@ import { snowflakeLcProblemsK } from "./seed-snowflake-lc-k";
 import { snowflakeLcProblemsP } from "./seed-snowflake-lc-p";
 import { snowflakeProblemsS } from "./seed-snowflake-s";
 import { snowflakeProblemsT } from "./seed-snowflake-t";
+import { snowflakeProblemsU } from "./seed-snowflake-u";
+import { snowflakeProblemsV } from "./seed-snowflake-v";
+import { snowflakeProblemsW } from "./seed-snowflake-w";
+import { snowflakeProblemsX } from "./seed-snowflake-x";
+import { snowflakeProblemsY } from "./seed-snowflake-y";
+import { snowflakeProblemsZ } from "./seed-snowflake-z";
 import { snowflakeDesignProblemsD } from "./seed-snowflake-design-d";
 import { snowflakeSqlProblems } from "./seed-snowflake-sql";
 import { snowflakeUiProblems } from "./seed-snowflake-ui";
@@ -3017,6 +3023,12 @@ ORDER BY department, employee;
   ...snowflakeLcProblemsP,
   ...snowflakeProblemsS,
   ...snowflakeProblemsT,
+  ...snowflakeProblemsU,
+  ...snowflakeProblemsV,
+  ...snowflakeProblemsW,
+  ...snowflakeProblemsX,
+  ...snowflakeProblemsY,
+  ...snowflakeProblemsZ,
   ...snowflakeDesignProblemsD,
   ...snowflakeSqlProblems,
   ...snowflakeUiProblems,

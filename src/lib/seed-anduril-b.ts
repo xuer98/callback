@@ -72,7 +72,7 @@ function distance(p, q) {
     title: "Shortest Path Around Obstacles",
     category: "algorithms",
     difficulty: "medium",
-    companies: ["anduril"],
+    companies: ["anduril", "snowflake"],
     summary: "Unit steps on a grid: BFS, and the first arrival is the answer.",
     prompt: `The world is a grid: \`0\` is a free cell and \`1\` is an obstacle you can't pass through. Movement is one cell per step — up, down, left or right, plus the four diagonals when \`diagonal\` is true. Return the number of steps on the shortest path from \`src\` to \`dst\` (each given as \`[row, col]\`), or \`-1\` when there is no path.
 

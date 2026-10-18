@@ -107,7 +107,7 @@ function rootCauses(services, dependencies, logs) {
   },
   {
     slug: "string-command-calculator",
-    title: "String-Command Calculator",
+    title: "String-Command Calculator I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["snowflake"],

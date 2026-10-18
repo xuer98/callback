@@ -146,6 +146,8 @@ const SNOWFLAKE_TAG: TagRow[] = [
 const GUIDE_PICK_SCORE = 20;
 const SNOWFLAKE_GUIDE_PICKS: string[] = [
   "3sum",
+  "find-first-and-last-position-of-element-in-sorted-array",
+  "longest-substring-with-at-most-k-distinct-characters",
   "alien-dictionary",
   "binary-tree-level-order-traversal",
   "binary-tree-maximum-path-sum",

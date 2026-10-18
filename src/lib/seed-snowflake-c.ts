@@ -246,7 +246,7 @@ function fewestDeletions(edges, root, k) {
   },
   {
     slug: "dag-letter-permissions",
-    title: "Letter Permissions Down a DAG",
+    title: "DAG Permissions I",
     category: "algorithms",
     difficulty: "medium",
     companies: ["snowflake"],
