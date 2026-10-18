@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { RememberList } from "@/components/back-to-list";
 import { ProblemRow } from "@/components/problem-row";
 import { SolvedCount } from "@/components/progress";
 import { getTrack, listTracks, trackProblems } from "@/lib/data";
@@ -32,6 +33,7 @@ export default async function TrackPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
+      <RememberList href={`/tracks/${track.slug}`} label={track.name} />
       <div className="flex items-baseline justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">{track.name}</h1>
         <SolvedCount slugs={track.problemSlugs} />

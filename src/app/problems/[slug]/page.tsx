@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackToList } from "@/components/back-to-list";
 import { DesignChat } from "@/components/design-chat";
 import { DesignWorkspace } from "@/components/design-workspace";
 import { DifficultyBadge } from "@/components/difficulty-badge";
@@ -152,7 +153,8 @@ export default async function ProblemPage({
  * Where the problem sits: Problems, then its category (the list, filtered
  * to it), then the problem itself. Built from the problem alone rather than
  * from the page it was opened from, so the page stays statically generated.
- * The button in front opens the side menu of every problem.
+ * The buttons in front go back to the list the problem was opened from, with
+ * its filters intact, and open the side menu of every problem.
  */
 function Breadcrumb({
   problem,
@@ -170,6 +172,7 @@ function Breadcrumb({
   ];
   return (
     <div className={`flex min-w-0 items-center gap-2.5 ${className}`}>
+      <BackToList />
       <ProblemMenuButton />
       <nav aria-label="Breadcrumb" className="min-w-0">
         <ol className="flex min-w-0 items-center gap-1.5 text-xs text-zinc-500">

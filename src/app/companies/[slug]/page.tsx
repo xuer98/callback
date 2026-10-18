@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { CompanyProblems } from "@/components/company-problems";
+import { RememberList } from "@/components/back-to-list";
+import { LinkChip } from "@/components/chips";
 import { Pagination } from "@/components/pagination";
 import { ProblemFilters } from "@/components/problem-filters";
+import { ProblemRow } from "@/components/problem-row";
 import { QuestionList } from "@/components/question-list";
 import { auth } from "@/lib/auth";
 import {
@@ -31,8 +33,11 @@ import {
   QUESTIONS_PER_PAGE,
 } from "@/lib/question-listings";
 import {
+  CATEGORIES,
+  CATEGORY_LABELS,
   TIMEFRAME_LABELS,
   TIMEFRAMES,
+  type Category,
   type CompanyQuestion,
   type ProblemCard,
   type Timeframe,
@@ -132,11 +137,28 @@ export default async function CompanyPage({
     workedAt,
   );
 
+  // The practice list's category chips live in the URL, as on /problems, so
+  // a trip to a problem and back lands on the same view. Chips only appear
+  // for categories the company actually has, and not at all for just one.
+  const categoryParam = one(query, "category");
+  const category = (CATEGORIES as readonly string[]).includes(categoryParam)
+    ? (categoryParam as Category)
+    : undefined;
+  const present = CATEGORIES.filter((c) =>
+    practice.some((card) => card.category === c),
+  );
+  const shown = category
+    ? practice.filter((card) => card.category === category)
+    : practice;
+
   const filtering = isFiltering(filter) || timeframe !== "all";
   const described = describeFilter(filter, new Map());
   const lastPage = Math.max(1, Math.ceil(total / QUESTIONS_PER_PAGE));
-  const hrefFor = (nextPage: number) => {
+  // One href builder for both the category chips (which change the category
+  // and reset the page) and pagination (which keeps the category).
+  const hrefFor = (cat: Category | undefined, nextPage: number) => {
     const next = new URLSearchParams();
+    if (cat) next.set("category", cat);
     if (timeframe !== "all") next.set("timeframe", timeframe);
     for (const [name, value] of filterEntries(filter)) next.append(name, value);
     for (const [name, value] of sortEntries(sort)) next.set(name, value);
@@ -146,9 +168,11 @@ export default async function CompanyPage({
       ? `/companies/${company.slug}?${text}`
       : `/companies/${company.slug}`;
   };
+  const linkFor = (nextPage: number) => hrefFor(category, nextPage);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
+      <RememberList href={hrefFor(category, page)} label={company.name} />
       <h1 className="text-3xl font-semibold tracking-tight">{company.name}</h1>
       <p className="mt-3 text-sm leading-6 text-zinc-400">{company.blurb}</p>
 
@@ -188,18 +212,28 @@ export default async function CompanyPage({
           <h2 className="text-sm font-semibold text-zinc-100">
             Practice questions
           </h2>
-          {/* Slim payload: the client chips only need the card fields. */}
-          <CompanyProblems
-            problems={practice.map(
-              ({ slug, title, category, difficulty, summary }) => ({
-                slug,
-                title,
-                category,
-                difficulty,
-                summary,
-              }),
-            )}
-          />
+          {present.length > 1 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <LinkChip
+                href={hrefFor(undefined, 1)}
+                label="All"
+                active={!category}
+              />
+              {present.map((c) => (
+                <LinkChip
+                  key={c}
+                  href={hrefFor(c, 1)}
+                  label={CATEGORY_LABELS[c]}
+                  active={category === c}
+                />
+              ))}
+            </div>
+          )}
+          <div className="mt-3 flex flex-col gap-2">
+            {shown.map((card) => (
+              <ProblemRow key={card.slug} problem={card} />
+            ))}
+          </div>
         </section>
       )}
 
@@ -226,7 +260,7 @@ export default async function CompanyPage({
           ) : (
             <QuestionList rows={rows} />
           )}
-          <Pagination page={page} lastPage={lastPage} hrefFor={hrefFor} />
+          <Pagination page={page} lastPage={lastPage} hrefFor={linkFor} />
         </section>
       )}
     </div>

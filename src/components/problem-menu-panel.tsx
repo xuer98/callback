@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Chip } from "./company-problems";
+import { Chip } from "./chips";
 import { ProblemMenuRow } from "./problem-menu-row";
 import { useProgress } from "./progress";
 import { Select } from "./select";

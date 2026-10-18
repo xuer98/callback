@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
+import { RememberList } from "@/components/back-to-list";
+import { LinkChip } from "@/components/chips";
 import { Pagination } from "@/components/pagination";
 import { ProblemFilters } from "@/components/problem-filters";
 import { ProblemRow } from "@/components/problem-row";
@@ -154,6 +155,7 @@ export default async function ProblemsPage({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
+      <RememberList href={hrefFor(category, page)} label="Problems" />
       <h1 className="text-2xl font-semibold tracking-tight">Problems</h1>
       <p className="mt-1 text-sm text-zinc-400">
         Callback&apos;s own problems and the LeetCode questions companies have
@@ -162,13 +164,9 @@ export default async function ProblemsPage({
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
-        <FilterChip
-          href={hrefFor(undefined, 1)}
-          label="All"
-          active={!category}
-        />
+        <LinkChip href={hrefFor(undefined, 1)} label="All" active={!category} />
         {CATEGORIES.map((c) => (
-          <FilterChip
+          <LinkChip
             key={c}
             href={hrefFor(c, 1)}
             label={CATEGORY_LABELS[c]}
@@ -243,28 +241,5 @@ export default async function ProblemsPage({
         </p>
       )}
     </div>
-  );
-}
-
-function FilterChip({
-  href,
-  label,
-  active,
-}: {
-  href: string;
-  label: string;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-        active
-          ? "bg-indigo-500 text-white"
-          : "bg-zinc-900 text-zinc-400 ring-1 ring-inset ring-zinc-800 hover:text-zinc-100"
-      }`}
-    >
-      {label}
-    </Link>
   );
 }
