@@ -42,6 +42,7 @@ async function inBatches<T>(
     await write(rows.slice(i, i + size));
   }
 }
+import { checkProblemTopics, problemTopics } from "../lib/seed-topics";
 import { pythonJudges } from "../lib/seed-python";
 import { applePythonJudges } from "../lib/seed-python-apple";
 import { applePythonJudgesB } from "../lib/seed-python-apple-b";
@@ -244,6 +245,21 @@ async function main() {
       .returning({ id: schema.problems.id });
     moved = movedRows.length;
 
+    const questionData: QuestionData = JSON.parse(
+      readFileSync(join(__dirname, "leetcode-questions.json"), "utf8"),
+    );
+    // Topic tags share the listings' vocabulary: the snapshot's tags plus
+    // any a curated listing brought along.
+    checkProblemTopics(
+      new Set(seedProblems.map((problem) => problem.slug)),
+      new Set([
+        ...questionData.topics,
+        ...curatedListings.flatMap(({ questions }) =>
+          questions.flatMap(({ meta }) => meta?.topics ?? []),
+        ),
+      ]),
+    );
+
     for (const problem of seedProblems) {
       const values = {
         slug: problem.slug,
@@ -255,6 +271,7 @@ async function main() {
         hints: problem.hints,
         solution: problem.solution ?? null,
         rubric: problem.rubric ?? null,
+        topics: problemTopics[problem.slug] ?? [],
         // Judges gain their per-language definitions at seed time.
         judge: problem.judge
           ? {
@@ -376,10 +393,6 @@ async function main() {
     if (companyLinks.length > 0) {
       await tx.insert(schema.problemCompanies).values(companyLinks);
     }
-
-    const questionData: QuestionData = JSON.parse(
-      readFileSync(join(__dirname, "leetcode-questions.json"), "utf8"),
-    );
 
     await inBatches(questionData.questions, 500, (chunk) =>
       tx

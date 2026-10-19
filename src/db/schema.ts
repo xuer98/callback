@@ -40,6 +40,11 @@ export const problems = pgTable("problems", {
   judge: jsonb("judge").$type<Judge>(),
   ui: jsonb("ui").$type<UiWorkspace>(),
   /**
+   * LeetCode-style topic tags, in the vocabulary of leetcode_questions.topics
+   * so the one Topics filter row covers both tables.
+   */
+  topics: jsonb("topics").$type<string[]>().notNull().default([]),
+  /**
    * Stamped by every admin-console save. A non-null value means the console
    * owns this row: db:seed skips its fields and company links until the
    * admin releases it back to the repo (which clears the stamp).

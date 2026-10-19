@@ -421,8 +421,8 @@ export function ProblemFilters({
             </label>
 
             <p className="mt-2 text-[11px] leading-4 text-zinc-500">
-              Topics and frequency describe the LeetCode listings; status and
-              language, Callback&apos;s own problems.
+              Frequency describes the LeetCode listings; status and language,
+              Callback&apos;s own problems.
               {asksStatus && !signedIn
                 ? " Signed out, every problem counts as to do."
                 : ""}

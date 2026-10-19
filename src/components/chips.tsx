@@ -15,14 +15,29 @@ export function LinkChip({
   href,
   label,
   active,
+  count,
 }: {
   href: string;
   label: string;
   active: boolean;
+  /** How many the chip stands for, shown in a small badge after the label. */
+  count?: number;
 }) {
   return (
-    <Link href={href} className={`${CHIP} ${active ? ACTIVE : IDLE}`}>
+    <Link
+      href={href}
+      className={`${CHIP} ${count === undefined ? "" : "inline-flex items-center gap-1.5"} ${active ? ACTIVE : IDLE}`}
+    >
       {label}
+      {count !== undefined && (
+        <span
+          className={`rounded-full px-1.5 text-[10px] leading-4 tabular-nums ${
+            active ? "bg-white/20" : "bg-zinc-800 text-zinc-500"
+          }`}
+        >
+          {count}
+        </span>
+      )}
     </Link>
   );
 }

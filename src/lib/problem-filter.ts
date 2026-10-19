@@ -9,8 +9,8 @@ import {
 // The /problems filter: rows that each test one field, combined with "all"
 // (every row must hold) or "any" (one is enough). Callback's own problems
 // and the imported LeetCode listings share the same rows; a field one kind
-// does not have — topics and frequency belong to the listings, status and
-// language to the authored problems — is simply false for it. The filter
+// does not have — frequency belongs to the listings, status and language to
+// the authored problems — is simply false for it. The filter
 // lives in the URL, so a filtered view is a link: this module parses and
 // serialises it and evaluates it over the authored problems in memory; the
 // listings evaluate the same rows in SQL (data.ts).
@@ -62,6 +62,7 @@ export const PROBLEM_FIELDS: ReadonlySet<FilterField> = new Set([
   "company",
   "status",
   "difficulty",
+  "topic",
   "language",
 ]);
 export const LISTING_FIELDS: ReadonlySet<FilterField> = new Set([
@@ -271,7 +272,7 @@ function rowMatchesProblem(
   row: FilterRow,
   progress: ProgressMap,
 ): boolean {
-  if (row.field === "frequency" || row.field === "topic") return false;
+  if (row.field === "frequency") return false;
   const have: readonly string[] =
     row.field === "company"
       ? card.companies
@@ -279,9 +280,53 @@ function rowMatchesProblem(
         ? [card.difficulty]
         : row.field === "status"
           ? [progress[card.slug] ?? "todo"]
-          : card.languages;
+          : row.field === "topic"
+            ? card.topics
+            : card.languages;
   const hit = have.some((value) => row.values.includes(value));
   return row.op === "is" ? hit : !hit;
+}
+
+/** The values the "is" rows of one field select, for lighting the chips that stand for them. */
+export function selectedValues(
+  filter: ProblemFilter,
+  field: SetField,
+): string[] {
+  return filter.rows.flatMap((row) =>
+    row.field === field && row.op === "is" ? row.values : [],
+  );
+}
+
+/**
+ * The filter with one value of a set field toggled: taken out of the "is"
+ * row that holds it (dropping the row when it empties), or added to the
+ * field's first "is" row, or to a new one. What a chip for the value links to.
+ */
+export function toggleValue(
+  filter: ProblemFilter,
+  field: SetField,
+  value: string,
+): ProblemFilter {
+  const rows = [...filter.rows];
+  const holder = rows.findIndex(
+    (row) =>
+      row.field === field && row.op === "is" && row.values.includes(value),
+  );
+  if (holder !== -1) {
+    const row = rows[holder] as SetRow;
+    const values = row.values.filter((held) => held !== value);
+    if (values.length === 0) rows.splice(holder, 1);
+    else rows[holder] = { ...row, values };
+    return { ...filter, rows };
+  }
+  const first = rows.findIndex((row) => row.field === field && row.op === "is");
+  if (first === -1) {
+    rows.push({ field, op: "is", values: [value] });
+  } else {
+    const row = rows[first] as SetRow;
+    rows[first] = { ...row, values: [...row.values, value] };
+  }
+  return { ...filter, rows };
 }
 
 /** A short clause for the results line: "at Apple or Meta, not easy, tagged Array". */

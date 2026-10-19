@@ -48,6 +48,13 @@ export interface Problem {
   judge?: Judge;
   /** Present when the problem is built in the UI workspace (live preview). */
   ui?: UiWorkspace;
+  /**
+   * LeetCode-style topic tags ("Two Pointers", "Topological Sort"), from
+   * the same vocabulary as the imported listings so one filter row covers
+   * both. Algorithm problems get theirs at seed time from seed-topics.ts,
+   * keyed by slug like the per-language judges; the rest have none.
+   */
+  topics?: string[];
 }
 
 /**
@@ -92,6 +99,8 @@ export interface ProblemCard {
   summary: string;
   /** Slugs of the companies the problem is tagged with. */
   companies: string[];
+  /** LeetCode-style topic tags; empty for untagged problems. */
+  topics: string[];
   /** Languages it can be solved in; empty for prompts without an editor. */
   languages: Language[];
 }

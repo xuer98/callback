@@ -42,6 +42,7 @@ function toProblem(row: ProblemRow): Problem {
     rubric: row.rubric ?? undefined,
     judge: row.judge ?? undefined,
     ui: row.ui ?? undefined,
+    topics: row.topics,
   };
 }
 
@@ -132,6 +133,7 @@ export async function listProblemCards(): Promise<ProblemCard[]> {
       category: true,
       difficulty: true,
       summary: true,
+      topics: true,
     },
     extras: (problems) => ({
       hasJudge: sql<boolean>`${problems.judge} is not null`.as("has_judge"),
@@ -150,6 +152,7 @@ export async function listProblemCards(): Promise<ProblemCard[]> {
     difficulty: row.difficulty,
     summary: row.summary,
     companies: row.problemCompanies.map((link) => link.company.slug),
+    topics: row.topics,
     // JavaScript lives in the judge's own fields, so every judged problem
     // has it; a UI workspace is JavaScript too.
     languages: row.hasJudge
@@ -161,6 +164,22 @@ export async function listProblemCards(): Promise<ProblemCard[]> {
         ? ["javascript"]
         : [],
   }));
+}
+
+/**
+ * How many of Callback's own problems carry each topic tag, in one
+ * category or in all, for the topic strip on /problems.
+ */
+export async function countProblemTopics(
+  category?: Category,
+): Promise<Map<string, number>> {
+  const result = await db.execute<{ topic: string; total: number }>(sql`
+    select tags.topic as topic, count(*)::int as total
+    from ${schema.problems}
+    cross join lateral jsonb_array_elements_text(${schema.problems.topics}) as tags(topic)
+    ${category ? sql`where ${schema.problems.category} = ${category}` : sql``}
+    group by tags.topic`);
+  return new Map(result.rows.map((row) => [row.topic, row.total]));
 }
 
 /** One user's progress keyed by problem slug, for the status filter. */

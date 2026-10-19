@@ -6,8 +6,10 @@ import { Pagination } from "@/components/pagination";
 import { ProblemFilters } from "@/components/problem-filters";
 import { ProblemRow } from "@/components/problem-row";
 import { QuestionList } from "@/components/question-list";
+import { TopicStrip, type TopicChip } from "@/components/topic-strip";
 import { auth } from "@/lib/auth";
 import {
+  countProblemTopics,
   favoriteSlugs,
   lastWorkedAt,
   listProblemCards,
@@ -19,12 +21,16 @@ import {
   filterEntries,
   matchesProblem,
   parseFilter,
+  selectedValues,
+  toggleValue,
+  type ProblemFilter,
   type ProgressMap,
 } from "@/lib/problem-filter";
 import { parseSort, sortCards, sortEntries } from "@/lib/problem-sort";
 import {
+  countQuestionTopics,
   listCompaniesWithQuestions,
-  listQuestionTopics,
+  listTopics,
   queryQuestions,
   QUESTIONS_PER_PAGE,
 } from "@/lib/question-listings";
@@ -71,10 +77,23 @@ export default async function ProblemsPage({
   const requestedPage =
     Number.isFinite(pageParam) && pageParam > 1 ? pageParam : 1;
 
-  const [companies, topics] = await Promise.all([
-    listCompaniesWithQuestions(),
-    listQuestionTopics(),
-  ]);
+  // The imported listings are LeetCode coding questions, so they only render
+  // when the category could contain them. Without them there is no
+  // pagination either, so a stale ?page falls back to the first page.
+  const showListings = !category || category === "algorithms";
+  const listingsPage = showListings ? requestedPage : 1;
+
+  // The topic strip counts every problem in the category and time range,
+  // whatever else is filtered, like LeetCode's tag counts.
+  const [companies, topics, problemTopicCounts, listingTopicCounts] =
+    await Promise.all([
+      listCompaniesWithQuestions(),
+      listTopics(),
+      countProblemTopics(category),
+      showListings
+        ? countQuestionTopics(timeframe)
+        : Promise.resolve(new Map<string, number>()),
+    ]);
   const filter = parseFilter(params, {
     companies: companies.map((c) => c.slug),
     topics,
@@ -90,16 +109,11 @@ export default async function ProblemsPage({
       ? await auth.api.getSession({ headers: await headers() })
       : null;
 
-  // The imported listings are LeetCode coding questions, so they only render
-  // when the category could contain them. Without them there is no
-  // pagination either, so a stale ?page falls back to the first page.
-  const showListings = !category || category === "algorithms";
-  const listingsPage = showListings ? requestedPage : 1;
-
   // Callback's own problems render above the imported listings, on the first
-  // page only. Under "match all", a row one kind can never satisfy — a topic
-  // for the authored problems, a status for the listings — skips that query
-  // outright. queryQuestions clamps the page to the last one that has rows.
+  // page only. Under "match all", a row one kind can never satisfy — a
+  // frequency for the authored problems, a status for the listings — skips
+  // that query outright. queryQuestions clamps the page to the last one that
+  // has rows.
   const [listings, cards, progress, starred, workedAt] = await Promise.all([
     showListings && !excludes(filter, "listing")
       ? queryQuestions({ timeframe, filter, sort, page: listingsPage })
@@ -139,19 +153,46 @@ export default async function ProblemsPage({
     filter.match === "all" &&
     filter.rows.some((row) => row.field === "company" && row.op === "is");
   const lastPage = Math.max(1, Math.ceil(total / QUESTIONS_PER_PAGE));
-  // One href builder for both the category chips (which change the category
-  // and reset the page) and pagination (which keeps the category).
-  const hrefFor = (cat: Category | undefined, nextPage: number) => {
+  // One href builder for the category chips (which change the category and
+  // reset the page), pagination (which keeps the category) and the topic
+  // chips (which change the filter).
+  const hrefFor = (
+    cat: Category | undefined,
+    nextPage: number,
+    withFilter: ProblemFilter = filter,
+  ) => {
     const next = new URLSearchParams();
     if (cat) next.set("category", cat);
     if (timeframe !== "all") next.set("timeframe", timeframe);
-    for (const [name, value] of filterEntries(filter)) next.append(name, value);
+    for (const [name, value] of filterEntries(withFilter)) {
+      next.append(name, value);
+    }
     for (const [name, value] of sortEntries(sort)) next.set(name, value);
     if (nextPage > 1) next.set("page", String(nextPage));
     const query = next.toString();
     return query ? `/problems?${query}` : "/problems";
   };
   const linkFor = (nextPage: number) => hrefFor(category, nextPage);
+
+  // Picked tags first, then the most common; a picked tag stays even when
+  // nothing in this view carries it, so it can be unpicked.
+  const picked = new Set(selectedValues(filter, "topic"));
+  const topicChips: TopicChip[] = topics
+    .map((name) => ({
+      name,
+      count:
+        (problemTopicCounts.get(name) ?? 0) +
+        (listingTopicCounts.get(name) ?? 0),
+      active: picked.has(name),
+      href: hrefFor(category, 1, toggleValue(filter, "topic", name)),
+    }))
+    .filter((chip) => chip.count > 0 || chip.active)
+    .sort(
+      (a, b) =>
+        Number(b.active) - Number(a.active) ||
+        b.count - a.count ||
+        a.name.localeCompare(b.name),
+    );
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
@@ -174,6 +215,8 @@ export default async function ProblemsPage({
           />
         ))}
       </div>
+
+      <TopicStrip topics={topicChips} />
 
       <ProblemFilters
         companies={companies}

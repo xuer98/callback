@@ -30,7 +30,7 @@ import {
 import { parseSort, sortCards, sortEntries } from "@/lib/problem-sort";
 import {
   companyHasListings,
-  listQuestionTopics,
+  listTopics,
   queryQuestions,
   QUESTIONS_PER_PAGE,
 } from "@/lib/question-listings";
@@ -90,7 +90,7 @@ export default async function CompanyPage({
 
   // Company rows in the URL are dropped: this page is one company already.
   const [topics, hasListings, guides] = await Promise.all([
-    listQuestionTopics(),
+    listTopics(),
     companyHasListings(company.slug),
     guidesForCompany(company.slug),
   ]);

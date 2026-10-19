@@ -111,6 +111,7 @@ export default async function ProblemPage({
               {header}
               <Prompt problem={problem} />
               <Hints problem={problem} />
+              <Topics problem={problem} />
               <AskedAt problem={problem} />
             </>
           }
@@ -146,6 +147,7 @@ export default async function ProblemPage({
       <Prompt problem={problem} />
       <Hints problem={problem} />
       <Solution problem={problem} />
+      <Topics problem={problem} />
       <AskedAt problem={problem} />
     </div>
   );
@@ -254,6 +256,34 @@ function Solution({ problem }: { problem: Problem }) {
           className="mt-3 text-sm leading-6 text-zinc-300"
         />
       </details>
+    </section>
+  );
+}
+
+/** The topic tags, each a link to the category list filtered to that tag. */
+function Topics({ problem }: { problem: Problem }) {
+  const topics = problem.topics ?? [];
+  if (topics.length === 0) return null;
+  return (
+    <section className="mt-10">
+      <h2 className="text-sm font-semibold text-zinc-100">Topics</h2>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {topics.map((topic) => {
+          const query = new URLSearchParams({
+            category: problem.category,
+            topic: `is:${topic}`,
+          });
+          return (
+            <Link
+              key={topic}
+              href={`/problems?${query}`}
+              className="rounded-full bg-zinc-900 px-3 py-1 text-xs text-zinc-300 ring-1 ring-inset ring-zinc-800 transition-colors hover:text-zinc-50"
+            >
+              {topic}
+            </Link>
+          );
+        })}
+      </div>
     </section>
   );
 }

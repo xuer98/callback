@@ -41,13 +41,43 @@ export interface QuestionQuery {
   page?: number;
 }
 
-/** Every topic tag present in the imported questions, for the filter menu. */
-export async function listQuestionTopics(): Promise<string[]> {
+/**
+ * Every topic tag in use, across the imported questions and Callback's own
+ * problems, for the filter menu. The two share one vocabulary, so this is
+ * normally the listings' list; the union is what keeps an authored tag
+ * selectable either way.
+ */
+export async function listTopics(): Promise<string[]> {
   const result = await db.execute<{ topic: string }>(
-    sql`select distinct jsonb_array_elements_text(${schema.leetcodeQuestions.topics}) as topic
-        from ${schema.leetcodeQuestions} order by topic`,
+    sql`select jsonb_array_elements_text(${schema.leetcodeQuestions.topics}) as topic
+        from ${schema.leetcodeQuestions}
+        union
+        select jsonb_array_elements_text(${schema.problems.topics})
+        from ${schema.problems}
+        order by topic`,
   );
   return result.rows.map((row) => row.topic);
+}
+
+/**
+ * How many imported questions asked in a time range carry each topic tag,
+ * for the topic strip on /problems.
+ */
+export async function countQuestionTopics(
+  timeframe: Timeframe,
+): Promise<Map<string, number>> {
+  const question = schema.leetcodeQuestions;
+  const asked = schema.companyQuestions;
+  const result = await db.execute<{ topic: string; total: number }>(sql`
+    select tags.topic as topic, count(*)::int as total
+    from ${question}
+    cross join lateral jsonb_array_elements_text(${question.topics}) as tags(topic)
+    where exists (
+      select 1 from ${asked}
+      where ${asked.questionId} = ${question.id}
+        and ${asked.timeframe} = ${timeframe})
+    group by tags.topic`);
+  return new Map(result.rows.map((row) => [row.topic, row.total]));
 }
 
 /**
@@ -146,8 +176,8 @@ function escapeLike(text: string): string {
 
 /**
  * One filter row as a condition on a listing. Status and language are
- * Callback-only, so those rows are false here (and topics and frequency are
- * false for the authored problems, in problem-filter.ts).
+ * Callback-only, so those rows are false here (and frequency is false for
+ * the authored problems, in problem-filter.ts).
  */
 function listingCondition(
   row: FilterRow,
