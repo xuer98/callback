@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RememberList } from "@/components/back-to-list";
 import { LinkChip } from "@/components/chips";
@@ -11,6 +12,7 @@ import { auth } from "@/lib/auth";
 import {
   favoriteSlugs,
   getCompany,
+  guidesForCompany,
   lastWorkedAt,
   listProblemCards,
   progressBySlug,
@@ -87,9 +89,10 @@ export default async function CompanyPage({
     Number.isFinite(pageParam) && pageParam > 1 ? pageParam : 1;
 
   // Company rows in the URL are dropped: this page is one company already.
-  const [topics, hasListings] = await Promise.all([
+  const [topics, hasListings, guides] = await Promise.all([
     listQuestionTopics(),
     companyHasListings(company.slug),
+    guidesForCompany(company.slug),
   ]);
   const filter = parseFilter(query, { companies: [], topics });
   const sort = parseSort(query);
@@ -175,6 +178,19 @@ export default async function CompanyPage({
       <RememberList href={hrefFor(category, page)} label={company.name} />
       <h1 className="text-3xl font-semibold tracking-tight">{company.name}</h1>
       <p className="mt-3 text-sm leading-6 text-zinc-400">{company.blurb}</p>
+      {guides.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {guides.map((guide) => (
+            <Link
+              key={guide.slug}
+              href={`/guide/${guide.slug}`}
+              className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-xs text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-50"
+            >
+              Interview guide: {guide.title} →
+            </Link>
+          ))}
+        </div>
+      )}
 
       <section className="mt-10">
         <h2 className="text-sm font-semibold text-zinc-100">Typical loop</h2>

@@ -6,6 +6,7 @@ import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
 import {
+  guides as seedGuides,
   problems as seedProblems,
   tracks as seedTracks,
 } from "../lib/seed-data";
@@ -332,6 +333,24 @@ async function main() {
       return id;
     };
 
+    for (const guide of seedGuides) {
+      const values = {
+        slug: guide.slug,
+        title: guide.title,
+        companyId:
+          guide.company === undefined
+            ? null
+            : requireId(companyIds, guide.company, "company"),
+        summary: guide.summary,
+        body: guide.body,
+        sources: guide.sources,
+      };
+      await tx
+        .insert(schema.guides)
+        .values(values)
+        .onConflictDoUpdate({ target: schema.guides.slug, set: values });
+    }
+
     // Rebuild company links only for seeded problems the console doesn't
     // own — console-created and console-edited problems keep theirs.
     const linkable = seedProblems.filter(
@@ -456,7 +475,7 @@ async function main() {
   });
 
   console.log(
-    `Seeded ${seedProblems.length} problems, ${seedCompanies.length} companies, ${seedTracks.length} tracks, ${questionCount} company question listings.`,
+    `Seeded ${seedProblems.length} problems, ${seedCompanies.length} companies, ${seedTracks.length} tracks, ${seedGuides.length} guides, ${questionCount} company question listings.`,
   );
   if (renamed > 0) {
     console.log(`Moved ${renamed} renamed problem(s) to their new slugs.`);

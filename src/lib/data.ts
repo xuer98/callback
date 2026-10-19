@@ -7,13 +7,15 @@ import {
   LANGUAGES,
   type Category,
   type Company,
+  type Guide,
   type Problem,
   type ProblemCard,
   type ProblemIndex,
   type Track,
 } from "./types";
 
-// The content read path for Callback's own problems, companies, and tracks.
+// The content read path for Callback's own problems, companies, tracks and
+// guides.
 // Pages call these accessors and get the same Problem/Company/Track shapes
 // the UI has always used; only the storage moved. The imported LeetCode
 // listings have their own module, question-listings.ts.
@@ -294,4 +296,54 @@ export async function trackProblems(trackSlug: string): Promise<Problem[]> {
     },
   });
   return row?.trackProblems.map((link) => toProblem(link.problem)) ?? [];
+}
+
+const withGuideCompany = {
+  company: { columns: { slug: true } },
+} as const;
+
+function toGuide(
+  row: typeof schema.guides.$inferSelect & {
+    company: { slug: string } | null;
+  },
+): Guide {
+  return {
+    slug: row.slug,
+    title: row.title,
+    company: row.company?.slug,
+    summary: row.summary,
+    body: row.body,
+    sources: row.sources,
+  };
+}
+
+export async function listGuides(): Promise<Guide[]> {
+  const rows = await db.query.guides.findMany({
+    with: withGuideCompany,
+    orderBy: (guides, { asc }) => [asc(guides.id)],
+  });
+  return rows.map(toGuide);
+}
+
+export async function getGuide(slug: string): Promise<Guide | undefined> {
+  const row = await db.query.guides.findFirst({
+    where: eq(schema.guides.slug, slug),
+    with: withGuideCompany,
+  });
+  return row ? toGuide(row) : undefined;
+}
+
+/** The guides written about one company, for its page to point at. */
+export async function guidesForCompany(companySlug: string): Promise<Guide[]> {
+  const company = await db.query.companies.findFirst({
+    where: eq(schema.companies.slug, companySlug),
+    columns: { id: true },
+  });
+  if (!company) return [];
+  const rows = await db.query.guides.findMany({
+    where: eq(schema.guides.companyId, company.id),
+    with: withGuideCompany,
+    orderBy: (guides, { asc }) => [asc(guides.id)],
+  });
+  return rows.map(toGuide);
 }

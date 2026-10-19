@@ -14,6 +14,7 @@ import {
   CATEGORIES,
   DIFFICULTIES,
   TIMEFRAMES,
+  type GuideSource,
   type Judge,
   type UiWorkspace,
 } from "../lib/types";
@@ -87,6 +88,21 @@ export const trackProblems = pgTable(
   },
   (table) => [primaryKey({ columns: [table.trackId, table.problemId] })],
 );
+
+// Interview guides: one document per company and role, in the same markdown
+// as problem content, with the pages its process and question data came
+// from. Seeded from seed-guides.ts and upserted by slug, like tracks.
+export const guides = pgTable("guides", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  companyId: integer("company_id").references(() => companies.id, {
+    onDelete: "set null",
+  }),
+  summary: text("summary").notNull(),
+  body: text("body").notNull(),
+  sources: jsonb("sources").$type<GuideSource[]>().notNull(),
+});
 
 export const progressStatusEnum = pgEnum("progress_status", [
   "attempted",
@@ -303,6 +319,14 @@ export const problemsRelations = relations(problems, ({ many }) => ({
 
 export const companiesRelations = relations(companies, ({ many }) => ({
   problemCompanies: many(problemCompanies),
+  guides: many(guides),
+}));
+
+export const guidesRelations = relations(guides, ({ one }) => ({
+  company: one(companies, {
+    fields: [guides.companyId],
+    references: [companies.id],
+  }),
 }));
 
 export const problemCompaniesRelations = relations(

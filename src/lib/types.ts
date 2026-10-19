@@ -319,6 +319,28 @@ export interface Track {
   problemSlugs: string[];
 }
 
+export interface GuideSource {
+  label: string;
+  url: string;
+}
+
+/**
+ * An interview guide: one document on how a company's loop runs and what
+ * it asks, written in the same markdown as problem content and linking to
+ * the problems here that drill each part.
+ */
+export interface Guide {
+  slug: string;
+  title: string;
+  /** The company the guide covers, by slug; absent for a general guide. */
+  company?: string;
+  /** One line for the index card. */
+  summary: string;
+  body: string;
+  /** Where the process and question data came from, listed at the end. */
+  sources: GuideSource[];
+}
+
 export const CATEGORY_LABELS: Record<Category, string> = {
   algorithms: "Algorithms & Data Structures",
   "system-design": "System Design",
