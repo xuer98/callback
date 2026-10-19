@@ -60,6 +60,7 @@ import { snowflakePythonJudgesM } from "../lib/seed-python-snowflake-m";
 import { snowflakePythonJudgesW } from "../lib/seed-python-snowflake-w";
 import { snowflakePythonJudgesU } from "../lib/seed-python-snowflake-u";
 import { snowflakePythonJudgesV } from "../lib/seed-python-snowflake-v";
+import { snowflakePythonJudgesX } from "../lib/seed-python-snowflake-x";
 import { typescriptJudges } from "../lib/seed-typescript";
 import { appleTypescriptJudges } from "../lib/seed-typescript-apple";
 import { appleTypescriptJudgesB } from "../lib/seed-typescript-apple-b";
@@ -276,7 +277,8 @@ async function main() {
                 snowflakePythonJudgesM[problem.slug] ??
                 snowflakePythonJudgesW[problem.slug] ??
                 snowflakePythonJudgesU[problem.slug] ??
-                snowflakePythonJudgesV[problem.slug],
+                snowflakePythonJudgesV[problem.slug] ??
+                snowflakePythonJudgesX[problem.slug],
               typescript:
                 typescriptJudges[problem.slug] ??
                 appleTypescriptJudges[problem.slug] ??

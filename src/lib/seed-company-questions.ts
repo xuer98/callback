@@ -209,6 +209,7 @@ const SNOWFLAKE_GUIDE_PICKS: string[] = [
   "valid-palindrome",
   "valid-parentheses",
   "validate-binary-search-tree",
+  "walls-and-gates",
   "word-break",
   "word-search",
 ];

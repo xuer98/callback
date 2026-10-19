@@ -41,6 +41,7 @@ import { snowflakeSqlProblems } from "./seed-snowflake-sql";
 import { snowflakeUiProblems } from "./seed-snowflake-ui";
 import { snowflakeUiProblemsB } from "./seed-snowflake-ui-b";
 import { snowflakeGfeProblems } from "./seed-snowflake-gfe";
+import { snowflakeTrendProblems } from "./seed-snowflake-trend";
 import { snowflakeJsProblems } from "./seed-snowflake-js";
 import { snowflakeUiProblemsC } from "./seed-snowflake-ui-c";
 import { snowflakeUiProblemsD } from "./seed-snowflake-ui-d";
@@ -3042,6 +3043,7 @@ ORDER BY department, employee;
   ...snowflakeUiProblems,
   ...snowflakeUiProblemsB,
   ...snowflakeGfeProblems,
+  ...snowflakeTrendProblems,
   ...snowflakeJsProblems,
   ...snowflakeUiProblemsC,
   ...snowflakeUiProblemsD,

@@ -11,7 +11,7 @@ import type { Problem } from "./types";
  * tests write them. Nodes are plain { val, left, right } objects, so user
  * code never has to match a class name.
  */
-const TREE_BUILDER = `function __buildTree(values) {
+export const TREE_BUILDER = `function __buildTree(values) {
   if (values.length === 0 || values[0] === null) return null;
   const nodes = values.map((v) => (v === null ? null : { val: v, left: null, right: null }));
   let child = 1;
