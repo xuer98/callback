@@ -206,6 +206,10 @@ export const problemTopics: Record<string, string[]> = {
   "dijkstra-shortest-distances": ["Graph Theory", "Heap (Priority Queue)", "Shortest Path", "Dijkstra's Algorithm"],
   "boundary-of-full-binary-tree": ["Tree", "Binary Tree", "Depth-First Search"],
   "workflow-dependencies": ["Graph Theory", "Topological Sort", "Design", "Hash Table", "Depth-First Search"],
+  "longest-common-substring": ["String", "Dynamic Programming", "Binary Search", "Rolling Hash", "Hash Function"],
+  "topological-sort": ["Graph Theory", "Topological Sort", "Heap (Priority Queue)", "Breadth-First Search"],
+  "happy-number-cycle": ["Hash Table", "Math", "Simulation"],
+  "happy-numbers-up-to-n": ["Hash Table", "Math", "Memoization", "Simulation"],
 };
 
 /**

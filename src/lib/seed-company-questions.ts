@@ -139,9 +139,11 @@ const SNOWFLAKE_TAG: TagRow[] = [
 /**
  * LeetCode questions the guide names for Snowflake prep that the tag does
  * not score: the Blind 75 the recruiter's email points at for the backend
- * round, the email's own samples, and the long tail of interview reports.
- * Listed all-time only, at a nominal score under the tag's lowest (38.4),
- * so they sort after every tagged question.
+ * round, the email's own samples, the long tail of interview reports, and
+ * the problems its backend-families toolkit (trees, sorted arrays, top K,
+ * common substrings, topological sort, happy numbers, palindromes) works
+ * or lists as variations. Listed all-time only, at a nominal score under
+ * the tag's lowest (38.4), so they sort after every tagged question.
  */
 const GUIDE_PICK_SCORE = 20;
 const SNOWFLAKE_GUIDE_PICKS: string[] = [
@@ -212,6 +214,62 @@ const SNOWFLAKE_GUIDE_PICKS: string[] = [
   "walls-and-gates",
   "word-break",
   "word-search",
+  // The frontend round's grid games and the backend-families toolkit.
+  "01-matrix",
+  "add-digits",
+  "average-of-levels-in-binary-tree",
+  "binary-tree-postorder-traversal",
+  "binary-tree-right-side-view",
+  "binary-tree-zigzag-level-order-traversal",
+  "construct-binary-tree-from-inorder-and-postorder-traversal",
+  "delete-node-in-a-bst",
+  "delete-nodes-and-return-forest",
+  "diameter-of-binary-tree",
+  "edit-distance",
+  "find-eventual-safe-states",
+  "find-k-th-smallest-pair-distance",
+  "find-peak-element",
+  "intersection-of-two-arrays",
+  "intersection-of-two-arrays-ii",
+  "intersection-of-two-linked-lists",
+  "k-closest-points-to-origin",
+  "kth-largest-element-in-a-stream",
+  "kth-largest-element-in-an-array",
+  "kth-smallest-element-in-a-sorted-matrix",
+  "longest-common-prefix",
+  "longest-duplicate-substring",
+  "longest-palindromic-subsequence",
+  "lowest-common-ancestor-of-a-binary-tree",
+  "maximum-length-of-repeated-subarray",
+  "median-of-two-sorted-arrays",
+  "merge-sorted-array",
+  "minimum-cost-homecoming-of-a-robot-in-a-grid",
+  "minimum-height-trees",
+  "minimum-insertion-steps-to-make-a-string-palindrome",
+  "palindrome-linked-list",
+  "palindrome-number",
+  "palindrome-pairs",
+  "palindrome-partitioning",
+  "palindrome-permutation",
+  "path-sum",
+  "path-sum-ii",
+  "remove-duplicates-from-sorted-array",
+  "remove-duplicates-from-sorted-array-ii",
+  "reorganize-string",
+  "sequence-reconstruction",
+  "shortest-common-supersequence",
+  "shortest-palindrome",
+  "sort-characters-by-frequency",
+  "sqrtx",
+  "squares-of-a-sorted-array",
+  "sum-of-digits-of-string-after-convert",
+  "symmetric-tree",
+  "top-k-frequent-words",
+  "two-sum-ii-input-array-is-sorted",
+  "two-sum-iv-input-is-a-bst",
+  "ugly-number",
+  "unique-paths-ii",
+  "valid-palindrome-ii",
 ];
 
 /** Questions the snapshot lacks, with LeetCode's own metadata. */

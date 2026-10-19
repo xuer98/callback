@@ -42,6 +42,7 @@ import { snowflakeUiProblems } from "./seed-snowflake-ui";
 import { snowflakeUiProblemsB } from "./seed-snowflake-ui-b";
 import { snowflakeGfeProblems } from "./seed-snowflake-gfe";
 import { snowflakeTrendProblems } from "./seed-snowflake-trend";
+import { snowflakeGuideProblems } from "./seed-snowflake-guide";
 import { snowflakeJsProblems } from "./seed-snowflake-js";
 import { snowflakeUiProblemsC } from "./seed-snowflake-ui-c";
 import { snowflakeUiProblemsD } from "./seed-snowflake-ui-d";
@@ -50,6 +51,7 @@ import { snowflakeUiProblemsF } from "./seed-snowflake-ui-f";
 import { snowflakeUiProblemsG } from "./seed-snowflake-ui-g";
 import { snowflakeUiProblemsH } from "./seed-snowflake-ui-h";
 import { snowflakeUiProblemsI } from "./seed-snowflake-ui-i";
+import { snowflakeUiProblemsJ } from "./seed-snowflake-ui-j";
 import { uiCheatsheetProblemsA } from "./seed-ui-cheatsheet-a";
 import { uiCheatsheetProblemsB } from "./seed-ui-cheatsheet-b";
 import { uiCheatsheetProblemsC } from "./seed-ui-cheatsheet-c";
@@ -3044,6 +3046,7 @@ ORDER BY department, employee;
   ...snowflakeUiProblemsB,
   ...snowflakeGfeProblems,
   ...snowflakeTrendProblems,
+  ...snowflakeGuideProblems,
   ...snowflakeJsProblems,
   ...snowflakeUiProblemsC,
   ...snowflakeUiProblemsD,
@@ -3052,6 +3055,7 @@ ORDER BY department, employee;
   ...snowflakeUiProblemsG,
   ...snowflakeUiProblemsH,
   ...snowflakeUiProblemsI,
+  ...snowflakeUiProblemsJ,
   ...uiCheatsheetProblemsA,
   ...uiCheatsheetProblemsB,
   ...uiCheatsheetProblemsC,

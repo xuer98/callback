@@ -2,7 +2,8 @@ import type { JudgeLanguage } from "./types";
 import { TREE_BUILDER_PY } from "./seed-python-snowflake-c";
 
 // Python judges for the 2026 interview-report prompts in
-// seed-snowflake-trend.ts, keyed by slug and merged into judge.python by the
+// seed-snowflake-trend.ts and the study guide's toolkit prompts in
+// seed-snowflake-guide.ts, keyed by slug and merged into judge.python by the
 // seed script like seed-python.ts.
 
 export const snowflakePythonJudgesX: Record<string, JudgeLanguage> = {
@@ -139,6 +140,118 @@ def __judge_boundary(values):
             continue
         name = re.sub(r"(?<!^)(?=[A-Z])", "_", op).lower()
         out.append(getattr(slots[slot], name)(*args))
+    return out
+`,
+  },
+  "longest-common-substring": {
+    entry: "longest_common_substring",
+    starterCode: `def longest_common_substring(a, b):
+    """The longest substring of both; among ties, the one that starts earliest in a."""
+    # Your code here
+    return ""
+`,
+    solutionCode: `def longest_common_substring(a, b):
+    # Two rows of the common-suffix table; the best only moves on a strictly longer match.
+    prev = [0] * (len(b) + 1)
+    best_length = best_end = 0
+    for i in range(1, len(a) + 1):
+        cur = [0] * (len(b) + 1)
+        for j in range(1, len(b) + 1):
+            if a[i - 1] == b[j - 1]:
+                cur[j] = prev[j - 1] + 1
+                if cur[j] > best_length:
+                    best_length, best_end = cur[j], i
+        prev = cur
+    return a[best_end - best_length:best_end]
+`,
+  },
+  "topological-sort": {
+    entry: "topological_sort",
+    starterCode: `def topological_sort(graph):
+    """graph maps each node to the nodes it points to; every node is a key.
+    The lexicographically smallest topological order, or [] when there is a cycle."""
+    # Your code here
+    return []
+`,
+    solutionCode: `import heapq
+
+
+def topological_sort(graph):
+    # Kahn's algorithm with a min-heap, so the smallest ready node always goes next.
+    indegree = {node: 0 for node in graph}
+    for node in graph:
+        for nxt in graph[node]:
+            indegree[nxt] += 1
+    ready = [node for node in graph if indegree[node] == 0]
+    heapq.heapify(ready)
+    order = []
+    while ready:
+        node = heapq.heappop(ready)
+        order.append(node)
+        for nxt in graph[node]:
+            indegree[nxt] -= 1
+            if indegree[nxt] == 0:
+                heapq.heappush(ready, nxt)
+    return order if len(order) == len(graph) else []
+`,
+  },
+  "happy-number-cycle": {
+    entry: "happy_cycle",
+    starterCode: `def happy_cycle(n):
+    """The loop the digit-square sequence enters, from the first value visited twice."""
+    # Your code here
+    return []
+`,
+    solutionCode: `def digit_square_sum(n):
+    total = 0
+    while n:
+        n, digit = divmod(n, 10)
+        total += digit * digit
+    return total
+
+
+def happy_cycle(n):
+    # Walk until a value repeats; the loop is the path from that value's first visit.
+    path, seen_at = [], {}
+    value = n
+    while value not in seen_at:
+        seen_at[value] = len(path)
+        path.append(value)
+        value = digit_square_sum(value)
+    return path[seen_at[value]:]
+`,
+  },
+  "happy-numbers-up-to-n": {
+    entry: "happy_numbers_up_to",
+    starterCode: `def happy_numbers_up_to(n):
+    """Every happy number from 1 to n, ascending."""
+    # Your code here
+    return []
+`,
+    solutionCode: `def digit_square_sum(n):
+    total = 0
+    while n:
+        n, digit = divmod(n, 10)
+        total += digit * digit
+    return total
+
+
+def happy_numbers_up_to(n):
+    # One memo for every start: a walk stops at a known value or at a repeat, and the whole path takes that answer.
+    fate = {1: True}
+    out = []
+    for start in range(1, n + 1):
+        path, on_path = [], set()
+        value = start
+        while value not in fate and value not in on_path:
+            on_path.add(value)
+            path.append(value)
+            value = digit_square_sum(value)
+        happy = fate.get(value, False)
+        for visited in path:
+            fate[visited] = happy
+        if fate[start]:
+            out.append(start)
     return out
 `,
   },
