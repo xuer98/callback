@@ -66,8 +66,14 @@ function indentOf(text: string): number {
 /**
  * Turns lines into blocks. Lists recurse through here for their item bodies,
  * so a bullet can hold a paragraph, a nested list, or a fenced example.
+ * With an `anchors` registry, headings get ids a table of contents can
+ * link to (see `headingAnchors`, which must derive the same ids).
  */
-function parseBlocks(lines: string[], tight = false): ReactNode[] {
+function parseBlocks(
+  lines: string[],
+  tight = false,
+  anchors?: Map<string, number>,
+): ReactNode[] {
   const out: ReactNode[] = [];
   let i = 0;
   const key = () => out.length;
@@ -113,8 +119,13 @@ function parseBlocks(lines: string[], tight = false): ReactNode[] {
       const level = heading[1].length;
       // The page owns the h1, so content headings start one level down.
       const Tag = (["h2", "h2", "h3", "h4", "h5", "h6"] as const)[level - 1];
+      const id = anchors ? uniqueAnchor(anchors, heading[2]) : undefined;
       out.push(
-        <Tag key={key()} className={HEADING_CLASS[Math.min(level, 4)]}>
+        <Tag
+          key={key()}
+          id={id}
+          className={`${HEADING_CLASS[Math.min(level, 4)]}${id ? " scroll-mt-24" : ""}`}
+        >
           {inlineNodes(heading[2], "prose")}
         </Tag>,
       );
@@ -135,7 +146,7 @@ function parseBlocks(lines: string[], tight = false): ReactNode[] {
           key={key()}
           className="space-y-3 border-l-2 border-zinc-700 pl-4 text-zinc-400"
         >
-          {parseBlocks(body)}
+          {parseBlocks(body, false, anchors)}
         </blockquote>,
       );
       continue;
@@ -161,7 +172,7 @@ function parseBlocks(lines: string[], tight = false): ReactNode[] {
     }
 
     if (BULLET.test(line) || ORDERED.test(line)) {
-      const [list, next] = parseList(lines, i, key());
+      const [list, next] = parseList(lines, i, key(), anchors);
       out.push(list);
       i = next;
       continue;
@@ -253,6 +264,7 @@ function parseList(
   lines: string[],
   start: number,
   key: number,
+  anchors?: Map<string, number>,
 ): [ReactNode, number] {
   const first = BULLET.exec(lines[start]) ?? ORDERED.exec(lines[start])!;
   const ordered = ORDERED.test(lines[start]) && !BULLET.test(lines[start]);
@@ -297,7 +309,7 @@ function parseList(
 
   const rendered = items.map((body, n) => (
     <li key={n} className="space-y-2">
-      {parseBlocks(dedentContinuations(body), true)}
+      {parseBlocks(dedentContinuations(body), true, anchors)}
     </li>
   ));
 
@@ -330,6 +342,65 @@ function dedentContinuations(body: string[]): string[] {
   return [body[0], ...dedent(body.slice(1))];
 }
 
+// -- heading anchors ---------------------------------------------------------
+
+/** A heading's text with the inline marks removed, for ids and outlines. */
+function plainHeading(text: string): string {
+  return text
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[`*_~]/g, "")
+    .trim();
+}
+
+/** "The follow-up trio" -> "the-follow-up-trio"; a second one gets "-2". */
+function uniqueAnchor(used: Map<string, number>, heading: string): string {
+  const base =
+    plainHeading(heading)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "section";
+  const seen = used.get(base) ?? 0;
+  used.set(base, seen + 1);
+  return seen === 0 ? base : `${base}-${seen + 1}`;
+}
+
+export interface HeadingAnchor {
+  id: string;
+  text: string;
+  level: number;
+}
+
+/**
+ * The headings `RichText` will give ids to when rendered with `anchors`,
+ * in order, with the same ids. Fenced code is skipped so a `#` comment in
+ * an example is not a heading.
+ */
+export function headingAnchors(text: string): HeadingAnchor[] {
+  const used = new Map<string, number>();
+  const out: HeadingAnchor[] = [];
+  let fence: string | null = null;
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    const open = FENCE.exec(trimmed);
+    if (fence) {
+      if (trimmed.startsWith(fence)) fence = null;
+      continue;
+    }
+    if (open) {
+      fence = open[1];
+      continue;
+    }
+    const heading = HEADING.exec(trimmed);
+    if (!heading) continue;
+    out.push({
+      id: uniqueAnchor(used, heading[2]),
+      text: plainHeading(heading[2]),
+      level: heading[1].length,
+    });
+  }
+  return out;
+}
+
 // -- public components -------------------------------------------------------
 
 /**
@@ -339,13 +410,16 @@ function dedentContinuations(body: string[]): string[] {
 export function RichText({
   text,
   className = "",
+  anchors = false,
 }: {
   text: string;
   className?: string;
+  /** Give headings ids (from `headingAnchors`) so links can target them. */
+  anchors?: boolean;
 }) {
   return (
     <div className={`space-y-4 ${className}`}>
-      {parseBlocks(text.split("\n"))}
+      {parseBlocks(text.split("\n"), false, anchors ? new Map() : undefined)}
     </div>
   );
 }
