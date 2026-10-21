@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { FigureToolbar } from "./admin-figure-toolbar";
 import {
   createProblem,
   releaseProblem,
@@ -14,6 +15,8 @@ import { CATEGORIES, CATEGORY_LABELS, DIFFICULTIES } from "@/lib/types";
 // the server action does the real validation and reports one error at a
 // time. Tests and the judge config are edited as JSON — the split keeps the
 // common case (add a test case) approachable without a six-language IDE.
+// The prompt and solution carry a toolbar for drawing a diagram or
+// uploading a picture into the markdown (admin-figure-toolbar.tsx).
 
 export function AdminProblemForm({
   mode,
@@ -28,6 +31,8 @@ export function AdminProblemForm({
   initial: ProblemPayload;
 }) {
   const router = useRouter();
+  const promptRef = useRef<HTMLTextAreaElement>(null);
+  const solutionRef = useRef<HTMLTextAreaElement>(null);
   const [slug, setSlug] = useState(existingSlug ?? "");
   const [values, setValues] = useState<ProblemPayload>(initial);
   const [status, setStatus] = useState<
@@ -170,14 +175,25 @@ export function AdminProblemForm({
         />
       </Field>
 
-      <Field label="Prompt" hint="full problem statement, markdown">
-        <textarea
+      <div className="flex flex-col gap-2">
+        <Field
+          label="Prompt"
+          hint="full problem statement, markdown; an image on a line of its own is a figure with its alt text as the caption"
+        >
+          <textarea
+            ref={promptRef}
+            value={values.prompt}
+            onChange={(e) => set("prompt", e.target.value)}
+            rows={14}
+            className={textareaClass}
+          />
+        </Field>
+        <FigureToolbar
+          textareaRef={promptRef}
           value={values.prompt}
-          onChange={(e) => set("prompt", e.target.value)}
-          rows={14}
-          className={textareaClass}
+          onChange={(next) => set("prompt", next)}
         />
-      </Field>
+      </div>
 
       <Field label="Hints" hint="one markdown block each; empty ones are dropped">
         <div className="flex flex-col gap-2">
@@ -214,14 +230,22 @@ export function AdminProblemForm({
         </div>
       </Field>
 
-      <Field label="Solution" hint="markdown behind the Solution tab; empty = no solution yet">
-        <textarea
+      <div className="flex flex-col gap-2">
+        <Field label="Solution" hint="markdown behind the Solution tab; empty = no solution yet">
+          <textarea
+            ref={solutionRef}
+            value={values.solution}
+            onChange={(e) => set("solution", e.target.value)}
+            rows={12}
+            className={textareaClass}
+          />
+        </Field>
+        <FigureToolbar
+          textareaRef={solutionRef}
           value={values.solution}
-          onChange={(e) => set("solution", e.target.value)}
-          rows={12}
-          className={textareaClass}
+          onChange={(next) => set("solution", next)}
         />
-      </Field>
+      </div>
 
       <Field
         label="Rubric"

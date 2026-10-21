@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
+import { isDiagramSrc } from "@/lib/illustrations";
 
 /**
  * The inline half of the problem-content markdown: everything that happens
  * inside a line — `code`, **strong**, *emphasis*, ~~strikethrough~~,
  * [links](url), ![images](url), <autolinks>, and backslash escapes.
+ * An image on a line of its own is a figure, which is the block half's
+ * job; `imageOnly` is how it recognises one.
  *
  * The emphasis rules are CommonMark's flanking rules rather than a naive split
  * on the delimiter, which is what keeps `max_width` from turning into italics
@@ -109,6 +112,23 @@ function matchBracket(text: string, open: number): number {
     else if (text[i] === "]" && --depth === 0) return i;
   }
   return -1;
+}
+
+/**
+ * A line that is nothing but one `![alt](src)`, parsed — the block renderer
+ * turns it into a captioned figure instead of an inline image. Null for
+ * anything else, including an image with text around it.
+ */
+export function imageOnly(
+  line: string,
+): { src: string; alt: string } | null {
+  const text = line.trim();
+  if (!text.startsWith("![")) return null;
+  const close = matchBracket(text, 1);
+  const dest = close === -1 ? null : readDestination(text, close);
+  if (!dest || dest.next !== text.length) return null;
+  const src = safeUrl(dest.dest);
+  return src ? { src, alt: text.slice(2, close) } : null;
 }
 
 // -- inline scanning ---------------------------------------------------------
@@ -289,15 +309,24 @@ function anchor(href: string, label: ReactNode, variant: Variant): ReactNode {
 }
 
 function image(src: string, alt: string): ReactNode {
-  // Diagrams live on arbitrary hosts, which next/image would need registered
-  // in next.config remotePatterns ahead of time — a plain img keeps authoring
-  // a matter of pasting a URL.
+  // Pictures may live on arbitrary hosts, which next/image would need
+  // registered in next.config remotePatterns ahead of time — a plain img
+  // keeps authoring a matter of pasting a URL. A drawn diagram is line art
+  // on a transparent background, marked so dark mode can invert it
+  // (globals.css); it gets no chrome of its own, since the filter would
+  // invert that too.
+  const diagram = isDiagramSrc(src);
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={alt}
-      className="my-1 max-w-full rounded-lg border border-zinc-800 bg-zinc-900/40"
+      data-diagram={diagram ? "" : undefined}
+      className={
+        diagram
+          ? "my-1 inline-block max-w-full align-middle"
+          : "my-1 max-w-full rounded-lg border border-zinc-800 bg-zinc-900/40"
+      }
     />
   );
 }

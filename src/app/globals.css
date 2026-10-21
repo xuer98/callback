@@ -50,6 +50,15 @@ body {
   color: var(--foreground);
 }
 
+/* Drawn diagrams (src/lib/illustrations.ts) are exported as dark line art
+   on a transparent background, what the Excalidraw canvas holds. In dark
+   mode they get the filter Excalidraw applies to its own canvas, so the
+   strokes turn light and the colours keep their hue. The attribute is set by
+   the markdown renderer on images served from /diagrams or /api/diagrams. */
+html:not([data-theme="light"]) img[data-diagram] {
+  filter: invert(93%) hue-rotate(180deg);
+}
+
 /* Workspace pages (the judged-problem split view) own the viewport: the
    window itself must not scroll, or dragging a divider shifts the page under
    the cursor. Opting in by attribute keeps every other page scrolling

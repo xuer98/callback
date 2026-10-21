@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { inlineNodes } from "@/lib/markdown-inline";
+import { isDiagramSrc } from "@/lib/illustrations";
+import { imageOnly, inlineNodes } from "@/lib/markdown-inline";
 
 /**
  * The rich-text renderer for problem content, shared by the description body,
@@ -196,6 +197,13 @@ function parseBlocks(
       i++;
     }
     const text = paragraph.join(" ");
+    // An image on a line of its own is a figure: a diagram or illustration
+    // with its caption, rather than a picture sitting in a paragraph.
+    const picture = paragraph.length === 1 ? imageOnly(text) : null;
+    if (picture) {
+      out.push(figure(key(), picture.src, picture.alt));
+      continue;
+    }
     // Inside a list item the text is already wrapped, so a <p> would only add
     // vertical rhythm the item doesn't want.
     out.push(
@@ -208,6 +216,40 @@ function parseBlocks(
   }
 
   return out;
+}
+
+/**
+ * A block-level picture with its alt text as the caption. A drawn diagram
+ * (see src/lib/illustrations.ts) is line art on a transparent background,
+ * so it sits padded inside the panel and is marked for dark mode to invert;
+ * an illustration fills the panel and is shown as-is.
+ */
+function figure(key: number, src: string, alt: string) {
+  const diagram = isDiagramSrc(src);
+  return (
+    <figure key={key}>
+      <div
+        className={
+          diagram
+            ? "rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-4"
+            : "overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/40"
+        }
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          data-diagram={diagram ? "" : undefined}
+          className="mx-auto block max-w-full"
+        />
+      </div>
+      {alt !== "" && (
+        <figcaption className="mt-2 text-center text-xs text-zinc-500">
+          {alt}
+        </figcaption>
+      )}
+    </figure>
+  );
 }
 
 function table(
@@ -405,7 +447,8 @@ export function headingAnchors(text: string): HeadingAnchor[] {
 
 /**
  * Block-level rich text: headings, paragraphs, bullet and numbered lists,
- * fenced code, tables, block quotes, rules, images, and every inline mark.
+ * fenced code, tables, block quotes, rules, images (one on a line of its
+ * own is a captioned figure), and every inline mark.
  */
 export function RichText({
   text,

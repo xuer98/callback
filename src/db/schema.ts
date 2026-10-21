@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  customType,
   index,
   integer,
   jsonb,
@@ -50,6 +51,31 @@ export const problems = pgTable("problems", {
    * admin releases it back to the repo (which clears the stamp).
    */
   editedAt: timestamp("edited_at"),
+});
+
+// pg-core has no bytea column; the driver reads and writes Buffers.
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
+
+// Pictures in problem content: diagrams drawn in the admin console (an SVG
+// export plus the Excalidraw scene it came from, for reopening) and uploaded
+// illustrations. Content-addressed — the id is a hash of the kind and the
+// bytes — so the serving routes cache forever. Kind and mime are text, not
+// enums, validated at the boundary (src/lib/illustration-store.ts) for the
+// same no-migration reason as `solutions`. Rows are referenced only by the
+// markdown that links to them, so one may outlive its last reference.
+export const illustrations = pgTable("illustrations", {
+  id: text("id").primaryKey(),
+  /** "diagram" | "illustration" */
+  kind: text("kind").notNull(),
+  mime: text("mime").notNull(),
+  data: bytea("data").notNull(),
+  /** Excalidraw scene { elements, files } for a drawn diagram; null for an upload. */
+  scene: jsonb("scene").$type<unknown>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const companies = pgTable("companies", {
