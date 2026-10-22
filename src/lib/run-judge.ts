@@ -1,3 +1,9 @@
+import {
+  expandTests,
+  GenError,
+  isReference,
+  type ExpandedTest,
+} from "./judge-gen";
 import { transpileTypeScript } from "./transpile-ts";
 import type { Judge, Language } from "./types";
 
@@ -53,21 +59,33 @@ export async function runOnServer(
 }
 
 const TIME_LIMIT_MS = 4000;
+/** The reference solution's own run on the generated tests, before judging. */
+const REFERENCE_LIMIT_MS = 10_000;
+/** Longest value the verdicts carry back; a 100,000-element answer is cut. */
+export const MAX_SHOWN_CHARS = 4000;
 
 // Runs entirely inside a Web Worker: user code never touches the page's
-// scope, and an infinite loop can be killed by terminating the worker.
-// Keep this string free of `${` — it is a template literal.
+// scope, and an infinite loop can be killed by terminating the worker. In
+// `collect` mode it runs the same way but hands back the raw outputs
+// instead of verdicts — how the reference solution's answers to generated
+// tests are taken. Keep this string free of `${` — it is a template literal.
 const WORKER_SOURCE = `
 "use strict";
 
+const MAX_SHOWN_CHARS = ` + MAX_SHOWN_CHARS + `;
+
 function display(value) {
   if (value === undefined) return "undefined";
+  let text;
   try {
     const json = JSON.stringify(value);
-    return json === undefined ? String(value) : json;
+    text = json === undefined ? String(value) : json;
   } catch {
-    return String(value);
+    text = String(value);
   }
+  return text.length > MAX_SHOWN_CHARS
+    ? text.slice(0, MAX_SHOWN_CHARS) + "… (" + text.length + " chars)"
+    : text;
 }
 
 function deepEqual(a, b) {
@@ -92,7 +110,7 @@ function deepEqual(a, b) {
 }
 
 self.onmessage = async (event) => {
-  const { code, driverCode, entry, tests } = event.data;
+  const { code, driverCode, entry, tests, collect } = event.data;
 
   let logs = [];
   const sandboxConsole = {
@@ -121,19 +139,24 @@ self.onmessage = async (event) => {
   }
 
   const verdicts = [];
+  const outputs = [];
   for (let i = 0; i < tests.length; i++) {
     const test = tests[i];
     logs = [];
     const started = performance.now();
     const base = {
       name: test.name || "Case " + (i + 1),
-      input: test.input.map(display).join(", "),
+      input: test.display !== undefined ? test.display : test.input.map(display).join(", "),
       expected: display(test.expected),
     };
     try {
       // Awaited so a driver may be async — fake-timer or microtask-ordering
       // scenarios settle before the verdict is taken.
       const got = await entryFn(...structuredClone(test.input));
+      if (collect) {
+        outputs.push(got === undefined ? null : got);
+        continue;
+      }
       verdicts.push({
         ...base,
         pass: deepEqual(got, test.expected),
@@ -142,6 +165,15 @@ self.onmessage = async (event) => {
         logs,
       });
     } catch (err) {
+      if (collect) {
+        self.postMessage({
+          status: "error",
+          message:
+            "The reference solution failed on " + base.name + ": " +
+            (err instanceof Error ? err.message : String(err)),
+        });
+        return;
+      }
       verdicts.push({
         ...base,
         pass: false,
@@ -153,6 +185,10 @@ self.onmessage = async (event) => {
     }
   }
 
+  if (collect) {
+    self.postMessage({ status: "collected", outputs });
+    return;
+  }
   self.postMessage({
     status: verdicts.every((v) => v.pass) ? "pass" : "fail",
     verdicts,
@@ -175,7 +211,81 @@ export async function runTypeScriptJudge(
   return runJudge(transpiled.code, judge);
 }
 
-export function runJudge(code: string, judge: Judge): Promise<RunResult> {
+export type PreparedTests =
+  | { ok: true; tests: ExpandedTest[] }
+  | { ok: false; result: RunResult };
+
+/**
+ * The tests ready to judge against: generator specs expanded, and every
+ * `REFERENCE` expected value replaced by what the problem's JavaScript
+ * reference solution returns for that input (run in the same worker, under
+ * its own time limit). Shared by every in-browser runner, since the Python
+ * harness takes concrete expected values too.
+ */
+export async function prepareTests(judge: Judge): Promise<PreparedTests> {
+  let tests: ExpandedTest[];
+  try {
+    tests = expandTests(judge.tests);
+  } catch (err) {
+    return {
+      ok: false,
+      result: {
+        status: "error",
+        message: `This problem's generated tests are misconfigured: ${
+          err instanceof GenError ? err.message : String(err)
+        }`,
+      },
+    };
+  }
+  const pending = tests.filter((test) => isReference(test.expected));
+  if (pending.length === 0) return { ok: true, tests };
+  if (!judge.solutionCode) {
+    return {
+      ok: false,
+      result: {
+        status: "error",
+        message:
+          "This problem's generated tests need its JavaScript reference solution, which it doesn't have yet.",
+      },
+    };
+  }
+  const collected = await runWorker({
+    code: judge.solutionCode,
+    driverCode: judge.driverCode ?? "",
+    entry: judge.entry,
+    tests: pending,
+    collect: true,
+    limitMs: REFERENCE_LIMIT_MS,
+  });
+  if (collected.status !== "collected") {
+    return {
+      ok: false,
+      result:
+        collected.status === "timeout"
+          ? {
+              status: "error",
+              message:
+                "The reference solution timed out on a generated test, so it can't be judged right now.",
+            }
+          : (collected as RunResult),
+    };
+  }
+  pending.forEach((test, i) => {
+    test.expected = collected.outputs[i];
+  });
+  return { ok: true, tests };
+}
+
+type WorkerReply = RunResult | { status: "collected"; outputs: unknown[] };
+
+function runWorker(message: {
+  code: string;
+  driverCode: string;
+  entry: string;
+  tests: ExpandedTest[];
+  collect: boolean;
+  limitMs: number;
+}): Promise<WorkerReply> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(
       new Blob([WORKER_SOURCE], { type: "text/javascript" }),
@@ -183,7 +293,7 @@ export function runJudge(code: string, judge: Judge): Promise<RunResult> {
     const worker = new Worker(url);
 
     let settled = false;
-    const finish = (result: RunResult) => {
+    const finish = (result: WorkerReply) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -195,19 +305,30 @@ export function runJudge(code: string, judge: Judge): Promise<RunResult> {
     const timer = setTimeout(() => {
       finish({
         status: "timeout",
-        message: `Time limit exceeded (${TIME_LIMIT_MS / 1000}s). Check for an infinite loop.`,
+        message: `Time limit exceeded (${message.limitMs / 1000}s). Check for an infinite loop.`,
       });
-    }, TIME_LIMIT_MS);
+    }, message.limitMs);
 
-    worker.onmessage = (event) => finish(event.data as RunResult);
+    worker.onmessage = (event) => finish(event.data as WorkerReply);
     worker.onerror = (event) =>
       finish({ status: "error", message: event.message || "Worker failed." });
 
-    worker.postMessage({
-      code,
-      driverCode: judge.driverCode ?? "",
-      entry: judge.entry,
-      tests: judge.tests,
-    });
+    worker.postMessage(message);
   });
+}
+
+export async function runJudge(code: string, judge: Judge): Promise<RunResult> {
+  const prepared = await prepareTests(judge);
+  if (!prepared.ok) return prepared.result;
+  const reply = await runWorker({
+    code,
+    driverCode: judge.driverCode ?? "",
+    entry: judge.entry,
+    tests: prepared.tests,
+    collect: false,
+    limitMs: TIME_LIMIT_MS,
+  });
+  return reply.status === "collected"
+    ? { status: "error", message: "The runner returned no verdicts." }
+    : reply;
 }

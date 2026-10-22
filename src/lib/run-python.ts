@@ -1,5 +1,5 @@
 import { PYTHON_HARNESS_BODY } from "./python-harness";
-import type { RunResult } from "./run-judge";
+import { prepareTests, type RunResult } from "./run-judge";
 import type { Judge } from "./types";
 
 // In-browser Python: Pyodide (CPython compiled to WASM) inside a Web
@@ -76,14 +76,21 @@ export function isPythonReady(): boolean {
   return booted;
 }
 
-export function runPythonJudge(code: string, judge: Judge): Promise<RunResult> {
+export async function runPythonJudge(
+  code: string,
+  judge: Judge,
+): Promise<RunResult> {
   const python = judge.python;
   if (!python) {
-    return Promise.resolve({
+    return {
       status: "error",
       message: "This problem has no Python judge yet.",
-    });
+    };
   }
+  // Generated inputs are expanded, and their expected values taken from the
+  // JavaScript reference, before anything reaches the Python harness.
+  const prepared = await prepareTests(judge);
+  if (!prepared.ok) return prepared.result;
   return new Promise((resolve) => {
     const w = ensureWorker();
     const id = nextId++;
@@ -111,7 +118,7 @@ export function runPythonJudge(code: string, judge: Judge): Promise<RunResult> {
         code,
         driverCode: python.driverCode ?? "",
         entry: python.entry,
-        tests: judge.tests,
+        tests: prepared.tests,
       },
     });
   });

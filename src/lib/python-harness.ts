@@ -7,9 +7,12 @@
 //
 // Semantics mirror the JavaScript worker: per-case verdicts, deep equality
 // (dict keys compared as strings, tuples as lists, integral floats as ints),
-// captured stdout as logs, and errors reported per case.
+// captured stdout as logs, errors reported per case, a test's own `display`
+// shown as its input when present (generated inputs), and long values cut.
 export const PYTHON_HARNESS_BODY = `
 import json, time, io, copy, contextlib, traceback
+
+__MAX_SHOWN_CHARS = 4000
 
 def __norm(x):
     if isinstance(x, bool):
@@ -24,9 +27,12 @@ def __norm(x):
 
 def __display(v):
     try:
-        return json.dumps(__norm(v))
+        text = json.dumps(__norm(v))
     except Exception:
-        return repr(v)
+        text = repr(v)
+    if len(text) > __MAX_SHOWN_CHARS:
+        return text[:__MAX_SHOWN_CHARS] + "\u2026 (" + str(len(text)) + " chars)"
+    return text
 
 def __error_text(e):
     return "".join(traceback.format_exception_only(type(e), e)).strip()
@@ -50,7 +56,7 @@ def __run():
         start = time.perf_counter()
         base = {
             "name": test.get("name") or ("Case " + str(i + 1)),
-            "input": ", ".join(__display(a) for a in test["input"]),
+            "input": test.get("display") or ", ".join(__display(a) for a in test["input"]),
             "expected": __display(test["expected"]),
         }
         try:

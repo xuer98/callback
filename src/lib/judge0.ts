@@ -3,9 +3,15 @@ import { PYTHON_HARNESS_BODY } from "./python-harness";
 import { buildJavaSource } from "./java-harness";
 import { buildCppSource } from "./cpp-harness";
 import { buildGoSource } from "./go-harness";
+import { prepareOnServer, presentVerdicts } from "./judge-prepare";
+import { MAX_SHOWN_CHARS, type RunResult, type TestVerdict } from "./run-judge";
 import { transpileTypeScript } from "./transpile-ts";
-import { judgeFor, type Judge, type Language } from "./types";
-import type { RunResult, TestVerdict } from "./run-judge";
+import {
+  judgeFor,
+  type Judge,
+  type JudgeTest,
+  type Language,
+} from "./types";
 
 // Judge0 client: wraps the user's code in a Node harness with the same
 // semantics as the in-browser worker (sandboxed console, deep equality,
@@ -84,6 +90,12 @@ export async function runOnJudge0(
     };
   }
 
+  // Generated inputs are expanded and their expected values taken from the
+  // JavaScript reference here, so every harness receives concrete tests.
+  const prepared = await prepareOnServer(judge);
+  if (!prepared.ok) return prepared.result;
+  const tests = prepared.tests;
+
   let source: string;
   // Compiled languages report errors against the assembled program (harness
   // + solution), so a raw "line 246" is meaningless to someone looking at a
@@ -91,7 +103,7 @@ export async function runOnJudge0(
   let solutionStartLine: number | null = null;
   if (isCompiled(language)) {
     const payloadB64 = Buffer.from(
-      JSON.stringify({ tests: judge.tests }),
+      JSON.stringify({ tests }),
       "utf8",
     ).toString("base64");
     source = COMPILED_BUILDERS[language](
@@ -106,16 +118,16 @@ export async function runOnJudge0(
       solutionStartLine = source.slice(0, before).split("\n").length;
     }
   } else if (language === "python") {
-    source = buildPythonHarness(code, judge);
+    source = buildPythonHarness(code, judge, tests);
   } else if (language === "typescript") {
     // Strip types, then judge as JavaScript against the JS driver.
     const transpiled = await transpileTypeScript(code);
     if (!transpiled.ok) {
       return { status: "error", message: transpiled.message };
     }
-    source = buildHarness(transpiled.code, judge);
+    source = buildHarness(transpiled.code, judge, tests);
   } else {
-    source = buildHarness(code, judge);
+    source = buildHarness(code, judge, tests);
   }
 
   let submission;
@@ -134,7 +146,7 @@ export async function runOnJudge0(
       }`,
     };
   }
-  return toRunResult(submission, solutionStartLine);
+  return presentVerdicts(toRunResult(submission, solutionStartLine), tests);
 }
 
 interface Judge0Submission {
@@ -278,12 +290,16 @@ function toRunResult(
 // Python program for Judge0: the shared harness body (also used by the
 // Pyodide worker) fed a base64-embedded payload, emitting the verdicts as
 // one marker-prefixed line exactly like the Node harness below.
-export function buildPythonHarness(code: string, judge: Judge): string {
+export function buildPythonHarness(
+  code: string,
+  judge: Judge,
+  tests: readonly JudgeTest[] = judge.tests,
+): string {
   const payload = JSON.stringify({
     code,
     driverCode: judge.python?.driverCode ?? "",
     entry: judge.python?.entry ?? "",
-    tests: judge.tests,
+    tests,
   });
   const payloadB64 = Buffer.from(payload, "utf8").toString("base64");
   return [
@@ -299,22 +315,31 @@ export function buildPythonHarness(code: string, judge: Judge): string {
 // Inputs are JSON-cloned (JudgeTest values are JSON-serializable by contract)
 // because Node 12, Judge0 CE's default runtime, lacks structuredClone.
 // Exported for tests; must stay valid Node 12 syntax.
-export function buildHarness(code: string, judge: Judge): string {
+export function buildHarness(
+  code: string,
+  judge: Judge,
+  tests: readonly JudgeTest[] = judge.tests,
+): string {
   return `"use strict";
 const CODE = ${JSON.stringify(code)};
 const DRIVER = ${JSON.stringify(judge.driverCode ?? "")};
 const ENTRY = ${JSON.stringify(judge.entry)};
-const TESTS = ${JSON.stringify(judge.tests)};
+const TESTS = ${JSON.stringify(tests)};
 const MARKER = ${JSON.stringify(RESULT_MARKER)};
+const MAX_SHOWN_CHARS = ${MAX_SHOWN_CHARS};
 
 function display(value) {
   if (value === undefined) return "undefined";
+  let text;
   try {
     const json = JSON.stringify(value);
-    return json === undefined ? String(value) : json;
+    text = json === undefined ? String(value) : json;
   } catch {
-    return String(value);
+    text = String(value);
   }
+  return text.length > MAX_SHOWN_CHARS
+    ? text.slice(0, MAX_SHOWN_CHARS) + "… (" + text.length + " chars)"
+    : text;
 }
 
 function deepEqual(a, b) {
@@ -377,7 +402,7 @@ for (let i = 0; i < TESTS.length; i++) {
   const elapsedMs = () => Number(process.hrtime.bigint() - started) / 1e6;
   const base = {
     name: test.name || "Case " + (i + 1),
-    input: test.input.map(display).join(", "),
+    input: test.display !== undefined ? test.display : test.input.map(display).join(", "),
     expected: display(test.expected),
   };
   try {

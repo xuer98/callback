@@ -3,6 +3,7 @@
 // per-case run verdicts. Submission history is the description pane's
 // Submissions tab (submissions.tsx).
 import { useState } from "react";
+import { hasGenSpec, isReference } from "@/lib/judge-gen";
 import type { RunResult, TestVerdict } from "@/lib/run-judge";
 import type { Judge } from "@/lib/types";
 
@@ -17,11 +18,13 @@ function display(value: unknown): string {
 
 // The sample cases the judge will run, visible before pressing Run. They are
 // read-only: tests are loaded server-side by slug so a client can't submit
-// doctored ones.
+// doctored ones. A generated case (src/lib/judge-gen.ts) shows its generator
+// spec, and its expected value comes from the reference solution at run time.
 export function TestcasePanel({ tests }: { tests: Judge["tests"] }) {
   const [selected, setSelected] = useState(0);
   const test = tests[Math.min(selected, tests.length - 1)];
   if (!test) return null;
+  const generated = test.input.some(hasGenSpec);
 
   return (
     <div className="space-y-3">
@@ -40,10 +43,14 @@ export function TestcasePanel({ tests }: { tests: Judge["tests"] }) {
           </button>
         ))}
       </div>
-      <Field label="Input">
+      <Field label={generated ? "Input (generated when you run)" : "Input"}>
         {test.input.map((arg) => display(arg)).join("\n")}
       </Field>
-      <Field label="Expected">{display(test.expected)}</Field>
+      <Field label="Expected">
+        {isReference(test.expected)
+          ? "Whatever the reference solution returns for this input."
+          : display(test.expected)}
+      </Field>
     </div>
   );
 }

@@ -217,7 +217,14 @@ export interface JudgeLanguage {
   solutionCode?: string;
 }
 
-/** One sample case; values must be JSON-serializable and have a unique correct answer. */
+/**
+ * One sample case; values must be JSON-serializable and have a unique
+ * correct answer. A large case is written as generator specs instead of
+ * literal values — `{ $gen: "ints", n: 100000, ... }` inside `input`, and
+ * `REFERENCE` (`{ $ref: "solution" }`) as `expected` — which the runners
+ * expand and resolve against the JavaScript reference solution at run time;
+ * see src/lib/judge-gen.ts.
+ */
 export interface JudgeTest {
   name?: string;
   /** Arguments passed to the entry function, in order. */

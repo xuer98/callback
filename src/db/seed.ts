@@ -42,6 +42,7 @@ async function inBatches<T>(
     await write(rows.slice(i, i + size));
   }
 }
+import { checkLargeTests, largeTestsFor } from "../lib/seed-large-tests";
 import { checkProblemTopics, problemTopics } from "../lib/seed-topics";
 import { pythonJudges } from "../lib/seed-python";
 import { applePythonJudges } from "../lib/seed-python-apple";
@@ -248,6 +249,8 @@ async function main() {
     const questionData: QuestionData = JSON.parse(
       readFileSync(join(__dirname, "leetcode-questions.json"), "utf8"),
     );
+    // Large generated cases need a judged problem with a reference solution.
+    checkLargeTests(seedProblems);
     // Topic tags share the listings' vocabulary: the snapshot's tags plus
     // any a curated listing brought along.
     checkProblemTopics(
@@ -272,10 +275,12 @@ async function main() {
         solution: problem.solution ?? null,
         rubric: problem.rubric ?? null,
         topics: problemTopics[problem.slug] ?? [],
-        // Judges gain their per-language definitions at seed time.
+        // Judges gain their per-language definitions and their large,
+        // generated cases at seed time.
         judge: problem.judge
           ? {
               ...problem.judge,
+              tests: [...problem.judge.tests, ...largeTestsFor(problem.slug)],
               python:
                 pythonJudges[problem.slug] ??
                 applePythonJudges[problem.slug] ??
