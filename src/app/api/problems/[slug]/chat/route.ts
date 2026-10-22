@@ -1,8 +1,14 @@
-import Anthropic, { APIError } from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
 import { and, count, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { auth } from "@/lib/auth";
+import {
+  anthropicClient,
+  CHAT_MODEL,
+  streamReply,
+  upstreamFailure,
+} from "@/lib/chat-stream";
 
 // Interviewer chat for system-design problems: the candidate asks clarifying
 // questions or for a nudge, and this route streams back the interviewer's
@@ -11,10 +17,11 @@ import { auth } from "@/lib/auth";
 // rather than trusting a client-sent history — and the write-up and diagram
 // labels ride along with each message so "what am I missing?" is answered
 // about the actual design. The rubric goes in as private interviewer notes.
+// The streaming and the client come from src/lib/chat-stream.ts, shared
+// with the assistant route.
 
 export const maxDuration = 120;
 
-const MODEL = "claude-opus-5";
 const MAX_OUTPUT_TOKENS = 1024;
 const MAX_MESSAGE_CHARS = 2_000;
 const MAX_WRITEUP_CHARS = 20_000;
@@ -48,13 +55,6 @@ const GENERIC_NOTES = [
 
 function jsonError(status: number, error: string): Response {
   return Response.json({ error }, { status });
-}
-
-/** The API's own one-line reason — no secrets. */
-function upstreamDetail(err: APIError): string {
-  const body = err.error as { error?: { message?: unknown } } | undefined;
-  const message = body?.error?.message;
-  return typeof message === "string" ? message : err.message;
 }
 
 interface ChatBody {
@@ -192,21 +192,15 @@ export async function POST(
     },
   ];
 
-  const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
-  const client = new Anthropic({
-    defaultHeaders: workspaceId
-      ? { "anthropic-workspace-id": workspaceId }
-      : undefined,
-  });
+  const client = anthropicClient();
   const aborter = new AbortController();
   // `stream: true` resolves once headers arrive, so an outright rejection
   // surfaces here with its reason instead of as a dead 200 stream.
-  let upstream: Awaited<ReturnType<typeof client.messages.create>> &
-    AsyncIterable<Anthropic.RawMessageStreamEvent>;
+  let upstream: AsyncIterable<Anthropic.RawMessageStreamEvent>;
   try {
     upstream = await client.messages.create(
       {
-        model: MODEL,
+        model: CHAT_MODEL,
         max_tokens: MAX_OUTPUT_TOKENS,
         // Short conversational turns: low effort keeps the first token quick.
         output_config: { effort: "low" },
@@ -233,103 +227,33 @@ export async function POST(
     );
   } catch (err) {
     console.error("Interviewer chat request failed before streaming:", err);
-    if (err instanceof APIError) {
-      const hint =
-        err.status === 401
-          ? "the server's ANTHROPIC_API_KEY was rejected"
-          : err.status === 404
-            ? workspaceId
-              ? "this API key can't use the chat model or the configured ANTHROPIC_WORKSPACE_ID"
-              : `this API key can't use the chat model (${MODEL})`
-            : err.status === 429
-              ? "the chat backend is rate-limited right now"
-              : (err.status ?? 0) >= 500
-                ? "the chat backend is overloaded — try again in a minute"
-                : "the chat backend rejected the request";
-      return jsonError(502, `The interviewer didn't answer — ${hint}. (${upstreamDetail(err)})`);
-    }
-    return jsonError(502, "The interviewer didn't answer — couldn't reach the chat backend.");
+    return jsonError(502, upstreamFailure(err, "The interviewer"));
   }
 
-  const encoder = new TextEncoder();
-  const responseBody = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      /** Text the model actually produced — the persistence gate. */
-      let replyText = "";
-      let stored = "";
-      let stopReason: string | null = null;
-      let inputTokens = 0;
-      let outputTokens = 0;
-      try {
-        for await (const event of upstream) {
-          if (event.type === "message_start") {
-            const usage = event.message.usage;
-            inputTokens =
-              usage.input_tokens +
-              (usage.cache_read_input_tokens ?? 0) +
-              (usage.cache_creation_input_tokens ?? 0);
-          } else if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            replyText += event.delta.text;
-            stored += event.delta.text;
-            controller.enqueue(encoder.encode(event.delta.text));
-          } else if (event.type === "message_delta") {
-            stopReason = event.delta.stop_reason ?? stopReason;
-            outputTokens = event.usage.output_tokens;
-          }
-        }
-        if (stopReason === "refusal") {
-          const note = "\n\n*The interviewer declined to answer that.*";
-          stored += note;
-          controller.enqueue(encoder.encode(note));
-        }
-        if (replyText.trim() !== "") {
-          // Both turns land together, so a failed reply leaves no orphaned
-          // question behind and never counts against the daily limit.
-          await db.transaction(async (tx) => {
-            await tx.insert(schema.designChatMessages).values({
-              userId,
-              problemId: problem.id,
-              role: "user",
-              content: message,
-            });
-            await tx.insert(schema.designChatMessages).values({
-              userId,
-              problemId: problem.id,
-              role: "assistant",
-              content: stored,
-              inputTokens,
-              outputTokens,
-            });
-          });
-        }
-        controller.close();
-      } catch (err) {
-        console.error("Interviewer chat stream failed mid-reply:", err);
-        try {
-          controller.enqueue(
-            encoder.encode(
-              "\n\n*The reply was cut off by an upstream error and wasn't saved — ask again.*",
-            ),
-          );
-          controller.close();
-        } catch {
-          // Stream already cancelled.
-        }
-      }
-    },
-    cancel() {
-      // Reader went away — stop paying for tokens.
-      aborter.abort();
-    },
-  });
-
-  return new Response(responseBody, {
-    headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Cache-Control": "no-store",
+  return streamReply({
+    upstream,
+    aborter,
+    refusalNote: "*The interviewer declined to answer that.*",
+    label: "Interviewer chat",
+    onDone: async (stored, usage) => {
+      // Both turns land together, so a failed reply leaves no orphaned
+      // question behind and never counts against the daily limit.
+      await db.transaction(async (tx) => {
+        await tx.insert(schema.designChatMessages).values({
+          userId,
+          problemId: problem.id,
+          role: "user",
+          content: message,
+        });
+        await tx.insert(schema.designChatMessages).values({
+          userId,
+          problemId: problem.id,
+          role: "assistant",
+          content: stored,
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+        });
+      });
     },
   });
 }

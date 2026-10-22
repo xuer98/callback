@@ -7,6 +7,7 @@ import { DesignWorkspace } from "@/components/design-workspace";
 import { DifficultyBadge } from "@/components/difficulty-badge";
 import { FavoriteStar, MarkDoneButton } from "@/components/progress";
 import { RichText } from "@/components/markdown";
+import { ProblemAssistant } from "@/components/problem-assistant";
 import { ProblemMenuButton } from "@/components/problem-menu";
 import { ProblemPanes } from "@/components/problem-panes";
 import { JudgeSolution, UiSolution } from "@/components/solution-panel";
@@ -17,6 +18,7 @@ import {
   CATEGORY_LABELS,
   judgeFor,
   LANGUAGES,
+  languagesFor,
   uiTemplates,
   type Company,
   type Problem,
@@ -48,6 +50,25 @@ export default async function ProblemPage({
 
   const judge = problem.judge;
   const compact = Boolean(judge || problem.ui);
+
+  // The study assistant, on every problem: it sends along the work of
+  // whichever workspace the problem has, so it needs to know which.
+  const assistant = (
+    <ProblemAssistant
+      slug={problem.slug}
+      kind={
+        judge
+          ? "code"
+          : problem.ui
+            ? "ui"
+            : problem.category === "system-design"
+              ? "design"
+              : "quiz"
+      }
+      languages={judge ? languagesFor(judge) : undefined}
+      ui={problem.ui}
+    />
+  );
 
   const header = (
     <header>
@@ -130,6 +151,7 @@ export default async function ProblemPage({
             )
           }
           workspace={workspace}
+          assistant={assistant}
           chat={
             problem.category === "system-design" ? (
               <DesignChat slug={problem.slug} />
@@ -147,6 +169,12 @@ export default async function ProblemPage({
       <Prompt problem={problem} />
       <Hints problem={problem} />
       <Solution problem={problem} />
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold text-zinc-100">Assistant</h2>
+        <div className="mt-3 flex h-[28rem] flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+          {assistant}
+        </div>
+      </section>
       <Topics problem={problem} />
       <AskedAt problem={problem} />
     </div>

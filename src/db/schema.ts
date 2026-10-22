@@ -271,6 +271,35 @@ export const designChatMessages = pgTable(
   ],
 );
 
+// One turn of the study assistant on any problem: the user's message or the
+// streamed reply. Same shape and ordering rules as the interviewer chat
+// above, in its own table so each has its own thread, limits, and history.
+export const assistantMessages = pgTable(
+  "assistant_messages",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    problemId: integer("problem_id")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    /** "user" | "assistant" */
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("assistant_messages_user_problem_idx").on(
+      table.userId,
+      table.problemId,
+      table.createdAt,
+    ),
+  ],
+);
+
 // One graded attempt at a judged problem: the code exactly as submitted,
 // the language it ran in, and the verdict. Run stays ephemeral; Submit
 // archives. Language and status are text, not enums, for the same

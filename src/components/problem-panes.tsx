@@ -9,9 +9,9 @@ import { SubmissionHistory, SubmissionsProvider } from "./submissions";
 // and passed in, so the prompt stays static HTML. Hints live inside the
 // description (collapsed) rather than behind their own tab. Judged problems
 // add a Submissions tab (the signed-in user's graded attempts), which the
-// workspace's Submit opens. Design problems add an Interviewer tab (the
-// chat), which stays mounted so a reply keeps streaming while the candidate
-// reads the prompt.
+// workspace's Submit opens. Every problem gets an Assistant tab, and design
+// problems an Interviewer tab as well; both chats stay mounted so a reply
+// keeps streaming while the candidate reads the prompt.
 export function ProblemPanes({
   slug,
   description,
@@ -19,6 +19,7 @@ export function ProblemPanes({
   workspace,
   hasSolution,
   hasSubmissions,
+  assistant,
   chat,
 }: {
   slug: string;
@@ -27,10 +28,11 @@ export function ProblemPanes({
   workspace: React.ReactNode;
   hasSolution: boolean;
   hasSubmissions: boolean;
+  assistant?: React.ReactNode;
   chat?: React.ReactNode;
 }) {
   const [tab, setTab] = useState<
-    "description" | "solution" | "submissions" | "chat"
+    "description" | "solution" | "submissions" | "assistant" | "chat"
   >("description");
 
   const panes = (
@@ -75,10 +77,18 @@ export function ProblemPanes({
                 Interviewer
               </PaneTab>
             )}
+            {assistant !== undefined && (
+              <PaneTab
+                active={tab === "assistant"}
+                onClick={() => setTab("assistant")}
+              >
+                Assistant
+              </PaneTab>
+            )}
           </div>
           <div
             className={
-              tab === "chat"
+              tab === "chat" || tab === "assistant"
                 ? "hidden"
                 : "min-h-0 flex-1 overflow-y-auto px-5 py-5"
             }
@@ -98,6 +108,15 @@ export function ProblemPanes({
               }
             >
               {chat}
+            </div>
+          )}
+          {assistant !== undefined && (
+            <div
+              className={
+                tab === "assistant" ? "flex min-h-0 flex-1 flex-col" : "hidden"
+              }
+            >
+              {assistant}
             </div>
           )}
         </section>
