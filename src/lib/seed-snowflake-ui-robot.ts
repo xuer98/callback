@@ -1,8 +1,14 @@
+import {
+  robotGameJs,
+  robotReactSolution,
+  robotReactStarter,
+} from "./seed-snowflake-ui-robot-react";
 import type { Problem, UiFile } from "./types";
 
 // Snowflake front-end prompts, part C continued: the robot that eats candies
-// on a grid, in plain JavaScript, with one template and complete reference
-// files. Its walk to the nearest candy is a requestAnimationFrame loop.
+// on a grid, in plain JavaScript and in React (seed-snowflake-ui-robot-react.ts),
+// each with complete reference files. Its walk to the nearest candy is a
+// requestAnimationFrame loop, and a debounced hint shows the way there.
 
 // -- robot eats candies (vanilla) ---------------------------------------------
 
@@ -13,7 +19,7 @@ const robotHtml: UiFile = {
   <div class="grid" id="grid" role="grid" aria-label="Candy grid"></div>
   <div class="game__controls">
     <button type="button" id="auto">Eat the nearest candy</button>
-    <span class="game__hint">Arrow keys move the robot.</span>
+    <span class="game__hint">Arrow keys move the robot. Stand still to see the way to the nearest candy.</span>
   </div>
 </main>
 `,
@@ -54,6 +60,10 @@ const robotCss: UiFile = {
 
 .cell--wall {
   background: #3f3f46;
+}
+
+.cell--hint {
+  background: #c7d2fe;
 }
 
 .cell--candy::after {
@@ -104,6 +114,7 @@ function createGame() {
     walls: new Set(walls.map(([r, c]) => key(r, c))),
     eaten: 0,
     total: candies.length,
+    hint: new Set(), // keys of the cells on the hinted path
   };
 }
 
@@ -129,6 +140,7 @@ function mount(g, root) {
     for (const [k, cell] of cells) {
       cell.classList.toggle("cell--candy", g.candies.has(k));
       cell.classList.toggle("cell--robot", k === key(g.robot.r, g.robot.c));
+      cell.classList.toggle("cell--hint", g.hint.has(k));
     }
     status.textContent = g.eaten === g.total ? "All " + g.total + " candies eaten!" : "Eaten " + g.eaten + " of " + g.total;
   }
@@ -151,13 +163,25 @@ function pathToNearestCandy(g) {
 }
 
 const STEP_MS = 150; // one cell per 150 ms while walking
+const HINT_MS = 400; // stand still this long to see the way to the nearest candy
+
+/** fn, run once ms have passed without another call; .cancel() drops a pending call. */
+function debounce(fn, ms) {
+  // TODO: one timer, restarted by every call.
+  const debounced = () => {};
+  debounced.cancel = () => {};
+  return debounced;
+}
 
 const game = createGame();
 const render = mount(game, document.getElementById("app"));
 render();
+// TODO: once the robot has stood still for HINT_MS, set game.hint to the
+// cells of the path to the nearest candy and render. That starts at load.
 
 document.addEventListener("keydown", (event) => {
-  // TODO: an arrow key cancels a walk in progress first.
+  // TODO: an arrow key cancels a walk in progress first. It also hides the
+  // hint at once and shows it again HINT_MS after the last key press.
   if (step(game, event.key)) {
     event.preventDefault();
     render();
@@ -166,7 +190,8 @@ document.addEventListener("keydown", (event) => {
 
 document.getElementById("auto").addEventListener("click", () => {
   // TODO: walk the path to the nearest candy one cell every STEP_MS, driven
-  // by requestAnimationFrame.
+  // by requestAnimationFrame. Cancel a pending hint, and show it again
+  // HINT_MS after the walk ends.
 });
 `;
 
@@ -208,10 +233,37 @@ function pathToNearestCandy(g) {
 }
 
 const STEP_MS = 150;
+const HINT_MS = 400;
+
+function debounce(fn, ms) {
+  let timer = null;
+  function debounced(...args) {
+    clearTimeout(timer); // every call pushes the deadline back
+    timer = setTimeout(() => {
+      timer = null;
+      fn(...args);
+    }, ms);
+  }
+  debounced.cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+  return debounced;
+}
 
 const game = createGame();
 const render = mount(game, document.getElementById("app"));
+
+function setHint(path) {
+  game.hint = new Set(path.map(([r, c]) => key(r, c)));
+  render();
+}
+
+// The robot has stood still for HINT_MS: show the way to the nearest candy.
+const showHint = debounce(() => setHint(pathToNearestCandy(game)), HINT_MS);
+
 render();
+showHint(); // standing still from the start counts too
 
 // The walk in progress: its path, the next index, when it last stepped, and
 // the pending frame, so a key press can cancel it.
@@ -234,23 +286,28 @@ function tick(now) {
     if (game.candies.delete(key(r, c))) game.eaten++;
     render();
   }
-  if (walk.i < walk.path.length) walk.frame = requestAnimationFrame(tick);
-  else walk = null;
+  if (walk.i < walk.path.length) {
+    walk.frame = requestAnimationFrame(tick);
+  } else {
+    walk = null;
+    showHint(); // the robot is still again
+  }
 }
 
 document.addEventListener("keydown", (event) => {
   if (!DIRS[event.key]) return;
   stopWalk(); // the player takes over from wherever the robot stands
-  if (step(game, event.key)) {
-    event.preventDefault();
-    render();
-  }
+  if (step(game, event.key)) event.preventDefault();
+  setHint([]); // hide the hint at once, rendering the move with it
+  showHint(); // and bring it back once the keys go quiet
 });
 
 document.getElementById("auto").addEventListener("click", () => {
   if (walk) return; // one walk at a time
   const path = pathToNearestCandy(game);
   if (path.length === 0) return;
+  showHint.cancel();
+  setHint([]);
   walk = { path, i: 0, last: null, frame: requestAnimationFrame(tick) };
 });
 `;
@@ -262,26 +319,27 @@ export const snowflakeUiRobotProblems: Problem[] = [
     category: "frontend",
     difficulty: "medium",
     companies: ["snowflake"],
-    summary: "Keyboard movement with walls and edges, then a breadth-first path to the nearest candy walked by a requestAnimationFrame loop.",
+    summary: "Keyboard movement with walls and edges, a breadth-first path to the nearest candy walked by a requestAnimationFrame loop, and a debounced hint, in plain JavaScript or React.",
     prompt: [
-      "A grid is already rendered, with walls, candies and a robot, and helper functions for cells are provided. Write the JavaScript that moves the robot and removes candies as it reaches them.",
+      "A grid is already rendered, with walls, candies and a robot, and helpers for the cells are provided. Make the robot move and eat the candies it reaches. Build it in plain JavaScript or in React, switchable above the editor; in React the board data and `inBounds` are in `game.js`.",
       "",
       "## Requirements",
       "",
       "- Arrow keys move the robot one cell; walls and the grid edge block the move. A candy on the destination is eaten and the status line counts it.",
-      "- The **Eat the nearest candy** button finds the shortest path to the closest reachable candy and walks it one cell every `STEP_MS` milliseconds, eating on arrival.",
+      "- The **Eat the nearest candy** button finds the shortest path to the closest reachable candy and walks it one cell every `STEP_MS` milliseconds, eating on arrival. When no candy is reachable it does nothing.",
       "- Drive the walk with `requestAnimationFrame`, not `setInterval` or `setTimeout`. Decide when to step from the frame timestamps, so the pace does not depend on the display's frame rate.",
       "- A second click during a walk does nothing. An arrow key cancels the walk with `cancelAnimationFrame`, then moves the robot from where it stands.",
-      "- When no candy is reachable the button does nothing.",
-      "- Re-rendering only toggles classes on the existing cells; the grid is not rebuilt.",
+      "- Whenever the robot has stood still for `HINT_MS` milliseconds (after the page loads, after the last arrow key, or after a walk ends), highlight the shortest path to the nearest candy. An arrow key hides the hint at once and restarts the wait, and the button cancels a pending hint. Write the `debounce(fn, ms)` behind it yourself, with a `cancel()`.",
+      "- In plain JavaScript, re-rendering only toggles classes on the existing cells; the grid is not rebuilt. In React, keep the cell classes (`cell--wall`, `cell--candy`, `cell--robot`, `cell--hint`) on cells in row-major order: the styles and the tests read them.",
       "",
       "Clarify first, as the reports differ: does the player drive the robot or does it move by itself? Here it is both.",
     ].join("\n"),
     hints: [
-      "`step` is a direction lookup plus the `inBounds` check; `Set.delete` returns whether a candy was there, so it doubles as the eat check.",
+      "`step` is a direction lookup plus the `inBounds` check; `Set.delete` returns whether a candy was there, so it doubles as the eat check. In React, a reducer returns a new game with a copied `Set` instead.",
       "Breadth-first search from the robot with a predecessor map; the first candy dequeued is the nearest, and walking the map back from it gives the path. Use an index pointer over the queue array instead of `shift()`.",
-      "Keep one walk object: the path, the next index, the timestamp of the last step and the pending frame ID. Each frame steps only when `now - last >= STEP_MS`, then requests the next frame until the path runs out.",
-      "Store the ID `requestAnimationFrame` returns: `cancelAnimationFrame` needs it when a key press interrupts, and a non-null walk is also what makes a second click a no-op.",
+      "Keep one walk object: the path, the next index, the timestamp of the last step and the pending frame ID. Each frame steps only when `now - last >= STEP_MS`. Keep the frame ID for `cancelAnimationFrame`; a non-null walk is also what makes a second click a no-op.",
+      "`debounce` keeps one timer: each call clears it and starts a new one, and `cancel` clears it. The hint is then two calls on every key press: hide it now, and call the debounced show.",
+      "In React, create the debounced function once per component, with `useState` or a ref, and have it call the latest callback through a ref. Otherwise the pending call computes the path from the state of an old render.",
     ],
     solution: [
       "## Approach",
@@ -290,11 +348,17 @@ export const snowflakeUiRobotProblems: Problem[] = [
       "",
       "The button walks that path with a `requestAnimationFrame` loop. A single `walk` object holds the path, the next index, the timestamp of the last step and the pending frame ID. Each `tick` receives the frame's timestamp, steps one cell once `STEP_MS` has passed since the last step, and requests another frame until the path ends. Advancing `last` by exactly `STEP_MS` keeps the cadence even when frames land unevenly, and resetting it after a long gap stops the robot from jumping several cells when a hidden tab comes back. A keydown cancels the pending frame before stepping, so the walk can never move the robot back onto its old path.",
       "",
+      "The hint is a trailing-edge debounce. `debounce` holds one timer that every call restarts, and `cancel` drops it. Every arrow key hides the hint immediately and calls the debounced `showHint`, so holding a key, which repeats keydown, keeps pushing the hint back until the robot stops. Load and the end of a walk call it too, and the button cancels it before walking. When it fires, it runs the same breadth-first search and marks the path's cells.",
+      "",
+      "The React version keeps the game in a reducer: `STEP` for arrow keys, `GOTO` for each cell of the walk, both returning a new game. The walk object and its frame ID live in a ref, since changing them must not re-render. `useDebounced` creates the debounced function once and calls the latest callback through a ref, so the hint is computed from current state; effects cancel the timer and the frame on unmount.",
+      "",
       "## Worth saying out loud",
       "",
       "- Eating every candy in the shortest total route is a travelling-salesman problem; nearest-first is the practical answer.",
       "- `requestAnimationFrame` over `setInterval`: callbacks run just before paint, at most once per frame, and pause in background tabs, while an interval keeps firing in the background and drifts against the display.",
       "- The loop decides on timestamps, never on frame counts, because displays run at 60, 120 or 144 Hz.",
+      "- Debounce, not throttle: a throttled hint would flash up while the robot is still moving, whereas the hint is only useful once it stops.",
+      "- In React, a debounced function created during render is a new one on every render, each with its own timer. That is the most common way this goes wrong.",
       "- Gliding between cells is the next step: draw the robot as one element above the grid and, each frame, set its `transform` to a point between the two cells using `(now - last) / STEP_MS`.",
       "- Other follow-ups: a score, and diagonal moves (add four more directions).",
       "- Keyboard handling on `document` is fine for a game; a focused grid with `tabIndex` is the accessible version.",
@@ -303,6 +367,19 @@ export const snowflakeUiRobotProblems: Problem[] = [
       framework: "vanilla",
       files: [robotHtml, { name: "script.js", contents: robotVanillaStarter }, robotCss],
       solution: [robotHtml, { name: "script.js", contents: robotVanillaSolution }, robotCss],
+      alternate: {
+        framework: "react",
+        files: [
+          { name: "App.jsx", contents: robotReactStarter },
+          { name: "game.js", contents: robotGameJs },
+          robotCss,
+        ],
+        solution: [
+          { name: "App.jsx", contents: robotReactSolution },
+          { name: "game.js", contents: robotGameJs },
+          robotCss,
+        ],
+      },
     },
   },
 ];

@@ -313,8 +313,13 @@ function run(options: {
     },
     checkTest: checkAssertionCount,
     afterTest() {
-      restoreTimers();
-      RTL.cleanup();
+      // Unmount first, so effect cleanups clear timers on the clock that
+      // set them; then put the real timers back.
+      try {
+        RTL.cleanup();
+      } finally {
+        restoreTimers();
+      }
     },
     uncaught: () => uncaught,
     report(name, status, duration, error) {

@@ -1,4 +1,5 @@
 import type { Problem, UiWorkspace } from "./types";
+import { HEADER, uiTestsB } from "./seed-ui-tests-b";
 
 // The tests some React UI problems ship with, keyed by slug and merged into
 // the React template's `tests` at seed time, like the per-language judges.
@@ -6,9 +7,6 @@ import type { Problem, UiWorkspace } from "./types";
 // against the contract the prompt and starter markup state, never against
 // the reference solution's internals, and the candidate can edit or add to
 // them. The seed refuses a slug without a React template.
-
-const HEADER = `// This problem's tests. Edit them or add your own; Reset restores them.
-`;
 
 const counter = `import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -214,132 +212,12 @@ test("clicking an open title collapses it", async () => {
 });
 `;
 
-const kanbanHelpers = `const column = (name: string) => screen.getByRole("region", { name });
-
-const control = (title: string, direction: "left" | "right") =>
-  screen.queryByRole("button", { name: \`Move \${title} \${direction}\` });
-
-async function move(title: string, direction: "left" | "right") {
-  const button = control(title, direction);
-  expect(button).not.toBeNull();
-  await userEvent.click(button!);
-}`;
-
-const kanbanMoves = `import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import App from "./App";
-
-${HEADER}
-${kanbanHelpers}
-
-test("each task starts in its own column", () => {
-  render(<App />);
-  expect(within(column("To Do")).getByText("Write the spec")).toBeVisible();
-  expect(within(column("In Progress")).getByText("Build the API")).toBeVisible();
-  expect(within(column("Done")).getByText("Ship the beta")).toBeVisible();
-});
-
-test("the right and left arrows move a task to the adjacent column", async () => {
-  render(<App />);
-  await move("Write the spec", "right");
-  expect(within(column("In Progress")).getByText("Write the spec")).toBeVisible();
-  expect(within(column("To Do")).queryByText("Write the spec")).toBeNull();
-  await move("Write the spec", "left");
-  expect(within(column("To Do")).getByText("Write the spec")).toBeVisible();
-});
-
-test("an arrow is hidden where the task cannot move", () => {
-  render(<App />);
-  expect(control("Write the spec", "left")).toBeNull();
-  expect(control("Write the spec", "right")).not.toBeNull();
-  expect(control("Build the API", "left")).not.toBeNull();
-  expect(control("Build the API", "right")).not.toBeNull();
-  expect(control("Ship the beta", "left")).not.toBeNull();
-  expect(control("Ship the beta", "right")).toBeNull();
-});
-
-test("the arrows follow a task to the last column", async () => {
-  render(<App />);
-  await move("Design the schema", "right");
-  await move("Design the schema", "right");
-  expect(within(column("Done")).getByText("Design the schema")).toBeVisible();
-  expect(control("Design the schema", "right")).toBeNull();
-  expect(control("Design the schema", "left")).not.toBeNull();
-});
-`;
-
-const kanbanAppend = `import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import App from "./App";
-
-${HEADER}
-${kanbanHelpers}
-
-const TITLES = [
-  "Write the spec",
-  "Design the schema",
-  "Set up CI",
-  "Build the API",
-  "Review the mockups",
-  "Fix the login bug",
-  "Ship the beta",
-];
-
-/** The task titles in one column, top to bottom. */
-const titlesIn = (name: string) =>
-  within(column(name))
-    .queryAllByRole("listitem")
-    .map((item) => TITLES.find((title) => within(item).queryByText(title)));
-
-test("a task moved right lands at the bottom of its new column", async () => {
-  render(<App />);
-  await move("Write the spec", "right");
-  expect(titlesIn("In Progress")).toEqual([
-    "Build the API",
-    "Review the mockups",
-    "Write the spec",
-  ]);
-});
-
-test("a task moved left lands at the bottom too", async () => {
-  render(<App />);
-  await move("Fix the login bug", "left");
-  expect(titlesIn("In Progress").at(-1)).toBe("Fix the login bug");
-});
-
-test("the source column keeps its order", async () => {
-  render(<App />);
-  await move("Design the schema", "right");
-  expect(titlesIn("To Do")).toEqual(["Write the spec", "Set up CI"]);
-});
-
-test("two moves of the same task leave one copy at the bottom", async () => {
-  render(<App />);
-  await move("Set up CI", "right");
-  await move("Set up CI", "right");
-  expect(titlesIn("Done").at(-1)).toBe("Set up CI");
-  expect(titlesIn("In Progress")).not.toContain("Set up CI");
-  expect(screen.getAllByText("Set up CI")).toHaveLength(1);
-});
-
-test("a task that comes back goes to the bottom again", async () => {
-  render(<App />);
-  await move("Build the API", "right");
-  await move("Build the API", "left");
-  expect(titlesIn("In Progress")).toEqual([
-    "Review the mockups",
-    "Build the API",
-  ]);
-});
-`;
-
 export const uiTests: Record<string, string> = {
   "react-counter": counter,
   "react-todo-list": todoList,
   "react-tabs": tabs,
   "react-accordion": accordion,
-  "kanban-board-move-controls": kanbanMoves,
-  "kanban-board-move-to-bottom": kanbanAppend,
+  ...uiTestsB,
 };
 
 /** The problem's UI workspace with its tests merged into the React template. */
