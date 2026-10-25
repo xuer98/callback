@@ -52,6 +52,7 @@ import { snowflakeUiProblemsG } from "./seed-snowflake-ui-g";
 import { snowflakeUiProblemsH } from "./seed-snowflake-ui-h";
 import { snowflakeUiProblemsI } from "./seed-snowflake-ui-i";
 import { snowflakeUiProblemsJ } from "./seed-snowflake-ui-j";
+import { snowflakeUiProblemsK } from "./seed-snowflake-ui-k";
 import { uiCheatsheetProblemsA } from "./seed-ui-cheatsheet-a";
 import { uiCheatsheetProblemsB } from "./seed-ui-cheatsheet-b";
 import { uiCheatsheetProblemsC } from "./seed-ui-cheatsheet-c";
@@ -3056,6 +3057,7 @@ ORDER BY department, employee;
   ...snowflakeUiProblemsH,
   ...snowflakeUiProblemsI,
   ...snowflakeUiProblemsJ,
+  ...snowflakeUiProblemsK,
   ...uiCheatsheetProblemsA,
   ...uiCheatsheetProblemsB,
   ...uiCheatsheetProblemsC,
