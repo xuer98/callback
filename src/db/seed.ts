@@ -44,6 +44,7 @@ async function inBatches<T>(
 }
 import { checkLargeTests, largeTestsFor } from "../lib/seed-large-tests";
 import { checkCuratedSimilar } from "../lib/similar-curated";
+import { checkUiTests, withUiTests } from "../lib/seed-ui-tests";
 import { checkProblemTopics, problemTopics } from "../lib/seed-topics";
 import { pythonJudges } from "../lib/seed-python";
 import { applePythonJudges } from "../lib/seed-python-apple";
@@ -253,6 +254,7 @@ async function main() {
     // Large generated cases need a judged problem with a reference solution.
     checkLargeTests(seedProblems);
     checkCuratedSimilar(seedProblems);
+    checkUiTests(seedProblems);
     // Topic tags share the listings' vocabulary: the snapshot's tags plus
     // any a curated listing brought along.
     checkProblemTopics(
@@ -314,7 +316,7 @@ async function main() {
               go: goJudges[problem.slug] ?? goSplitJudges[problem.slug],
             }
           : null,
-        ui: problem.ui ?? null,
+        ui: withUiTests(problem.slug, problem.ui) ?? null,
       };
       // Console-edited problems (edited_at set) belong to the admin console
       // until released — the seed inserts missing rows but never overwrites

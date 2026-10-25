@@ -25,9 +25,14 @@ import {
 } from "@/lib/editor-format";
 import { editorLint, lintKindForFile } from "@/lib/editor-lint";
 import { shortcutHint, useEditorShortcuts } from "@/lib/editor-shortcuts";
-import { PaneTab, SplitPane } from "./resizable";
+import { SplitPane } from "./resizable";
 import { MarkDoneButton, useProgress } from "./progress";
 import { useTheme } from "./theme";
+import {
+  UiOutputPane,
+  useTestRun,
+  type OutputTab,
+} from "./ui-workspace-output";
 import {
   buildPreview,
   PREVIEW_MESSAGE_SOURCE,
@@ -50,6 +55,7 @@ import {
   type UiTemplate,
   type UiWorkspace as UiWorkspaceSpec,
 } from "@/lib/types";
+import { uiEditableFiles, uiTestFile } from "@/lib/ui-tests";
 
 // The frontend-question workspace: one editor tab per starter file and a live
 // preview beside a captured console. Edits rebuild the preview on a debounce;
@@ -58,7 +64,8 @@ import {
 //
 // A problem may ship the same exercise as a React template and an HTML/CSS/JS
 // one; the framework select swaps the file set, and each template keeps its
-// own drafts.
+// own drafts. A React template also gets a test file (see ui-tests.ts),
+// edited and saved like the rest and run on demand into the Tests tab.
 
 const REBUILD_DEBOUNCE_MS = 800;
 const MAX_LOGS = 300;
@@ -128,7 +135,7 @@ export function UiWorkspace({
   const loadFiles = useCallback(
     (t: UiTemplate) =>
       Object.fromEntries(
-        t.files.map((file) => [
+        uiEditableFiles(t).map((file) => [
           file.name,
           readStored(storageKeyFor(slug, uiSlot(ui, t.framework, file.name))) ??
             file.contents,
@@ -149,7 +156,9 @@ export function UiWorkspace({
   const [previewEpoch, setPreviewEpoch] = useState(0);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [logs, setLogs] = useState<PreviewLog[]>([]);
-  const [bottomTab, setBottomTab] = useState<"preview" | "console">("preview");
+  const [bottomTab, setBottomTab] = useState<OutputTab>("preview");
+  const tests = useTestRun();
+  const testFile = uiTestFile(template);
   const [note, setNote] = useState<string | null>(null);
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const { signedIn } = useProgress();
@@ -216,7 +225,7 @@ export function UiWorkspace({
   const { queueSave, flushSave, dropSolution } = useSolutionSync({
     slug,
     slots: templates.flatMap((t) =>
-      t.files.map((file) => uiSlot(ui, t.framework, file.name)),
+      uiEditableFiles(t).map((file) => uiSlot(ui, t.framework, file.name)),
     ),
     enabled: signedIn,
     onPulled: (slots) => {
@@ -224,7 +233,9 @@ export function UiWorkspace({
       // switch; only the visible template needs re-reading now.
       const current = templateRef.current;
       const visible = new Set(
-        current.files.map((file) => uiSlot(ui, current.framework, file.name)),
+        uiEditableFiles(current).map((file) =>
+          uiSlot(ui, current.framework, file.name),
+        ),
       );
       if (!slots.some((slot) => visible.has(slot))) return;
       setFiles(loadFiles(current));
@@ -261,15 +272,20 @@ export function UiWorkspace({
     setActive(next.files[0]?.name ?? "");
     setEditorEpoch((epoch) => epoch + 1);
     setLogs([]);
+    tests.clear();
+    if (bottomTab === "tests" && uiTestFile(next) === null) {
+      setBottomTab("preview");
+    }
     if (rebuildTimer.current) clearTimeout(rebuildTimer.current);
     // State updates land next render; rebuild reads the refs, so defer.
     setTimeout(() => void rebuild(), 0);
   };
 
   const reset = () => {
-    setFiles(Object.fromEntries(template.files.map((f) => [f.name, f.contents])));
+    const starter = uiEditableFiles(template);
+    setFiles(Object.fromEntries(starter.map((f) => [f.name, f.contents])));
     setEditorEpoch((epoch) => epoch + 1);
-    for (const file of template.files) {
+    for (const file of starter) {
       const key = storageKeyFor(slug, slotFor(file.name));
       removeStored(key);
       removeStored(`${key}:savedAt`);
@@ -312,6 +328,13 @@ export function UiWorkspace({
     void rebuild();
   };
 
+  const runTests = () => {
+    if (testFile === null) return;
+    setBottomTab("tests");
+    setLogs([]);
+    void tests.start(templateRef.current, filesRef.current, testFile.name);
+  };
+
   useEditorShortcuts({ save, format, run, submit: run });
 
   // Built once per open file: a fresh array every render would reconfigure
@@ -327,8 +350,6 @@ export function UiWorkspace({
     );
   }
 
-  const errorCount = logs.filter((entry) => entry.level === "error").length;
-
   return (
     <SplitPane
       direction="vertical"
@@ -341,7 +362,7 @@ export function UiWorkspace({
         <section className="flex min-h-[380px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
           <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-1">
             <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-              {template.files.map((file) => (
+              {uiEditableFiles(template).map((file) => (
                 <button
                   key={file.name}
                   onClick={() => switchFile(file.name)}
@@ -402,6 +423,16 @@ export function UiWorkspace({
               >
                 Reset
               </button>
+              {testFile !== null && (
+                <button
+                  onClick={runTests}
+                  disabled={tests.run?.status === "running"}
+                  title={`Run the tests in ${testFile.name}`}
+                  className="rounded-md border border-zinc-700 px-3 py-1 text-xs text-zinc-200 transition-colors hover:bg-zinc-900 hover:text-zinc-50 disabled:cursor-wait disabled:opacity-60"
+                >
+                  Run tests
+                </button>
+              )}
               <button
                 onClick={run}
                 title={`Rebuild the preview (${shortcutHint("run")} or ${shortcutHint("submit")})`}
@@ -430,81 +461,17 @@ export function UiWorkspace({
         </section>
       }
       second={
-        <section className="flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 lg:min-h-0">
-          <div
-            role="tablist"
-            aria-label="Preview"
-            className="flex shrink-0 items-center gap-1 border-b border-zinc-800 px-2"
-          >
-            <PaneTab
-              active={bottomTab === "preview"}
-              onClick={() => setBottomTab("preview")}
-            >
-              Preview
-            </PaneTab>
-            <PaneTab
-              active={bottomTab === "console"}
-              onClick={() => setBottomTab("console")}
-            >
-              Console
-              {logs.length > 0 && (
-                <span
-                  className={
-                    errorCount > 0 ? "text-rose-400" : "text-zinc-500"
-                  }
-                >
-                  {" "}
-                  ({logs.length})
-                </span>
-              )}
-            </PaneTab>
-            <span className="ml-auto pr-1 text-[11px] text-zinc-600">
-              edits re-run automatically
-            </span>
-          </div>
-          {buildError && (
-            <p className="shrink-0 border-b border-rose-500/30 bg-rose-500/10 px-3 py-1.5 font-mono text-xs text-rose-300">
-              {buildError}
-            </p>
-          )}
-          <div className="relative min-h-0 flex-1">
-            {/* The iframe stays mounted while the console tab is open so the
-                user's app keeps running (and logging) behind it. */}
-            <iframe
-              key={previewEpoch}
-              srcDoc={srcdoc ?? "<!doctype html>"}
-              sandbox="allow-scripts allow-modals allow-forms"
-              title="Preview"
-              className={`absolute inset-0 h-full w-full bg-white ${
-                bottomTab === "preview" ? "" : "invisible"
-              }`}
-            />
-            {bottomTab === "console" && (
-              <div className="absolute inset-0 overflow-y-auto bg-zinc-950 p-2 font-mono text-xs leading-5">
-                {logs.length === 0 ? (
-                  <p className="px-1 py-0.5 text-zinc-600">
-                    console.log output from the preview shows up here.
-                  </p>
-                ) : (
-                  logs.map((entry, i) => (
-                    <p
-                      key={i}
-                      className={`whitespace-pre-wrap break-all border-b border-zinc-900 px-1 py-0.5 ${
-                        entry.level === "error"
-                          ? "text-rose-300"
-                          : entry.level === "warn"
-                            ? "text-amber-300"
-                            : "text-zinc-300"
-                      }`}
-                    >
-                      {entry.text}
-                    </p>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </section>
+        <UiOutputPane
+          tab={bottomTab}
+          onTab={setBottomTab}
+          srcdoc={srcdoc}
+          previewEpoch={previewEpoch}
+          buildError={buildError}
+          logs={logs}
+          testFile={testFile?.name ?? null}
+          testRun={tests.run}
+          testDoc={tests.doc}
+        />
       }
     />
   );

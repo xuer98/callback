@@ -1,6 +1,7 @@
 "use client";
 
 import { uiFileKind, type UiTemplate } from "./types";
+import { TESTS_MESSAGE_SOURCE, uiEntryName } from "./ui-tests";
 
 // Builds the sandboxed document the UI workspace renders into its preview
 // iframe. Script files are transpiled with sucrase (JSX + TypeScript) in the
@@ -8,6 +9,11 @@ import { uiFileKind, type UiTemplate } from "./types";
 // into markup — so no source text can break out of a <script> tag. The iframe
 // runs with sandbox="allow-scripts" only: an opaque origin with no access to
 // this app's storage, cookies, or DOM.
+//
+// The same document runs a React template's tests: given a test file, it
+// loads the test runtime (/api/test-runtime) instead of React alone, mounts
+// nothing, and hands the test file to the harness, which posts results to
+// the parent tagged with the run's id.
 
 export type PreviewBuild =
   | { ok: true; srcdoc: string }
@@ -30,22 +36,30 @@ interface Payload {
   /** Ids in file order — vanilla runs them all; react mounts the entry. */
   order: string[];
   entry: string | null;
+  /** The test file's module id, when the document runs tests. */
+  tests: string | null;
+  /** Echoed on every test message, so a stale run's can be told apart. */
+  run: number;
 }
 
 // The React runtime is fetched once from our own origin and inlined into the
 // document. The sandbox gives the iframe an opaque origin — a non-secure
 // context whose requests to localhost Chrome's private-network-access checks
 // block — so the preview must arrive with no subresources to fetch.
-let runtimePromise: Promise<string> | null = null;
+const runtimes = new Map<string, Promise<string>>();
 
-function fetchRuntime(): Promise<string> {
-  runtimePromise ??= fetch("/api/preview-runtime").then(async (res) => {
-    if (!res.ok) throw new Error(`runtime request failed (${res.status})`);
-    return res.text();
-  });
+function fetchRuntime(url: string): Promise<string> {
+  let promise = runtimes.get(url);
+  if (promise === undefined) {
+    promise = fetch(url).then(async (res) => {
+      if (!res.ok) throw new Error(`runtime request failed (${res.status})`);
+      return res.text();
+    });
+    runtimes.set(url, promise);
+  }
   // A failed fetch shouldn't poison every later build.
-  return runtimePromise.catch((err) => {
-    runtimePromise = null;
+  return promise.catch((err) => {
+    runtimes.delete(url);
     throw err;
   });
 }
@@ -53,6 +67,7 @@ function fetchRuntime(): Promise<string> {
 export async function buildPreview(
   ui: UiTemplate,
   contents: Record<string, string>,
+  options: { tests?: { file: string; run: number } } = {},
 ): Promise<PreviewBuild> {
   const { transform } = await import("sucrase");
 
@@ -63,6 +78,25 @@ export async function buildPreview(
     modules: {},
     order: [],
     entry: null,
+    tests: null,
+    run: options.tests?.run ?? 0,
+  };
+
+  const transpile = (name: string, source: string): string | PreviewBuild => {
+    try {
+      return transform(source, {
+        transforms: ["jsx", "typescript", "imports"],
+        jsxRuntime: "automatic",
+        production: true,
+        filePath: name,
+      }).code;
+    } catch (err) {
+      return {
+        ok: false,
+        file: name,
+        message: err instanceof Error ? err.message : String(err),
+      };
+    }
   };
 
   for (const file of ui.files) {
@@ -76,31 +110,24 @@ export async function buildPreview(
       payload.html = source;
       continue;
     }
-    try {
-      const { code } = transform(source, {
-        transforms: ["jsx", "typescript", "imports"],
-        jsxRuntime: "automatic",
-        production: true,
-        filePath: file.name,
-      });
-      payload.modules[file.name] = code;
-      payload.order.push(file.name);
-    } catch (err) {
-      return {
-        ok: false,
-        file: file.name,
-        message: err instanceof Error ? err.message : String(err),
-      };
-    }
+    const code = transpile(file.name, source);
+    if (typeof code !== "string") return code;
+    payload.modules[file.name] = code;
+    payload.order.push(file.name);
+  }
+
+  if (options.tests) {
+    const { file } = options.tests;
+    const code = transpile(file, contents[file] ?? "");
+    if (typeof code !== "string") return code;
+    payload.modules[file] = code;
+    payload.tests = file;
   }
 
   // React mounts the default export of App.* if present, else the first
   // component file.
   if (ui.framework === "react") {
-    payload.entry =
-      payload.order.find((name) => name.startsWith("App.")) ??
-      payload.order[0] ??
-      null;
+    payload.entry = uiEntryName(ui);
     if (payload.entry === null) {
       return {
         ok: false,
@@ -113,12 +140,14 @@ export async function buildPreview(
   let runtime = "";
   if (ui.framework === "react") {
     try {
-      runtime = await fetchRuntime();
+      runtime = await fetchRuntime(
+        payload.tests === null ? "/api/preview-runtime" : "/api/test-runtime",
+      );
     } catch {
       return {
         ok: false,
-        file: payload.entry ?? "App.jsx",
-        message: "The React runtime failed to load — is the server reachable?",
+        file: payload.tests ?? payload.entry ?? "App.jsx",
+        message: `The ${payload.tests === null ? "React" : "test"} runtime failed to load — is the server reachable?`,
       };
     }
   }
@@ -263,8 +292,31 @@ ${runtime}
     return cache[name];
   }
 
+  // Test runs report to the workspace on their own channel.
+  function report(message) {
+    parent.postMessage(
+      Object.assign(
+        { source: ${JSON.stringify(TESTS_MESSAGE_SOURCE)}, run: DATA.run },
+        message
+      ),
+      "*"
+    );
+  }
+
   try {
-    if (DATA.framework === "react") {
+    if (DATA.tests !== null) {
+      var kit = window.__testkit;
+      if (!kit) {
+        report({ kind: "fatal", message: "The test runtime failed to load." });
+        return;
+      }
+      kit.run({
+        load: function () {
+          load("./" + DATA.tests, "tests");
+        },
+        post: report,
+      });
+    } else if (DATA.framework === "react") {
       var component = load("./" + DATA.entry, "preview").default;
       if (typeof component !== "function") {
         fail(DATA.entry + " must export default a React component.");
@@ -286,7 +338,9 @@ ${runtime}
       });
     }
   } catch (err) {
-    fail(err instanceof Error ? (err.stack || err.message) : String(err));
+    var message = err instanceof Error ? (err.stack || err.message) : String(err);
+    if (DATA.tests !== null) report({ kind: "fatal", message: message });
+    else fail(message);
   }
 })();
 </script>

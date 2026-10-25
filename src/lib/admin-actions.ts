@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { parseUiWorkspace } from "./admin-ui-json";
 import { auth } from "./auth";
 import {
   CATEGORIES,
@@ -12,8 +13,6 @@ import {
   type Category,
   type Difficulty,
   type Judge,
-  type UiFile,
-  type UiTemplate,
   type UiWorkspace,
 } from "./types";
 
@@ -180,66 +179,11 @@ function parseJudge(
   };
 }
 
-function parseUiFiles(
-  value: unknown,
-  label: string,
-): { files: UiFile[] } | { error: string } {
-  if (!Array.isArray(value) || value.length === 0) {
-    return { error: `${label} must be a non-empty array of {name, contents}.` };
-  }
-  for (const file of value) {
-    if (
-      !isRecord(file) ||
-      typeof file.name !== "string" ||
-      file.name.trim() === "" ||
-      typeof file.contents !== "string"
-    ) {
-      return { error: `Every file in ${label} needs a name and contents string.` };
-    }
-  }
-  return { files: value as unknown as UiFile[] };
-}
-
-function parseUiTemplate(
-  value: unknown,
-  label: string,
-): { template: UiTemplate } | { error: string } {
-  if (
-    !isRecord(value) ||
-    (value.framework !== "react" && value.framework !== "vanilla")
-  ) {
-    return {
-      error: `${label} must be {"framework": "react" | "vanilla", "files": [{name, contents}, ...], "solution"?: [...]}.`,
-    };
-  }
-  const files = parseUiFiles(value.files, `${label}.files`);
-  if ("error" in files) return files;
-  const template: UiTemplate = { framework: value.framework, files: files.files };
-  if (value.solution !== undefined) {
-    const solution = parseUiFiles(value.solution, `${label}.solution`);
-    if ("error" in solution) return solution;
-    template.solution = solution.files;
-  }
-  return { template };
-}
-
 function parseUi(uiJson: string): { ui: UiWorkspace | null } | { error: string } {
   if (uiJson.trim() === "") return { ui: null };
   const uiResult = parseJson("UI workspace", uiJson);
   if (!uiResult.ok) return { error: uiResult.error };
-  const primary = parseUiTemplate(uiResult.value, "UI workspace");
-  if ("error" in primary) return primary;
-  const ui: UiWorkspace = { ...primary.template };
-  const alternateRaw = (uiResult.value as Record<string, unknown>).alternate;
-  if (alternateRaw !== undefined) {
-    const alternate = parseUiTemplate(alternateRaw, "UI workspace alternate");
-    if ("error" in alternate) return alternate;
-    if (alternate.template.framework === ui.framework) {
-      return { error: "The alternate template must use the other framework." };
-    }
-    ui.alternate = alternate.template;
-  }
-  return { ui };
+  return parseUiWorkspace(uiResult.value);
 }
 
 /** Boundary validation for the whole payload; DB is only touched afterwards. */

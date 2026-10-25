@@ -17,6 +17,7 @@ import {
   type UiFramework,
   type UiWorkspace,
 } from "@/lib/types";
+import { uiEditableFiles } from "@/lib/ui-tests";
 import { readStored, storageKeyFor } from "@/lib/workspace-sync";
 
 // The study assistant on a problem page: questions about the problem, hints
@@ -176,7 +177,7 @@ function gatherWork(
         : ui.framework;
     const template =
       templates.find((t) => t.framework === framework) ?? templates[0];
-    return template.files.flatMap((file) => {
+    return uiEditableFiles(template).flatMap((file) => {
       const draft = readStored(
         storageKeyFor(slug, uiSlot(ui, template.framework, file.name)),
       );

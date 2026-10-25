@@ -287,7 +287,7 @@ export function AdminProblemForm({
 
       <Field
         label="UI workspace"
-        hint='frontend live-preview problems only — JSON {"framework": "react" | "vanilla", "files": [{"name", "contents"}], "solution"?: [files], "alternate"?: {framework, files, solution}}'
+        hint='frontend live-preview problems only — JSON {"framework": "react" | "vanilla", "files": [{"name", "contents"}], "solution"?: [files], "tests"?: "App.test.jsx contents, React only", "alternate"?: {framework, files, solution, tests}}'
       >
         <textarea
           value={values.uiJson}

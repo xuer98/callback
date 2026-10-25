@@ -130,6 +130,12 @@ export interface UiTemplate {
   files: UiFile[];
   /** Complete reference files — a paste-over-the-starter solution. */
   solution?: UiFile[];
+  /**
+   * React only: the starting contents of the workspace's test file
+   * (App.test.jsx), Testing Library tests the candidate runs and can edit.
+   * Absent = a short example test. See src/lib/ui-tests.ts.
+   */
+  tests?: string;
 }
 
 /**
@@ -148,6 +154,7 @@ export function uiTemplates(ui: UiWorkspace): UiTemplate[] {
     framework: ui.framework,
     files: ui.files,
     solution: ui.solution,
+    tests: ui.tests,
   };
   return ui.alternate ? [primary, ui.alternate] : [primary];
 }
