@@ -10,10 +10,18 @@ import { RichText } from "@/components/markdown";
 import { ProblemAssistant } from "@/components/problem-assistant";
 import { ProblemMenuButton } from "@/components/problem-menu";
 import { ProblemPanes } from "@/components/problem-panes";
+import { SimilarProblems } from "@/components/similar-problems";
 import { JudgeSolution, UiSolution } from "@/components/solution-panel";
 import { UiWorkspace } from "@/components/ui-workspace";
 import { Workspace } from "@/components/workspace";
-import { getCompany, getProblem, listProblems } from "@/lib/data";
+import {
+  getCompany,
+  getProblem,
+  listProblems,
+  listSimilarityRows,
+  listTracks,
+} from "@/lib/data";
+import { similarProblems } from "@/lib/similar-problems";
 import {
   CATEGORY_LABELS,
   judgeFor,
@@ -50,6 +58,18 @@ export default async function ProblemPage({
 
   const judge = problem.judge;
   const compact = Boolean(judge || problem.ui);
+
+  // The problems most like this one, scored from the whole bank; see
+  // similar-problems.ts. Rendered after the topics and companies.
+  const similar = (
+    <SimilarProblems
+      problems={similarProblems(
+        problem.slug,
+        await listSimilarityRows(),
+        await listTracks(),
+      )}
+    />
+  );
 
   // The study assistant, on every problem: it sends along the work of
   // whichever workspace the problem has, so it needs to know which.
@@ -134,6 +154,7 @@ export default async function ProblemPage({
               <Hints problem={problem} />
               <Topics problem={problem} />
               <AskedAt problem={problem} />
+              {similar}
             </>
           }
           solution={
@@ -177,6 +198,7 @@ export default async function ProblemPage({
       </section>
       <Topics problem={problem} />
       <AskedAt problem={problem} />
+      {similar}
     </div>
   );
 }

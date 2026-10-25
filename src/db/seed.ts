@@ -43,6 +43,7 @@ async function inBatches<T>(
   }
 }
 import { checkLargeTests, largeTestsFor } from "../lib/seed-large-tests";
+import { checkCuratedSimilar } from "../lib/similar-curated";
 import { checkProblemTopics, problemTopics } from "../lib/seed-topics";
 import { pythonJudges } from "../lib/seed-python";
 import { applePythonJudges } from "../lib/seed-python-apple";
@@ -251,6 +252,7 @@ async function main() {
     );
     // Large generated cases need a judged problem with a reference solution.
     checkLargeTests(seedProblems);
+    checkCuratedSimilar(seedProblems);
     // Topic tags share the listings' vocabulary: the snapshot's tags plus
     // any a curated listing brought along.
     checkProblemTopics(

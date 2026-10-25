@@ -1,8 +1,10 @@
 import "server-only";
 import { eq, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import type { ProgressMap } from "./problem-filter";
+import type { SimilarityRow } from "./similar-problems";
 import {
   LANGUAGES,
   type Category,
@@ -10,6 +12,7 @@ import {
   type Guide,
   type Problem,
   type ProblemCard,
+  type ProblemFormat,
   type ProblemIndex,
   type Track,
 } from "./types";
@@ -64,6 +67,21 @@ export async function listProblems(category?: Category): Promise<Problem[]> {
   return rows.map(toProblem);
 }
 
+/** The same order the problem page picks its workspace in. */
+function formatOf(row: {
+  hasJudge: boolean;
+  hasUi: boolean;
+  category: Category;
+}): ProblemFormat {
+  return row.hasJudge
+    ? "code"
+    : row.hasUi
+      ? "ui"
+      : row.category === "system-design"
+        ? "design"
+        : "quiz";
+}
+
 /**
  * The slim list behind the problem side menu. Selects only what a row shows
  * and derives the format in SQL, so the judge and UI blobs never leave the
@@ -98,14 +116,7 @@ export async function getProblemIndex(): Promise<ProblemIndex> {
       category: row.category,
       difficulty: row.difficulty,
       companies: row.problemCompanies.map((link) => link.company.slug),
-      // The same order the problem page picks its workspace in.
-      format: row.hasJudge
-        ? "code"
-        : row.hasUi
-          ? "ui"
-          : row.category === "system-design"
-            ? "design"
-            : "quiz",
+      format: formatOf(row),
     })),
     companies: [...companyNames]
       .map(([slug, name]) => ({ slug, name }))
@@ -165,6 +176,45 @@ export async function listProblemCards(): Promise<ProblemCard[]> {
         : [],
   }));
 }
+
+/**
+ * What the similar-problems scorer reads, for every problem (see
+ * similar-problems.ts): the list row plus the prompt, without the judges
+ * and UI files. Every problem page needs the whole list, so it is cached
+ * for as long as the pages are rather than fetched once per page.
+ */
+export const listSimilarityRows = unstable_cache(
+  async (): Promise<SimilarityRow[]> => {
+    const rows = await db.query.problems.findMany({
+      columns: {
+        slug: true,
+        title: true,
+        category: true,
+        difficulty: true,
+        summary: true,
+        prompt: true,
+        topics: true,
+      },
+      extras: (problems) => ({
+        hasJudge: sql<boolean>`${problems.judge} is not null`.as("has_judge"),
+        hasUi: sql<boolean>`${problems.ui} is not null`.as("has_ui"),
+      }),
+      orderBy: (problems, { asc }) => [asc(problems.id)],
+    });
+    return rows.map((row) => ({
+      slug: row.slug,
+      title: row.title,
+      category: row.category,
+      difficulty: row.difficulty,
+      summary: row.summary,
+      prompt: row.prompt,
+      topics: row.topics,
+      format: formatOf(row),
+    }));
+  },
+  ["similarity-rows"],
+  { revalidate: 300 },
+);
 
 /**
  * How many of Callback's own problems carry each topic tag, in one
