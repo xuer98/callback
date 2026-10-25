@@ -45,6 +45,7 @@ import { snowflakeTrendProblems } from "./seed-snowflake-trend";
 import { snowflakeGuideProblems } from "./seed-snowflake-guide";
 import { snowflakeJsProblems } from "./seed-snowflake-js";
 import { snowflakeUiProblemsC } from "./seed-snowflake-ui-c";
+import { snowflakeUiRobotProblems } from "./seed-snowflake-ui-robot";
 import { snowflakeUiProblemsD } from "./seed-snowflake-ui-d";
 import { snowflakeUiProblemsE } from "./seed-snowflake-ui-e";
 import { snowflakeUiProblemsF } from "./seed-snowflake-ui-f";
@@ -3050,6 +3051,7 @@ ORDER BY department, employee;
   ...snowflakeGuideProblems,
   ...snowflakeJsProblems,
   ...snowflakeUiProblemsC,
+  ...snowflakeUiRobotProblems,
   ...snowflakeUiProblemsD,
   ...snowflakeUiProblemsE,
   ...snowflakeUiProblemsF,
