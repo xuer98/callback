@@ -20,6 +20,29 @@ function debounce(fn: AnyFn, wait: number): AnyFn & { cancel(): void } {
   return Object.assign((...args: any[]) => fn(...args), { cancel() {} });
 }
 `,
+    solutionCode: `type AnyFn = (...args: any[]) => void;
+
+/** Delays fn until wait ms of quiet; .cancel() drops a pending call. */
+function debounce(fn: AnyFn, wait: number): AnyFn & { cancel(): void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  // A function, not an arrow, so the caller's \`this\` reaches fn.
+  function debounced(this: unknown, ...args: any[]) {
+    if (timer !== null) clearTimeout(timer); // every call pushes the deadline back
+    timer = setTimeout(() => {
+      timer = null;
+      fn.apply(this, args);
+    }, wait);
+  }
+
+  return Object.assign(debounced, {
+    cancel() {
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+    },
+  });
+}
+`,
   },
   "pair-sum-sorted": {
     entry: "pairSum",

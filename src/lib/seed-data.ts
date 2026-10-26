@@ -2694,6 +2694,17 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
       "Each call should reset the pending timer — a closure over the timer id is all the state you need.",
       "For leading-edge behavior, fire immediately when no timer is pending, then suppress calls until things go quiet.",
     ],
+    solution: [
+      "## Approach",
+      "",
+      "One timer in the closure is all the state. Every call clears the pending timer and starts a new one for `wait` ms, so `fn` runs once, `wait` ms after the last call of a burst, with that call's arguments and `this`. `cancel()` clears the timer and resets it to `null`, which leaves the wrapper ready for the next burst. The wrapper is a `function`, not an arrow, so it receives the caller's `this` and can pass it on with `apply`.",
+      "",
+      "## Worth saying out loud",
+      "",
+      "- Debounce waits for quiet and fires once at the end of a burst: search as you type, a resize settling. Throttle fires at most once per interval during the burst: scroll position, drag.",
+      "- A leading-edge option fires on the first call of a burst and ignores the rest until `wait` ms pass without a call. It suits buttons, where the first click should act at once.",
+      "- `cancel()` is what makes debounce safe to use in components: cancel on unmount, or `fn` runs against a view that no longer exists. [Debounce with Cancel and Flush](/problems/debounce-cancel-flush) adds `flush()` to run the pending call now.",
+    ].join("\n"),
     judge: {
       starterCode: `/**
  * @param {Function} fn
@@ -2703,6 +2714,32 @@ a.com was visited so it reports true, while z.com never was. After back(1) lands
 function debounce(fn, wait) {
   // Your code here
   return Object.assign((...args) => fn(...args), { cancel() {} });
+}
+`,
+      solutionCode: `/**
+ * @param {Function} fn
+ * @param {number} wait - milliseconds of quiet before fn runs
+ * @returns {Function} debounced wrapper with a .cancel() method
+ */
+function debounce(fn, wait) {
+  let timer = null;
+
+  // A function, not an arrow, so the caller's \`this\` reaches fn.
+  function debounced(...args) {
+    const context = this;
+    clearTimeout(timer); // every call pushes the deadline back
+    timer = setTimeout(() => {
+      timer = null;
+      fn.apply(context, args);
+    }, wait);
+  }
+
+  debounced.cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  return debounced;
 }
 `,
       entry: "__runDebounceScenario",
